@@ -1,28 +1,27 @@
 using System;
 using Hydronom.Core.Modules.TaskModule;
-using Hydronom.Core.Modules.ControlModule;
 
 namespace Hydronom.Core.Modules.DecisionModule
 {
     public class DecisionManager
     {
-        public DecisionManager() { }
-
-        public ControlMode Evaluate(TaskItem task)
+        public DecisionManager()
         {
-            Console.WriteLine("🤖 Evaluating task...");
-            if (task.Description.ToLower().Contains("manual"))
-            {
-                Console.WriteLine("🤖 Manual control required.");
-                return ControlMode.Manual;
-            }
-            Console.WriteLine("🤖 Autonomous control selected.");
-            return ControlMode.Autonomous;
+            // Decision manager initialized
         }
 
-        public void Evaluate()
+        public void Evaluate(Task task)
         {
-            Console.WriteLine("🤖 Decision evaluated.");
+            string mode = task.Type switch
+            {
+                "AreaScan" => "AutonomousControl",
+                "Docking" => "ManualControl",
+                "ObstacleAvoidance" => "AutonomousEmergency",
+                _ => "Idle"
+            };
+
+            Console.WriteLine($"🤖 Decision: Switching to {mode} for task '{task.Type}'");
         }
     }
 }
+
