@@ -1,0 +1,1 @@
+namespace Hydronom.Core.Modules.TaskModule { public class TaskManager { public TaskManager() { } public void AssignTask() { System.Console.WriteLine("🔧 Task assigned."); } } }

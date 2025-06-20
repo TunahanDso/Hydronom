@@ -1,0 +1,1 @@
+namespace Hydronom.Core.Modules.ControlModule { public class ControlManager { public ControlManager() { } public void MoveForward() { System.Console.WriteLine("🚀 Moving forward."); } } }

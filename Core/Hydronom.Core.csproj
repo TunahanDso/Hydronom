@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Hydronom.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <Compile Include="Modules/TaskModule/TaskManager.cs" />
+     <Compile Include="Modules/DecisionModule/DecisionManager.cs" />
+        <Compile Include="Modules/ControlModule/ControlManager.cs" />
+      <Compile Include="Modules/AnalysisModule/AnalysisManager.cs" />
+        <Compile Include="Modules/FeedbackModule/FeedbackManager.cs" />
+
+  </ItemGroup>
+
+</Project>
