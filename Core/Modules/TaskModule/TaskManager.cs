@@ -5,39 +5,45 @@ namespace Hydronom.Core.Modules.TaskModule
 {
     public class Task
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
         public string Type { get; set; }
-        public DateTime Timestamp { get; set; }
+        public DateTime CreatedAt { get; set; }
 
-        public Task(int id, string type)
+        public Task(string type)
         {
-            Id = id;
+            Id = Guid.NewGuid().ToString();
             Type = type;
-            Timestamp = DateTime.Now;
+            CreatedAt = DateTime.Now;
+        }
+
+        public override string ToString()
+        {
+            return $"📌 Task Created: {Type} (ID: {Id}, Time: {CreatedAt})";
         }
     }
 
     public class TaskManager
     {
-        private readonly List<Task> _tasks = new();
+        private List<Task> taskList;
 
-        public TaskManager() { }
-
-        public Task CreateTask(int id, string type)
+        public TaskManager()
         {
-            var task = new Task(id, type);
-            _tasks.Add(task);
-            Console.WriteLine($"🔧 Created task {task.Id} of type {task.Type} at {task.Timestamp}.");
-            return task;
+            taskList = new List<Task>();
+        }
+
+        public Task CreateTask(string type)
+        {
+            var newTask = new Task(type);
+            taskList.Add(newTask);
+            Console.WriteLine(newTask);
+            return newTask;
         }
 
         public void ListTasks()
         {
-            Console.WriteLine("📋 Task list:");
-            foreach (var task in _tasks)
-            {
-                Console.WriteLine($"- {task.Id}: {task.Type} at {task.Timestamp}");
-            }
+            Console.WriteLine("📋 Task List:");
+            foreach (var task in taskList)
+                Console.WriteLine($"- {task.Type} (ID: {task.Id})");
         }
     }
 }
