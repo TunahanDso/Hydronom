@@ -3,13 +3,3 @@ C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom
 C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.AssemblyInfo.cs
 C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.csproj.CoreCompileInputs.cache
 C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.sourcelink.json
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\bin\Debug\net6.0\Hydronom.Core.exe
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\bin\Debug\net6.0\Hydronom.Core.deps.json
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\bin\Debug\net6.0\Hydronom.Core.runtimeconfig.json
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\bin\Debug\net6.0\Hydronom.Core.dll
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\bin\Debug\net6.0\Hydronom.Core.pdb
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.dll
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\refint\Hydronom.Core.dll
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.pdb
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.genruntimeconfig.cache
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\ref\Hydronom.Core.dll
