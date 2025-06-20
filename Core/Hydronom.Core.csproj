@@ -6,14 +6,5 @@
     <RootNamespace>Hydronom.Core</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-      <Compile Include="Modules/TaskModule/TaskManager.cs" />
-      <Compile Include="Modules/TaskModule/Task.cs" />
-      <Compile Include="Modules/DecisionModule/DecisionManager.cs" />
-        <Compile Include="Modules/ControlModule/ControlManager.cs" />
-      <Compile Include="Modules/AnalysisModule/AnalysisManager.cs" />
-        <Compile Include="Modules/FeedbackModule/FeedbackManager.cs" />
-
-  </ItemGroup>
 
 </Project>
