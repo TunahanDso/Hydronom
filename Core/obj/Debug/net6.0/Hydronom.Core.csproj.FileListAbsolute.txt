@@ -1,5 +1,0 @@
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.AssemblyInfoInputs.cache
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.AssemblyInfo.cs
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.csproj.CoreCompileInputs.cache
-C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\Core\obj\Debug\net6.0\Hydronom.Core.sourcelink.json
