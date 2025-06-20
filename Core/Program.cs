@@ -1,4 +1,3 @@
-
 using System;
 using Hydronom.Core.Modules.TaskModule;
 using Hydronom.Core.Modules.DecisionModule;
@@ -21,11 +20,14 @@ namespace Hydronom.Core
             var analysisManager = new AnalysisManager();
             var feedbackManager = new FeedbackManager();
 
-            // Basit test çalıştırmaları (ileride görev döngüsüne dönüştürülecek)
-            taskManager.AssignTask();
+            // Görev oluştur ve değerlendir
+            var task = taskManager.CreateTask("Navigate to waypoint");
+            var selectedMode = decisionManager.Evaluate(task);
+            Console.WriteLine($"Selected Control Mode: {selectedMode}");
+            controlManager.ApplyControlMode(selectedMode);
+
+            // Diğer modülleri çalıştır
             analysisManager.Analyze();
-            decisionManager.Evaluate();
-            controlManager.MoveForward();
             feedbackManager.Log();
 
             Console.WriteLine("✅ All modules initialized successfully.");
