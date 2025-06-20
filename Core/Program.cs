@@ -24,7 +24,11 @@ namespace Hydronom.Core
             // Basit test çalıştırmaları (ileride görev döngüsüne dönüştürülecek)
             taskManager.AssignTask();
             analysisManager.Analyze();
-            decisionManager.Evaluate();
+
+            // Örnek bir görev üzerinde karar ver
+            var task = new Task(TaskType.AreaScan);
+            decisionManager.Evaluate(task);
+
             controlManager.MoveForward();
             feedbackManager.Log();
 
