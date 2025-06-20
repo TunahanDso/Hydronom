@@ -3,24 +3,6 @@ using System.Collections.Generic;
 
 namespace Hydronom.Core.Modules.TaskModule
 {
-    public class Task
-    {
-        public string Id { get; set; }
-        public string Type { get; set; }
-        public DateTime CreatedAt { get; set; }
-
-        public Task(string type)
-        {
-            Id = Guid.NewGuid().ToString();
-            Type = type;
-            CreatedAt = DateTime.Now;
-        }
-
-        public override string ToString()
-        {
-            return $"📌 Task Created: {Type} (ID: {Id}, Time: {CreatedAt})";
-        }
-    }
 
     public class TaskManager
     {
@@ -31,7 +13,7 @@ namespace Hydronom.Core.Modules.TaskModule
             taskList = new List<Task>();
         }
 
-        public Task CreateTask(string type)
+        public Task CreateTask(TaskType type)
         {
             var newTask = new Task(type);
             taskList.Add(newTask);

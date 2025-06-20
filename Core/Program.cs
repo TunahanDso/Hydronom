@@ -11,7 +11,7 @@ namespace Hydronom.Core
             Console.WriteLine("🔵 Hydronom Autonomous System Starting...");
 
             var taskManager = new TaskManager();
-            var task = taskManager.CreateTask("Docking");
+            var task = taskManager.CreateTask(TaskType.Docking);
 
             var decisionManager = new DecisionManager();
             decisionManager.Evaluate(task);

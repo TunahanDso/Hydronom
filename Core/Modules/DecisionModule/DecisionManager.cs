@@ -14,9 +14,8 @@ namespace Hydronom.Core.Modules.DecisionModule
         {
             string mode = task.Type switch
             {
-                "AreaScan" => "AutonomousControl",
-                "Docking" => "ManualControl",
-                "ObstacleAvoidance" => "AutonomousEmergency",
+                TaskType.AreaScan => "AutonomousControl",
+                TaskType.Docking => "ManualControl",
                 _ => "Idle"
             };
 
