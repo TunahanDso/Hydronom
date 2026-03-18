@@ -1,0 +1,14 @@
+{
+  "SensorSource": {
+    "Type": "TcpJson",
+    "TcpJson": { "Host": "127.0.0.1", "Port": 5055, "FreshMs": 300 },
+    "PreferExternal": true
+  },
+  "Subscriptions": {
+    "SampleHz": { "imu0": 20, "gps0": 5, "lidar0": 5, "camera0": 5 },
+    "FusedStateHz": 10,
+    "EventHz": 2,
+    "HealthHz": 1,
+    "ExternalState": true
+  }
+}

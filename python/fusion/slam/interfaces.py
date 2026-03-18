@@ -1,0 +1,13 @@
+# fusion/slam/interfaces.py
+from typing import Protocol, Optional, Dict, Any, List, Tuple
+
+class ISlamBackend(Protocol):
+    """
+    SLAM/odometri backend arayüzü (ör. ICP, scan-to-map, VO).
+    """
+    def open(self) -> None: ...
+    def update(self, samples: List[object], pose_guess_xy_yaw: Tuple[float, float, float]) -> None: ...
+    def get_pose_delta(self) -> Optional[Tuple[float, float, float]]:
+        """Son frame’den bu frame’e (dx,dy,dyaw_deg)."""
+        ...
+    def close(self) -> None: ...

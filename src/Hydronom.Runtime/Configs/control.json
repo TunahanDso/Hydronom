@@ -1,0 +1,13 @@
+{
+  "Control": {
+    "CommandServer": {
+      "Host": "0.0.0.0",
+      "Port": 5060
+    },
+    "Limiter": {
+      "ThrottleRatePerSec": 10.0,
+      "RudderRatePerSec": 10.0
+    },
+    "InvertRudder": true
+  }
+}

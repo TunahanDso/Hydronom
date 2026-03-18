@@ -1,0 +1,16 @@
+{
+  "Simulation": {
+    "Mode": "Sim",
+    "Seed": 42,
+    "DurationS": 3600,
+    "World": { "current_ms": 0.2, "wind_ms": 0.0 },
+    "Noise": {
+      "imu":   { "ax_std": 0.05, "gyro_std": 0.01 },
+      "gps":   { "pos_m": 1.5, "hdop": 0.8, "drop_p": 0.02 },
+      "lidar": { "points": 500, "drop_p": 0.05 },
+      "camera":{ "fps": 5, "drop_p": 0.05 }
+    },
+    "RatesHz": { "imu": 20, "gps": 5, "lidar": 5, "camera": 5, "fused": 10, "event": 2, "health": 1 },
+    "Playback": { "enabled": false, "file": "recordings/session.ndjson" }
+  }
+}

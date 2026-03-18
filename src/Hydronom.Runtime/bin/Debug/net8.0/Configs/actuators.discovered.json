@@ -1,0 +1,8 @@
+{
+  "SchemaVersion": "1.0.0",
+  "DiscoveredAtUtc": null,
+  "MCU": { "Model": null, "Firmware": null, "Serial": null },
+  "PWM": { "MinUs": 1100, "NeutralUs": 1500, "MaxUs": 1900 },
+  "Motors": [],
+  "Tests": {}
+}

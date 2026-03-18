@@ -1,0 +1,7 @@
+{
+  "Discovery": {
+    "Sensor": { "RequestOnBoot": true, "TimeoutMs": 2000, "ResubscribeSec": 10 },
+    "Motor":  { "RequestOnBoot": true, "TimeoutMs": 3000 },
+    "Timesync": { "Enabled": true, "IntervalSec": 5 }
+  }
+}

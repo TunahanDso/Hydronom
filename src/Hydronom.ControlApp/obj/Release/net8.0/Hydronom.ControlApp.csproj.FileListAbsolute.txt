@@ -1,0 +1,14 @@
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\bin\Release\net8.0\Hydronom.ControlApp.exe
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\bin\Release\net8.0\Hydronom.ControlApp.deps.json
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\bin\Release\net8.0\Hydronom.ControlApp.runtimeconfig.json
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\bin\Release\net8.0\Hydronom.ControlApp.dll
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\bin\Release\net8.0\Hydronom.ControlApp.pdb
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.AssemblyInfoInputs.cache
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.AssemblyInfo.cs
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.csproj.CoreCompileInputs.cache
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.dll
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\refint\Hydronom.ControlApp.dll
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.pdb
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\Hydronom.ControlApp.genruntimeconfig.cache
+C:\Users\TunahanDELİSALİHOĞLU\Desktop\Hydronom\src\Hydronom.ControlApp\obj\Release\net8.0\ref\Hydronom.ControlApp.dll

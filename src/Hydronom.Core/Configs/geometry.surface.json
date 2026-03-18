@@ -1,0 +1,48 @@
+{
+  "VehicleType": "SurfaceVessel",
+  "Description": "6-DOF destekli yüzey aracı için temel itki geometrisi.",
+  "Thrusters": [
+    {
+      "Id": "FL",
+      "Channel": 0,
+      "Position": { "X": -0.6, "Y":  0.4, "Z": 0.0 },
+      "ForceDir": { "X":  1.0, "Y":  0.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "FR",
+      "Channel": 1,
+      "Position": { "X":  0.6, "Y":  0.4, "Z": 0.0 },
+      "ForceDir": { "X":  1.0, "Y":  0.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "RL",
+      "Channel": 2,
+      "Position": { "X": -0.6, "Y": -0.4, "Z": 0.0 },
+      "ForceDir": { "X":  1.0, "Y":  0.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "RR",
+      "Channel": 3,
+      "Position": { "X":  0.6, "Y": -0.4, "Z": 0.0 },
+      "ForceDir": { "X":  1.0, "Y":  0.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "VL",
+      "Channel": 4,
+      "Position": { "X": -0.3, "Y":  0.0, "Z": -0.2 },
+      "ForceDir": { "X":  0.0, "Y":  0.0, "Z":  1.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "VR",
+      "Channel": 5,
+      "Position": { "X":  0.3, "Y":  0.0, "Z": -0.2 },
+      "ForceDir": { "X":  0.0, "Y":  0.0, "Z":  1.0 },
+      "Reversed": false
+    }
+  ]
+}

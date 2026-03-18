@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Çıkış tipi ve hedef .NET sürümü -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<!-- Çekirdek projeye referans -->
+	<ItemGroup>
+		<ProjectReference Include="..\Hydronom.Core\Hydronom.Core.csproj" />
+		<ProjectReference Include="..\Hydronom.AI\Hydronom.AI.csproj" />
+	</ItemGroup>
+
+	<!-- appsettings.json okumak için konfig paketleri (9.x net8 destekli) -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.9" />
+		<PackageReference Include="System.IO.Ports" Version="9.0.9" />
+	</ItemGroup>
+
+	<!-- ÖNEMLİ: appsettings.json'ı bin\...\ içine kopyala ki runtime bulsun -->
+	<ItemGroup>
+		<!-- PreserveNewest: dosya değiştiyse yeniden kopyalar -->
+		<Content Include="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<!-- ÖNEMLİ: Configs altındaki TÜM .json dosyalarını çıktı klasörüne kopyala -->
+	<ItemGroup>
+		<None Include="Configs\**\*.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>

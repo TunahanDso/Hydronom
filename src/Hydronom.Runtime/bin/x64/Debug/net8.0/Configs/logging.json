@@ -1,0 +1,10 @@
+{
+  "Logging": {
+    "Console": {
+      "Level": "Info",
+      "SummariesPeriodSec": 1,
+      "PrintSampleEveryN": 10,
+      "PrintDetections": true
+    }
+  }
+}

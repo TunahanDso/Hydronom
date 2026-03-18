@@ -1,0 +1,44 @@
+{
+  "SchemaVersion": "1.0.0",
+  "FrameId": "base_link",
+
+  "GeometryPolicy": {
+    "Mode": "Explicit",
+    "FallbackLayout": {
+      "Type": "Ring",
+      "RadiusM": 0.5,
+      "ThrustAxis": { "x": 1.0, "y": 0.0, "z": 0.0 }
+    }
+  },
+
+  "Thrusters": [
+    {
+      "Id": "H_FL",
+      "Channel": 0,
+      "Position": { "X": 0.40, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": 1.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "H_FR",
+      "Channel": 1,
+      "Position": { "X": 0.40, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": -1.0, "Z": 0.0 },
+      "Reversed": false
+    },
+    {
+      "Id": "H_RL",
+      "Channel": 2,
+      "Position": { "X": -0.40, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
+      "Reversed": true
+    },
+    {
+      "Id": "H_RR",
+      "Channel": 3,
+      "Position": { "X": -0.40, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
+      "Reversed": true
+    }
+  ]
+}

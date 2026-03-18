@@ -1,0 +1,85 @@
+# configs/default.yaml
+# Hydronom Fusion — Varsayılan Konfigürasyon
+# Not: Bu dosya fusion/config.py → build_fuser_from_config() ile yüklenir.
+
+fuser:
+  # Yayın (emit) frekansı
+  period_hz: 10.0
+
+  # IMU (yaw) + GPS heading tamamlayıcı filtre katsayısı (IMU ağırlığı)
+  heading_alpha: 0.92
+
+  # Twist (vx, vy) üretimi için GPS-türevi EMA parametreleri
+  vel_ema_alpha: 0.2
+  gps_dt_min: 0.05
+  gps_dt_max: 1.5
+  speed_floor: 0.02
+
+  # Plugin yürütme gözlemi (telemetri) ve circuit-breaker
+  plugin_slow_budget_ms: 50.0
+  plugin_err_threshold: 5
+  plugin_err_window_s: 60.0
+
+plugins:
+  # --- İz Çizimi (polyline) ---
+  - name: trail
+    enabled: true
+    args:
+      max_points: 1200
+      min_step_m: 0.25
+      downsample_step: 1
+      preview_id: "trail"
+      style: { width: 2 }
+
+  # --- LiDAR engel önizlemesi (dünya çerçevesi polyline) ---
+  - name: lidar_obstacles
+    enabled: true
+    args:
+      landmark_id: "lidar_scan"
+      max_points: 1080
+      # GUI yoğunluk kontrolünü lidar tarafında değil, polyline’da yapıyoruz
+      # (gerekirse downsample ekleyebilirsin)
+
+  # --- Basit OGM (log-odds grid, DDA ray) ---
+  - name: occupancy_grid
+    enabled: true
+    args:
+      resolution_m: 0.25
+      width_cells: 240
+      height_cells: 240
+      logit_hit: 0.85
+      logit_free: -0.40
+      logit_min: -4.0
+      logit_max: 4.0
+      occ_threshold: 0.0
+      max_points: 500
+      fov_only: true
+
+  # --- Görsel şamandıra algılama → landmark: point ---
+  - name: vision_buoy
+    enabled: true
+    args:
+      ttl_s: 5.0
+      min_conf: 0.6
+      # gate_dist_m parametresi eklendiyse burada ayarla; yoksa kaldır:
+      # gate_dist_m: 2.0
+
+  # --- EKF Lokalizasyon (IMU gz + GPS poz + hız-heading) ---
+  - name: ekf
+    enabled: true
+    args:
+      q_pos: 0.05          # m
+      q_vel: 0.20          # m/s
+      q_bias: 0.001        # rad/s
+      r_gps_pos: 2.5       # m
+      r_heading_deg: 5.0   # deg
+      v_heading_min: 0.5   # m/s
+
+  # --- SLAM/Odometri (dead_reckon iskelet + küçük pose düzeltmeleri) ---
+  - name: slam_odometry
+    enabled: true
+    args:
+      # örnek arg’lar; backend basitse boş bırakılabilir
+      # alpha_gps_heading: 0.05
+      # v_min_mps: 0.9
+      # max_step_deg: 2.0

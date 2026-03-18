@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydroScan – Hydronom Detaylı Mühendislik Analiz Paneli</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Harici stil dosyası -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='hydroscan.css') }}">
+</head>
+<body class="hydroscan-body">
+
+<div class="page-shell">
+    <!-- Üst Navbar -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <div class="brand">
+                <span class="brand-icon">🌊</span>
+                <div class="brand-text">
+                    <span class="brand-title">HydroScan</span>
+                    <span class="brand-subtitle">Hydronom 6DoF Görev Analiz Paneli</span>
+                </div>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <div class="status-group">
+                <span class="status-label">Canlı Mod</span>
+                <span id="liveStatusBadge" class="badge badge-offline">OFFLINE</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana Layout: Sol mini navigation + sağ içerik -->
+    <div class="layout">
+        <!-- Sol navigation (anchor linkler) -->
+        <nav class="side-nav">
+            <div class="side-nav-section">
+                <span class="side-nav-title">Genel</span>
+                <a href="#section-input" class="side-nav-link">1. Log / Canlı</a>
+                <a href="#section-timeline" class="side-nav-link">2. Zaman & Görev</a>
+            </div>
+            <div class="side-nav-section">
+                <span class="side-nav-title">Telemetri</span>
+                <a href="#section-sensors" class="side-nav-link">3. Sensör & Sağlık</a>
+                <a href="#section-plots" class="side-nav-link">4. Grafikler</a>
+                <a href="#section-console" class="side-nav-link">Ham Log Konsolu</a>
+            </div>
+        </nav>
+
+        <!-- Sağ ana içerik -->
+        <main class="main-content">
+            <!-- 1. GİRİŞ / LOG YÜKLEME + CANLI MOD -->
+            <section id="section-input" class="panel panel-large input-section">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">1. Log Dosyasını Yükle veya Canlı Takip Et</h2>
+                        <p class="panel-subtitle">
+                            Hydronom görev loglarını ya da canlı akışı kullanarak tüm 6DoF durumu,
+                            kuvvet-tork ve itici verilerini görselleştir.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="input-grid">
+                        <!-- OFFLINE LOG YÜKLEME -->
+                        <div class="card input-block">
+                            <div class="card-header">
+                                <h3 class="card-title">📁 Offline Analiz (Log Dosyasından)</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="small-help">
+                                    Önceden kaydedilmiş bir görev logunu açarak tüm dinamik, kontrol ve
+                                    itici verilerini zaman çizelgesi üzerinden inceleyebilirsin.
+                                </p>
+                                <div class="file-row">
+                                    <input type="file" id="logFile" accept=".docx,.txt" class="file-input">
+                                    <button type="button" onclick="uploadFile()" class="btn btn-primary">
+                                        Veriyi Yükle ve Analize Başla
+                                    </button>
+                                </div>
+                                <p class="tiny-note">
+                                    Dosya formatı: Hydronom runtime logları veya aynı formatta üretilmiş görev logları.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- CANLI MOD -->
+                        <div class="card input-block live-block">
+                            <div class="card-header">
+                                <h3 class="card-title">🟢 Canlı Mod (Hydronom Runtime)</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="small-help">
+                                    <strong>main.py</strong> veri tarafı ve <strong>Hydronom runtime</strong> çalışırken, bu panel
+                                    üzerinden 6DoF durum, kuvvet, tork ve itici çıkışlarını canlı takip edebilirsin.
+                                </p>
+                                <div class="live-buttons">
+                                    <button type="button" onclick="startLiveMode()" class="btn btn-live">
+                                        ▶ Canlı Modu Başlat
+                                    </button>
+                                    <button type="button" onclick="stopLiveMode()" class="btn btn-secondary">
+                                        ⏹ Durdur
+                                    </button>
+                                </div>
+                                <p class="tiny-note">
+                                    Canlı akış ileride otomatik olarak “HydroScan formatı”nda loglanıp yeniden açılabilir hale gelecek.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. ZAMAN ÇİZELGESİ & GÖREV DURUMU -->
+            <section id="section-timeline" class="panel" >
+                <div id="controlsSection" style="display:none;">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">2. Zaman Çizelgesi ve Görev Durumu</h2>
+                            <p class="panel-subtitle">
+                                Tüm STATE frame’leri üzerinden görev süreci, konum, hız ve komut profilini incele.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="controls-header">
+                            <p>
+                                Toplam Kayıt: <span id="maxSteps" class="font-bold">0</span> |
+                                Süre: <span id="maxTime" class="font-bold">0 s</span> |
+                                İtici: <span id="thrusterCount" class="font-bold">0</span>
+                            </p>
+                            <p class="task-line">
+                                Görev Durumu:
+                                <span id="taskStatus" class="font-bold task-name">--</span>
+                                <span id="taskTarget" class="task-target"></span>
+                            </p>
+                        </div>
+
+                        <div class="slider-row">
+                            <label for="timeSlider" class="slider-label">Zaman Çizelgesi</label>
+                            <input
+                                type="range"
+                                id="timeSlider"
+                                min="0"
+                                max="0"
+                                value="0"
+                                step="1"
+                                oninput="updateVisualization(this.value)"
+                                class="time-slider"
+                            >
+                        </div>
+
+                        <p class="current-step">
+                            Mevcut Zaman:
+                            <span id="currentTime" class="current-highlight">0.00</span> saniye |
+                            Kayıt Adımı:
+                            <span id="currentStep" class="current-highlight">0</span>
+                        </p>
+
+                        <!-- 2.1 Anlık Dinamik Veriler -->
+                        <h3 class="section-subtitle">Anlık Veri Dashboard</h3>
+                        <div class="dashboard">
+                            <div class="indicator">
+                                <h4>Pos X / Y / Z (m)</h4>
+                                <div id="disp_pos_xyz" class="value">0.00, 0.00, 0.00</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Vel X / Y / Z (m/s)</h4>
+                                <div id="disp_vel_xyz" class="value">0.00, 0.00, 0.00</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Hız Büyüklüğü (m/s)</h4>
+                                <div id="disp_vel_mag" class="value value-blue">0.000</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Roll / Pitch / Yaw (deg)</h4>
+                                <div id="disp_rpy_all" class="value">0.00 / 0.00 / 0.00</div>
+                            </div>
+
+                            <div class="indicator">
+                                <h4>Komut (THR / RUD)</h4>
+                                <div id="disp_cmd_tr" class="value value-green">0.00 / 0.00</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Tork X / Y / Z (Nm)</h4>
+                                <div id="disp_torque_xyz" class="value value-orange">0.00 / 0.00 / 0.00</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Kuvvet X / Y / Z (N)</h4>
+                                <div id="disp_force_xyz" class="value value-red">0.00 / 0.00 / 0.00</div>
+                            </div>
+                            <div class="indicator">
+                                <h4>Hedefe Mesafe (m)</h4>
+                                <div id="disp_dist" class="value value-indigo">0.00</div>
+                            </div>
+
+                            <!-- Durum Göstergeleri -->
+                            <div class="indicator" id="limiterStatus">
+                                <h4>Limitör Durumu</h4>
+                                <div id="disp_limiter" class="value">NONE</div>
+                            </div>
+                            <div class="indicator" id="obstacleStatus">
+                                <h4>Engel Algılama</h4>
+                                <div id="disp_obsAhead" class="value">--</div>
+                            </div>
+                        </div>
+
+                        <!-- 2.2 Görev Özeti Kartları (global metrikler) -->
+                        <h3 class="section-subtitle">Görev Özeti Kartları</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <h4>⏱ Toplam Görev Süresi</h4>
+                                <div id="summary_total_time" class="summary-value">0.0 s</div>
+                                <p class="summary-help">İlk ve son STATE arasındaki süre.</p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>📍 Toplam Yol / Mesafe</h4>
+                                <div id="summary_total_distance" class="summary-value">0.0 m</div>
+                                <p class="summary-help">XY düzleminde entegre yol uzunluğu.</p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>🚀 Maksimum Hız</h4>
+                                <div id="summary_max_velocity" class="summary-value">0.0 m/s</div>
+                                <p class="summary-help">velocity_mag alanının maksimumu.</p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>🛡 Limitör / Engel Olayları</h4>
+                                <div id="summary_limiter_events" class="summary-value">0</div>
+                                <p class="summary-help">
+                                    Limitör devreye girdiği veya engel algılandığı an sayısı.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. SENSÖR & SAĞLIK PANELLERİ -->
+            <section id="section-sensors" class="panel">
+                <div id="sensorSection" style="display:none;">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">3. Sensörler ve Sistem Sağlığı</h2>
+                            <p class="panel-subtitle">
+                                IMU, GPS, Kamera, LiDAR ve genel sistem sağlık durumunu tek ekranda özetle.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <!-- 3.1 Sensör Durum Kartları -->
+                        <h3 class="section-subtitle">Sensör Durum Kartları</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <h4>📡 IMU</h4>
+                                <div id="sensor_imu_status" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Son IMU örneği (ax, ay, az / gx, gy, gz) ve güncelliği.
+                                </p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>🛰 GPS</h4>
+                                <div id="sensor_gps_status" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Son GPS fix bilgisi (lat, lon, fix, hdop).
+                                </p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>📷 Kamera</h4>
+                                <div id="sensor_cam_status" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Son kamera olayı (tespit edilen nesneler, FPS vb.).
+                                </p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>📡 LiDAR</h4>
+                                <div id="sensor_lidar_status" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Son LiDAR taraması (geçerli/bozuk, nokta sayısı vb.).
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3.2 Sağlık Durumu Kartları -->
+                        <h3 class="section-subtitle">Sistem Sağlık Kartları</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <h4>💻 Runtime Durumu</h4>
+                                <div id="health_runtime_status" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Health snapshot içindeki genel durum (OK/WARN/ERROR).
+                                </p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>⚠ Uyarı / Hata Sayısı</h4>
+                                <div id="health_warning_count" class="summary-value">0</div>
+                                <p class="summary-help">
+                                    Health / Event kayıtlarında uyarı ve hata sayısı.
+                                </p>
+                            </div>
+                            <div class="summary-card">
+                                <h4>📝 Son Olay</h4>
+                                <div id="health_last_event" class="summary-value">--</div>
+                                <p class="summary-help">
+                                    Son kaydedilen önemli health/event mesajının özeti.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3.3 Sensör & Sağlık Grafikleri -->
+                        <h3 class="section-subtitle">Sensör ve Sağlık Zaman Serileri</h3>
+                        <div class="plot-container">
+                            <h4>📊 Sensör Veri Oranları (Hz)</h4>
+                            <p class="plot-help">
+                                IMU, GPS, LiDAR ve Kamera için zaman ekseninde efektif veri oranı (Hz).
+                            </p>
+                            <div id="sensorRatePlot" class="plot-box small-plot"></div>
+                        </div>
+
+                        <div class="plot-container">
+                            <h4>🩺 Health / Event Zaman Çizgisi</h4>
+                            <p class="plot-help">
+                                Sağlık olaylarını (OK/WARN/ERROR) zaman çizelgesi üzerinde gösterir.
+                            </p>
+                            <div id="healthTimelinePlot" class="plot-box small-plot"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 4. GRAFİKLER & KONSOL -->
+            <section id="section-plots" class="panel">
+                <div id="plotsContainer" style="display:none;">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">4. Grafikler</h2>
+                            <p class="panel-subtitle">
+                                Yörünge, itici dağılımı, hız-komut profili ve kuvvet-tork zaman serilerini incele.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <!-- 1: Yörünge Plotu -->
+                        <div class="plot-container">
+                            <h3>📍 Yörünge İzleme (X-Y)</h3>
+                            <p class="plot-help">
+                                Araç gövde merkezinin XY düzlemindeki izini ve (varsa) hedef noktaları gösterir.
+                            </p>
+                            <div id="positionPlot" class="plot-box"></div>
+                        </div>
+
+                        <!-- 2: İtici Geometrisi / Anlık Çıkış -->
+                        <div class="plot-container">
+                            <h3>⚙️ İtici Konumu ve Anlık Kuvvet Dağılımı (Gövde Frame)</h3>
+                            <p class="plot-help">
+                                Thruster layout bilgisine göre her iticinin konumu ve seçilen anda ürettiği normalize çıkış değeri.
+                            </p>
+                            <div id="thrusterLayoutPlot" class="plot-box"></div>
+                        </div>
+
+                        <!-- 3: Hız Büyüklüğü ve Komut Profili -->
+                        <div class="plot-container">
+                            <h3>📈 Hız Büyüklüğü ve Komut Profili</h3>
+                            <p class="plot-help">
+                                Zaman ekseninde velocity_mag, throttle ve rudder komutlarını aynı grafikte görselleştirir.
+                            </p>
+                            <div id="commandPlot" class="plot-box small-plot"></div>
+                        </div>
+
+                        <!-- 4: Roll, Pitch, Yaw Açıları -->
+                        <div class="plot-container">
+                            <h3>🔄 Roll, Pitch, Yaw Açıları</h3>
+                            <p class="plot-help">
+                                Araç gövdesinin 3 eksendeki açısal durumu, zaman serisi olarak.
+                            </p>
+                            <div id="rpyPlot" class="plot-box small-plot"></div>
+                        </div>
+                        
+                        <!-- 5: Kuvvet / Tork -->
+                        <div class="plot-container">
+                            <h3>⚖️ Gövde Üzerindeki Toplam Kuvvet ve Tork Vektörleri</h3>
+                            <p class="plot-help">
+                                Runtime tarafından hesaplanan toplam gövde kuvveti ve tork bileşenleri.
+                            </p>
+                            <div id="forceTorquePlot" class="plot-box small-plot"></div>
+                        </div>
+
+                        <!-- 6: Komut & Hedef Zaman Serisi -->
+                        <div class="plot-container">
+                            <h3>🎯 Komut & Hedef Zaman Serisi</h3>
+                            <p class="plot-help">
+                                Hedefe mesafe (dist_to_target), baş farkı (dhead_to_target) ve limitör
+                                durumunu zaman ekseninde incelemek için kullanılır.
+                            </p>
+                            <div id="timelinePlot" class="plot-box small-plot"></div>
+                        </div>
+
+                        <!-- 7: İtici Çıkışları Zaman Serisi -->
+                        <div class="plot-container">
+                            <h3>🛠 İtici Çıkışları (Zaman Serisi)</h3>
+                            <p class="plot-help">
+                                Her bir itici kanalının (SIM_CH0..N) zaman içindeki normalize
+                                çıkışlarını overlay olarak görebileceğin panel. Araç / motor sayısı
+                                bağımsız çalışacak şekilde tasarlanır.
+                            </p>
+                            <div id="thrusterTimePlot" class="plot-box small-plot"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8: Ham Log Konsolu -->
+            <section id="section-console" class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Ham Log Konsolu (Seçilen An)</h2>
+                        <p class="panel-subtitle">
+                            Seçili STATE satırına ait ham log satırı ve etrafındaki yardımcı log satırlarını
+                            debug ve tuning için incele.
+                        </p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="logConsole" class="log-console">
+                        Log verisi yüklendikten veya canlı mod başlatıldıktan sonra burada görünecektir...
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<!-- Harici JS dosyası -->
+<script src="{{ url_for('static', filename='hydroscan.js') }}"></script>
+
+</body>
+</html>

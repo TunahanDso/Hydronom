@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Hydronom CSM | 3D Live Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.9);
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace; /* Teknik bir hava için */
+            background-color: var(--bg-dark);
+            color: #e5e7eb;
+        }
+
+        /* Ana Telemetri Paneli */
+        #overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            padding: 12px 16px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 13px;
+            z-index: 20;
+            min-width: 240px;
+        }
+
+        /* CSM Dinamikleri Paneli (Yeni!) */
+        #csm-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 15px;
+            padding: 12px 16px;
+            background: var(--panel-bg);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 20;
+        }
+
+        /* Aktüatör Durum Paneli (Yeni!) */
+        #actuator-panel {
+            position: absolute;
+            top: 250px;
+            right: 15px;
+            padding: 10px;
+            background: var(--panel-bg);
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 15;
+        }
+
+        .metric-label { color: #94a3b8; margin-right: 5px; }
+        .metric-value { color: var(--accent-blue); font-weight: bold; }
+
+        #status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            margin-right: 8px;
+            box-shadow: 0 0 8px var(--accent-red);
+        }
+
+        #xy-map-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 220px;
+            height: 220px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 15;
+        }
+
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <div style="margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px;">
+            <span id="status-dot"></span>
+            <span id="status-text" style="font-weight: bold;">BAĞLANIYOR...</span>
+        </div>
+        <div><span class="metric-label">POS:</span> <span id="pos-text" class="metric-value">-</span></div>
+        <div><span class="metric-label">RPY:</span> <span id="rpy-text" class="metric-value">-</span></div>
+        <div id="debug-text" style="font-size: 10px; color: #64748b; margin-top: 5px;"></div>
+    </div>
+
+    <div id="csm-panel">
+        <div style="color: var(--accent-blue); margin-bottom: 5px; font-weight: bold;">SÜREĞEN ÖLÇEK MEKANİĞİ (CSM)</div>
+        <div><span class="metric-label">JITTER (J):</span> <span id="jitter-val" class="metric-value">0.000</span></div>
+        <div><span class="metric-label">ACTION (Fb):</span> <span id="force-val" class="metric-value">0, 0, 0</span></div>
+        <div><span class="metric-label">PROPER TIME (τ):</span> <span id="tau-val" class="metric-value">1.00x</span></div>
+    </div>
+
+    <div id="actuator-panel">
+        <div style="text-align: center; font-size: 10px; margin-bottom: 5px;">MOTOR TELEMETRİSİ</div>
+        <div id="thruster-list">
+            </div>
+    </div>
+
+    <div id="xy-map-container">
+        <canvas id="xy-map"></canvas>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

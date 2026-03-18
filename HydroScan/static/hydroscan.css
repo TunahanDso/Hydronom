@@ -1,0 +1,316 @@
+/* Genel Stil Ayarları */
+body { 
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    margin: 0; 
+    background-color: #0f172a; 
+    color: #1e293b; 
+}
+
+/* Ana kapsayıcı */
+.container { 
+    max-width: 1400px; 
+    margin: 20px auto; 
+    padding: 24px; 
+    background-color: #f8fafc; 
+    border-radius: 16px; 
+    box-shadow: 0 16px 30px rgba(0,0,0,0.25); 
+}
+
+/* Başlık ve üst bar */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+h1 { 
+    color: #0f172a; 
+    border-bottom: 4px solid #5c7cfa; 
+    padding-bottom: 15px; 
+    margin: 0; 
+}
+
+/* Live / Offline rozet */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    min-width: 80px;
+    text-align: center;
+}
+
+.badge-online {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #4ade80;
+}
+
+.badge-offline {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #f87171;
+}
+
+/* Giriş ve Kontrol Alanları */
+.input-section, 
+.controls { 
+    margin-bottom: 30px; 
+    padding: 25px; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    background-color: #ffffff; 
+}
+
+.controls { 
+    display: none; 
+    background-color: #f1f5f9; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+}
+
+/* Kontrol satırı (slider + bilgiler) */
+.control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.control-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.control-meta span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background-color: #e2e8f0;
+    font-weight: 500;
+}
+
+/* Buton grubu */
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.button-row button {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    background-color: #0f172a;
+    color: #f9fafb;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+}
+
+.button-row button:hover {
+    background-color: #111827;
+    box-shadow: 0 4px 10px rgba(15,23,42,0.35);
+    transform: translateY(-1px);
+}
+
+.button-row button.secondary {
+    background-color: #e5e7eb;
+    color: #111827;
+}
+
+.button-row button.secondary:hover {
+    background-color: #d1d5db;
+}
+
+/* Dashboard */
+.dashboard { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+    gap: 14px; 
+    margin-top: 15px; 
+}
+
+.indicator { 
+    background-color: #ffffff; 
+    padding: 14px; 
+    border-radius: 10px; 
+    text-align: center; 
+    border: 1px solid #cbd5e1; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); 
+}
+
+.indicator h3 { 
+    margin-top: 0; 
+    margin-bottom: 6px;
+    font-size: 12px; 
+    color: #5c7cfa; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 0.04em;
+}
+
+.value { 
+    font-size: 18px; 
+    font-weight: bold; 
+    color: #0f172a; 
+    font-family: monospace; 
+}
+
+/* Özet kartları (toplam süre, yol vs.) */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.summary-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+}
+
+.summary-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.summary-value {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Grafik Alanları: her panel alt alta ve tam genişlik */
+.plots-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.plot-container { 
+    margin-top: 0; 
+    border: 1px solid #cbd5e1; 
+    padding: 18px; 
+    border-radius: 12px; 
+    background-color: #ffffff; 
+}
+
+.plot-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+/* Sensör & Health bölümü */
+#sensorSection {
+    margin-top: 26px;
+}
+
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.sensor-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.sensor-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+/* Kontrol Çubuğu (zaman slider) */
+#timeSlider { 
+    width: 100%; 
+    margin-top: 8px; 
+}
+
+/* Konsol: biraz daha büyük ve alt kısımda geniş alan */
+.log-console { 
+    height: 340px; 
+    overflow-y: scroll; 
+    background-color: #020617; 
+    color: #4ade80; 
+    font-family: monospace; 
+    padding: 16px; 
+    border-radius: 8px; 
+    font-size: 12px; 
+    line-height: 1.4;
+    white-space: pre-wrap; 
+    word-break: break-all; 
+    border: 1px solid #1f2937;
+    margin-top: 18px;
+}
+
+/* Durum Renkleri */
+.alert-active { 
+    background-color: #fecaca !important; 
+    color: #dc2626 !important; 
+    border-color: #f87171 !important; 
+}
+.alert-inactive { 
+    background-color: #d1fae5 !important; 
+    color: #059669 !important; 
+    border-color: #34d399 !important; 
+}
+.alert-warning { 
+    background-color: #fef08a !important; 
+    color: #ca8a04 !important; 
+    border-color: #facc15 !important; 
+}
+.alert-default { 
+    background-color: #eef !important; 
+    color: #333 !important; 
+}
+
+/* Küçük ekran iyileştirme */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+        padding: 16px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .button-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .log-console {
+        height: 280px;
+    }
+}

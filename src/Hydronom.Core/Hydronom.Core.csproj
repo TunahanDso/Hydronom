@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- .NET 8 LTS: paketlerle uyumlu, Jetson (linux-arm64) ile sorunsuz -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Iot.Device.Bindings" Version="4.0.1" />
+    <PackageReference Include="System.Device.Gpio" Version="4.0.1" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.9" />
+  </ItemGroup>
+
+</Project>

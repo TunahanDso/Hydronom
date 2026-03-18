@@ -1,0 +1,415 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\iframesource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\iframesource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\modules\\consolefeedbackrecorder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\modules\\consolefeedbackrecorder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\modules\\baselineanalysis.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\modules\\baselineanalysis.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\tcpjsonframesource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\tcpjsonframesource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\tcpjsonserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\tcpjsonserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\ienvironment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\ienvironment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\ikinematics.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\ikinematics.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\domain\\colregtypes.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\domain\\colregtypes.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\actuators\\actuatormanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\actuators\\actuatormanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\modules\\simpledecision.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\modules\\simpledecision.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\domain\\types.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\domain\\types.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\commandserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\commandserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\domain\\motor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\domain\\motor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\interfaces.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\interfaces.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\iactuator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\iactuator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\modules\\mockmotorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\modules\\mockmotorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\modules\\simpletaskmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\modules\\simpletaskmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\tuning\\inlinetuner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\tuning\\inlinetuner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\interfaces\\itaskmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\interfaces\\itaskmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.runtime\\hydronom.runtime.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{33634028-8C19-4ABB-BB23-677F8B1FEF46}|src\\Hydronom.Runtime\\Hydronom.Runtime.csproj|solutionrelative:src\\hydronom.runtime\\hydronom.runtime.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|c:\\users\\tunahandel\u0130sal\u0130ho\u011Flu\\desktop\\hydronom\\src\\hydronom.core\\hydronom.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{1CB10081-48FE-459B-A6D7-3F07B54C72EF}|src\\Hydronom.Core\\Hydronom.Core.csproj|solutionrelative:src\\hydronom.core\\hydronom.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "TcpJsonFrameSource.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\TcpJsonFrameSource.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\TcpJsonFrameSource.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\TcpJsonFrameSource.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\TcpJsonFrameSource.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T15:56:00.925Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TcpJsonServer.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\TcpJsonServer.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\TcpJsonServer.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\TcpJsonServer.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\TcpJsonServer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T15:04:23.724Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "BaselineAnalysis.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\BaselineAnalysis.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Modules\\BaselineAnalysis.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\BaselineAnalysis.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Modules\\BaselineAnalysis.cs",
+              "ViewState": "AgIAADwAAAAAAAAAAAAmwGQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:53:13.644Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ConsoleFeedbackRecorder.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\ConsoleFeedbackRecorder.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Modules\\ConsoleFeedbackRecorder.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\ConsoleFeedbackRecorder.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Modules\\ConsoleFeedbackRecorder.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:55:03.884Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "IFrameSource.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IFrameSource.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\IFrameSource.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IFrameSource.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\IFrameSource.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T15:54:27.543Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Program.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\Program.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Program.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\Program.cs",
+              "ViewState": "AgIAAFMAAAAAAAAAAAAiwBwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:56:29.565Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\appsettings.json",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\appsettings.json",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\appsettings.json",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\appsettings.json",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAACAAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-09-30T15:34:56.509Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "IEnvironment.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IEnvironment.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\IEnvironment.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IEnvironment.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\IEnvironment.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-11T01:35:15.086Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ActuatorManager.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Actuators\\ActuatorManager.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\Actuators\\ActuatorManager.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Actuators\\ActuatorManager.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\Actuators\\ActuatorManager.cs",
+              "ViewState": "AgIAAB0BAAAAAAAAAAAswDkBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T20:15:21.651Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "ColregTypes.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\ColregTypes.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Domain\\ColregTypes.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\ColregTypes.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Domain\\ColregTypes.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-11T01:21:41.84Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "IKinematics.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IKinematics.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\IKinematics.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IKinematics.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\IKinematics.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-11T01:24:25.234Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "SimpleDecision.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\SimpleDecision.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Modules\\SimpleDecision.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\SimpleDecision.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Modules\\SimpleDecision.cs",
+              "ViewState": "AgIAAGcAAAAAAAAAAAAiwIUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:53:56.405Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "CommandServer.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\CommandServer.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\CommandServer.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\CommandServer.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\CommandServer.cs",
+              "ViewState": "AgIAADoBAAAAAAAAAAAQwFcBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T16:30:44.248Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Types.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\Types.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Domain\\Types.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\Types.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Domain\\Types.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAAwCYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:50:12.25Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "IActuator.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IActuator.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\IActuator.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\IActuator.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\IActuator.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T20:02:08.18Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Motor.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\Motor.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Domain\\Motor.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Domain\\Motor.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Domain\\Motor.cs",
+              "ViewState": "AgIAAHgAAAAAAAAAAAAQwJUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T20:14:50.797Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "Interfaces.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\Interfaces.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\Interfaces.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\Interfaces.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\Interfaces.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAYwBgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:51:32.972Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "MockMotorController.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\MockMotorController.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Modules\\MockMotorController.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\MockMotorController.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Modules\\MockMotorController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:55:38.204Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "SimpleTaskManager.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\SimpleTaskManager.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Modules\\SimpleTaskManager.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Modules\\SimpleTaskManager.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Modules\\SimpleTaskManager.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAwwCMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T14:54:20.537Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "InlineTuner.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Tuning\\InlineTuner.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\Tuning\\InlineTuner.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Tuning\\InlineTuner.cs",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\Tuning\\InlineTuner.cs",
+              "ViewState": "AgIAADgAAAAAAAAAAMBcwFQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-03T22:47:21.17Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "ITaskManager.cs",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\ITaskManager.cs",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Interfaces\\ITaskManager.cs",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Interfaces\\ITaskManager.cs",
+              "RelativeToolTip": "src\\Hydronom.Core\\Interfaces\\ITaskManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-30T16:42:14.528Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "Hydronom.Runtime.csproj",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Hydronom.Runtime.csproj",
+              "RelativeDocumentMoniker": "src\\Hydronom.Runtime\\Hydronom.Runtime.csproj",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Runtime\\Hydronom.Runtime.csproj",
+              "RelativeToolTip": "src\\Hydronom.Runtime\\Hydronom.Runtime.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-09-30T15:41:24.601Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "Hydronom.Core.csproj",
+              "DocumentMoniker": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Hydronom.Core.csproj",
+              "RelativeDocumentMoniker": "src\\Hydronom.Core\\Hydronom.Core.csproj",
+              "ToolTip": "C:\\Users\\TunahanDEL\u0130SAL\u0130HO\u011ELU\\Desktop\\Hydronom\\src\\Hydronom.Core\\Hydronom.Core.csproj",
+              "RelativeToolTip": "src\\Hydronom.Core\\Hydronom.Core.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-09-30T15:41:04.8Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "Microsoft.Common.CurrentVersion.targets",
+              "DocumentMoniker": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ToolTip": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "RelativeToolTip": "..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ViewState": "AgIAAFcHAAAAAAAAAADwv2AHAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2025-09-30T15:42:26.285Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
