@@ -548,3 +548,4 @@ Bu projenin tüm fikri ve sınai mülkiyet hakları **Tunahan Delisalihoğlu**'n
 * **Kullanım İzni:** Bu yazılımın kullanım, geliştirme ve yaygınlaştırma hakkı münhasıran **Stars of Hydro** takımı üyelerine aittir.
 * **Kısıtlamalar:** Yazılı izin alınmadan projenin tamamı veya bir kısmı ticari amaçla kullanılamaz, kopyalanamaz, üçüncü şahıslarla paylaşılamaz veya dağıtılamaz.
 * **Sorumluluk Reddi:** Yazılım olduğu gibi sunulmuştur. Kullanımından doğabilecek donanım hasarları veya operasyonel hatalardan geliştirici sorumlu tutulamaz.
+---
