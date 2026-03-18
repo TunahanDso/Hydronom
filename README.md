@@ -106,7 +106,7 @@ Bu amaç doğrultusunda sistem şu problemleri çözmeye odaklanır:
 - ⚙️ aktüatörleri kontrollü şekilde sürmek,
 - 🛡️ güvenlik sınırlarını uygulamak,
 - 📤 telemetri ve sağlık durumunu dış sistemlere aktarmak,
-- 🤖 ileride yapay zekâ destekli planlama ve yorumlama katmanlarıyla bütünleşmek.
+- 🤖 yapay zekâ destekli planlama ve yorumlama katmanlarıyla bütünleşmek.
 
 Hydronom yalnızca “tekne kodu” değildir.  
 Doğru mimari ile bu yapı;
@@ -327,7 +327,7 @@ Hydronom’un güçlü taraflarından bazıları şunlardır:
 - 🧠 Görev ve karar katmanlarının ayrıştırılması
 - 🔌 Dış sistemlerle veri alışverişine uygun haberleşme altyapısı
 - 📈 Genişletilebilir analiz modülü
-- 🤖 AI destekli planlama için hazırlanmış düşünsel altyapı
+- 🤖 AI destekli planlama için hazırlanmış altyapı
 - 🌐 Gelecekte çoklu araç ve daha büyük operasyon sistemlerine dönüşebilecek temel mimari
 
 ---
