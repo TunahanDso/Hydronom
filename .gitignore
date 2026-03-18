@@ -1,0 +1,16 @@
+# Python kütüphaneleri (Senin devasa dosyaların kaynağı)
+python/.venv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Derleme ve Geçici Dosyalar
+publish/
+bin/
+obj/
+*.log
+
+# VS Code ve IDE ayarları
+.vscode/
+.idea/

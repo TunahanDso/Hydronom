@@ -1,7 +1,0 @@
-{
-  "Tasks": {
-    "Waypoint": { "ToleranceM": 0.8 },
-    "ApproachAndObserve": { "StopRangeM": 6.0, "DwellS": 5.0 },
-    "Patrol": { "CornerWaitS": 0.0 }
-  }
-}
