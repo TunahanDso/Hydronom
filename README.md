@@ -10,6 +10,30 @@ Hydronom’un amacı; bir deniz aracını sadece hareket ettiren bir sistem kurm
 
 Bu repo, o yapının yaşayan çekirdeğini temsil eder. ⚓
 
+
+---
+
+## 📊 Language Statistics
+
+| Language | Files | Code | Comment | Blank | Total |
+|---|---:|---:|---:|---:|---:|
+| C# | 117 | 13,172 | 3,201 | 2,994 | 19,367 |
+| Python | 89 | 8,541 | 2,499 | 2,120 | 13,160 |
+| JSON | 29 | 5,970 | 0 | 31 | 6,001 |
+| TypeScript JSX | 25 | 4,335 | 37 | 599 | 4,971 |
+| TypeScript | 29 | 3,258 | 77 | 397 | 3,732 |
+| JavaScript | 3 | 1,594 | 213 | 298 | 2,105 |
+| HTML | 3 | 513 | 27 | 48 | 588 |
+| PostCSS | 2 | 306 | 15 | 47 | 368 |
+| C | 1 | 168 | 57 | 49 | 274 |
+| C++ | 1 | 130 | 65 | 44 | 239 |
+| XML | 6 | 67 | 7 | 22 | 96 |
+| YAML | 1 | 54 | 21 | 11 | 86 |
+| JSON with Comments | 1 | 23 | 0 | 0 | 23 |
+
+> Toplamda Hydronom; **C#**, **Python**, **JSON**, **TypeScript** ve yardımcı teknolojilerden oluşan çok katmanlı bir mühendislik ekosistemidir. Bu dağılım, projenin yalnızca tek bir uygulama değil; runtime, AI, gateway, frontend, config ve düşük seviye deneysel bileşenleri kapsayan geniş bir sistem olduğunu gösterir.
+
+
 ---
 
 ## 📚 İçindekiler
