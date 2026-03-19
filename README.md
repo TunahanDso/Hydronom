@@ -543,9 +543,45 @@ ve yarım bırakılmamış bir hayale de bakıyor.
 
 ## 📜 Lisans ve Kullanım Hakları
 
-Bu projenin tüm fikri ve sınai mülkiyet hakları **Tunahan Delisalihoğlu**'na aittir.
+© 2026 Tunahan Delisalihoğlu. Tüm hakları saklıdır.
 
-* **Kullanım İzni:** Bu yazılımın kullanım, geliştirme ve yaygınlaştırma hakkı münhasıran **Yıldız Teknik Üniversite'si Stars of Hydro** takımı üyelerine aittir.
-* **Kısıtlamalar:** Yazılı izin alınmadan projenin tamamı veya bir kısmı ticari amaçla kullanılamaz, kopyalanamaz, üçüncü şahıslarla paylaşılamaz veya dağıtılamaz.
-* **Sorumluluk Reddi:** Yazılım olduğu gibi sunulmuştur. Kullanımından doğabilecek donanım hasarları veya operasyonel hatalardan geliştirici sorumlu tutulamaz.
+Bu projenin tüm fikri ve sınai mülkiyet hakları Tunahan Delisalihoğlu’na aittir.
+
+### 🔒 Kullanım İzni
+Bu yazılımın kullanım, geliştirme, erişim ve yaygınlaştırma hakkı **münhasıran Yıldız Teknik Üniversitesi Stars of Hydro takımı üyelerine** aittir.  
+Bu kapsam dışındaki tüm kullanım biçimleri, geliştiricinin açık ve yazılı iznine tabidir.
+
+### ⚠️ Kısıtlamalar
+Aşağıdaki eylemler, yazılı izin olmaksızın **kesin olarak yasaktır**:
+
+- Projenin tamamının veya herhangi bir bölümünün kopyalanması  
+- Kaynak kodun veya türevlerinin paylaşılması veya dağıtılması  
+- Ticari veya yarışma amaçlı kullanımı  
+- Tersine mühendislik, yeniden paketleme veya başka projelere entegrasyon  
+- Üçüncü kişilerle doğrudan veya dolaylı paylaşım  
+
+### 🧠 Türetilmiş Çalışmalar
+Bu projeden türetilen her türlü çalışma:
+- Açık ve görünür şekilde kaynak atfı içermelidir  
+- Geliştiricinin önceden yazılı onayına tabidir  
+
+### ⚙️ Sorumluluk Reddi
+Bu yazılım **“olduğu gibi” (as-is)** sunulmaktadır.  
+Yazılımın kullanımı sonucunda oluşabilecek:
+
+- Donanım hasarları  
+- Sistem hataları  
+- Veri kaybı  
+- Operasyonel riskler  
+
+konularında geliştirici hiçbir şekilde sorumlu tutulamaz.
+
+### 📩 İletişim
+İzin talepleri ve lisanslama konuları için:  
+**tdelisalihoglu@outlook.com.tr**
+
+---
+
+> ⚠️ Not: Bu depo, Hydronom sisteminin tamamını içermeyebilir.  
+> Daha gelişmiş ve güncel modüller yalnızca ekip içi kullanım için saklanmaktadır.
 ---
