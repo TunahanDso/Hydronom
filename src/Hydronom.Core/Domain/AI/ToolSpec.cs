@@ -23,15 +23,15 @@ public sealed record ToolSpec
     public bool Dangerous { get; init; }
 
     public ToolSpec(
-        string name,
-        string description,
-        IReadOnlyList<ToolArgSpec> args,
-        bool dangerous = false)
+        string Name,
+        string Description,
+        IReadOnlyList<ToolArgSpec> Args,
+        bool Dangerous = false)
     {
-        Name = RequireText(name, nameof(name));
-        Description = RequireText(description, nameof(description));
-        Args = NormalizeArgs(args);
-        Dangerous = dangerous;
+        this.Name = RequireText(Name, nameof(Name));
+        this.Description = RequireText(Description, nameof(Description));
+        this.Args = NormalizeArgs(Args);
+        this.Dangerous = Dangerous;
     }
 
     private static string RequireText(string? value, string paramName)
@@ -86,23 +86,23 @@ public sealed record ToolArgSpec
     };
 
     public string Name { get; init; }
-    public string Type { get; init; }            // "string" | "number" | "integer" | "boolean" | "object" | "array"
+    public string Type { get; init; } // "string" | "number" | "integer" | "boolean" | "object" | "array"
     public string Description { get; init; }
     public bool Required { get; init; }
     public object? Example { get; init; }
 
     public ToolArgSpec(
-        string name,
-        string type,
-        string description,
-        bool required = false,
-        object? example = null)
+        string Name,
+        string Type,
+        string Description,
+        bool Required = false,
+        object? Example = null)
     {
-        Name = RequireText(name, nameof(name));
-        Type = NormalizeType(type, nameof(type));
-        Description = RequireText(description, nameof(description));
-        Required = required;
-        Example = example;
+        this.Name = RequireText(Name, nameof(Name));
+        this.Type = NormalizeType(Type, nameof(Type));
+        this.Description = RequireText(Description, nameof(Description));
+        this.Required = Required;
+        this.Example = Example;
     }
 
     private static string RequireText(string? value, string paramName)

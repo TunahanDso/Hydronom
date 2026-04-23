@@ -14,11 +14,16 @@ namespace Hydronom.Core.Interfaces
     }
 
     /// <summary>
-    /// Analiz + görev + aracın 6DoF durumu (VehicleState) → karar (DecisionCommand).
+    /// Analiz + görev + aracın 6DoF durumu (VehicleState) + dışarıdan ölçülen dt → karar (DecisionCommand).
     /// 
     /// DecisionCommand:
     ///   - Fx, Fy, Fz : gövde ekseninde kuvvet bileşenleri
     ///   - Tx, Ty, Tz : gövde ekseninde tork bileşenleri
+    /// 
+    /// dt:
+    ///   - Kontrol döngüsünün gerçek çevrim süresidir.
+    ///   - Runtime tarafından Stopwatch benzeri tekil bir zaman kaynağından ölçülüp verilir.
+    ///   - Decision modülü kendi içinde zaman ölçmez; deterministik zaman akışı üst katmandan gelir.
     /// 
     /// Geriye dönük uyum:
     ///   - Throttle01  → Fx
@@ -27,7 +32,7 @@ namespace Hydronom.Core.Interfaces
     /// </summary>
     public interface IDecisionModule
     {
-        DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state);
+        DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state, double dt);
     }
 
     /// <summary>

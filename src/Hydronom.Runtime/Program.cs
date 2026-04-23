@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.AI.Clients;
+using Hydronom.AI.Orchestration;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Interfaces.AI;
@@ -687,7 +688,7 @@ partial class Program
 
                     if (cmdSrv.IsArmed)
                     {
-                        cmdDesired = decision.Decide(insights, tasks.CurrentTask, state);
+                        cmdDesired = decision.Decide(insights, tasks.CurrentTask, state, dtMeasured);
                         controlMode = "AUTO";
                     }
                     else

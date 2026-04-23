@@ -60,8 +60,8 @@ public sealed record SafetyPolicy
     public static SafetyPolicy DefaultSuggest()
         => new(
             mode: AiMode.Suggest,
-            allowedToolsInAutopilot: Array.Empty<string>(),
-            alwaysRequireApprovalTools: Array.Empty<string>(),
+            allowedToolsInAutopilot: ToSet(Array.Empty<string>()),
+            alwaysRequireApprovalTools: ToSet(Array.Empty<string>()),
             maxToolCallsPerCycle: 8
         );
 

@@ -5,7 +5,7 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// AdvancedDecision v2.2
+    /// AdvancedDecision v2.3
     /// ------------------------------------------------------------
     /// - 6DoF wrench tabanlı karar modülü (Fx,Fy,Fz,Tx,Ty,Tz fiziksel).
     /// - Navigate modunda daha güçlü yaw PD + aktif yaklaşma frenlemesi.
@@ -18,6 +18,7 @@ namespace Hydronom.Core.Modules
     /// - Hedefe çok yaklaşınca zero wrench'e düşerek hunting azaltılır.
     /// - Heave için dt tabanlı integral ve reset mantığı.
     /// - Deterministik: Rastgelelik yok, sadece state/task/insights → komut.
+    /// - dt artık dışarıdan verilir; zaman ölçümü karar modülü içinde yapılmaz.
     /// ------------------------------------------------------------
     /// Not:
     /// - DecisionCommand çıktı birimleri:
@@ -116,7 +117,6 @@ namespace Hydronom.Core.Modules
         // ---------------------------------------------------------------------
         // İç durum / hafıza
         // ---------------------------------------------------------------------
-        private DateTime _lastDecideUtc = DateTime.MinValue;
         private Vec3? _lastTarget = null;
         private double? _frozenHoldHeadingDeg = null;
         private bool _isHoldingPosition = false;
@@ -124,9 +124,9 @@ namespace Hydronom.Core.Modules
         // ---------------------------------------------------------------------
         // ANA KARAR FONKSİYONU
         // ---------------------------------------------------------------------
-        public DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state)
+        public DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state, double dt)
         {
-            double dt = ComputeDtSeconds();
+            dt = SanitizeDt(dt);
 
             if (task is null)
             {
@@ -517,28 +517,6 @@ namespace Hydronom.Core.Modules
             _frozenHoldHeadingDeg = Normalize(yawDeg);
         }
 
-        private double ComputeDtSeconds()
-        {
-            var now = DateTime.UtcNow;
-
-            if (_lastDecideUtc == DateTime.MinValue)
-            {
-                _lastDecideUtc = now;
-                return 0.1;
-            }
-
-            double dt = (now - _lastDecideUtc).TotalSeconds;
-            _lastDecideUtc = now;
-
-            if (dt <= 1e-4)
-                return 1e-4;
-
-            if (dt > 0.25)
-                return 0.25;
-
-            return dt;
-        }
-
         // ---------------------------------------------------------------------
         // YARDIMCILAR
         // ---------------------------------------------------------------------
@@ -547,6 +525,20 @@ namespace Hydronom.Core.Modules
             while (deg > 180) deg -= 360;
             while (deg < -180) deg += 360;
             return deg;
+        }
+
+        private static double SanitizeDt(double dt)
+        {
+            if (double.IsNaN(dt) || double.IsInfinity(dt))
+                return 0.1;
+
+            if (dt <= 1e-4)
+                return 1e-4;
+
+            if (dt > 0.25)
+                return 0.25;
+
+            return dt;
         }
 
         private double HeadingScale(double absDelta)

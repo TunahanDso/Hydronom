@@ -169,7 +169,7 @@ def _build_plugins(spec_str: str) -> List[Any]:
       - ekf / ekf_localization
 
     Not:
-      - "lidar" görselleştirme/önizleme içindir.
+      - "lidar" artık yalnızca çizgi önizlemesi değil, yoğun obstacle üretimi de yapabilir.
       - "lidar_runtime" runtime'ın anlayacağı obstacle adaylarını üretir.
       - "ogm" occupancy grid / harita üretir.
     """
@@ -193,8 +193,18 @@ def _build_plugins(spec_str: str) -> List[Any]:
                 "name": "lidar_obstacles",
                 "args": {
                     "landmark_id": "lidar_scan",
-                    "emit_dense_points": False,
-                    "downsample_step": 2
+                    "emit_dense_points": True,
+                    "dense_id": "lidar_scan_dense",
+                    "downsample_step": 1,
+                    "emit_obstacles": True,
+                    "obstacle_id": "lidar_obstacles",
+                    "cluster_gap_m": 0.60,
+                    "min_cluster_points": 2,
+                    "max_obstacles": 128,
+                    "min_radius_m": 0.08,
+                    "max_radius_m": 2.50,
+                    "range_min": 0.03,
+                    "range_max": 80.0
                 }
             })
 
@@ -202,11 +212,11 @@ def _build_plugins(spec_str: str) -> List[Any]:
             specs.append({
                 "name": "lidar_runtime_obstacles",
                 "args": {
-                    "cluster_gap_m": 0.90,
-                    "min_cluster_points": 3,
-                    "max_obstacles": 24,
-                    "min_radius_m": 0.15,
-                    "max_radius_m": 3.0,
+                    "cluster_gap_m": 0.60,
+                    "min_cluster_points": 2,
+                    "max_obstacles": 128,
+                    "min_radius_m": 0.08,
+                    "max_radius_m": 2.50,
                     "downsample_step": 1
                 }
             })

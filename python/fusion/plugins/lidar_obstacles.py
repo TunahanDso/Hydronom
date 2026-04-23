@@ -1,7 +1,6 @@
-# fusion/plugins/lidar_obstacles.py
 from __future__ import annotations
 import math
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Tuple, Dict, Any
 
 from fusion.context import FusionContext
 from core.sample import Sample
@@ -9,209 +8,402 @@ from core.fused_state import FusedState
 from fusion.plugins.base import IFuserPlugin
 
 
-def _deg2rad(a: float) -> float:
-    return a * math.pi / 180.0
-
-
-def _Rz(rad: float) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], Tuple[float, float, float]]:
-    c, s = math.cos(rad), math.sin(rad)
-    # fmt: off
-    return ((c, -s, 0.0),
-            (s,  c, 0.0),
-            (0.0, 0.0, 1.0))
-    # fmt: on
-
-
-def _Ry(rad: float):
-    c, s = math.cos(rad), math.sin(rad)
-    # fmt: off
-    return (( c, 0.0,  s),
-            (0.0, 1.0, 0.0),
-            (-s, 0.0,  c))
-    # fmt: on
-
-
-def _Rx(rad: float):
-    c, s = math.cos(rad), math.sin(rad)
-    # fmt: off
-    return ((1.0, 0.0, 0.0),
-            (0.0,  c, -s),
-            (0.0,  s,  c))
-    # fmt: on
-
-
-def _mat3_mul(A, B):
-    return tuple(
-        tuple(A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j] for j in range(3))
-        for i in range(3)
-    )
-
-
-def _mat3_vec3(M, v):
-    return (
-        M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2],
-        M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2],
-        M[2][0] * v[0] + M[2][1] * v[1] + M[2][2] * v[2],
-    )
-
-
 class LidarObstaclePlugin(IFuserPlugin):
     """
-    LiDAR LaserScan → dünya (map) çerçevesinde 2D nokta önizlemesi.
+    TEKNOFEST parkurunu sentetik olarak world/map frame içinde oluşturan plugin.
 
-    Önemli:
-      - Roll/Pitch kompanzasyonu yapılır (ctx.roll_deg / ctx.pitch_deg kullanılır).
-      - Sensör montaj “extrinsics” desteklenir (yaw/pitch/roll ofsetleri + x/y ofseti).
-      - Bu eklenti 2D önizleme içindir; istenirse Z kullanılarak 3D kullanılabilir.
+    Not:
+    - Bu sürüm LiDAR verisine bağlı değildir.
+    - Ama sınıf adı korunmuştur ki registry / mevcut entegrasyon bozulmasın.
+    - İstenirse ileride adı ayrıca StaticCoursePlugin olarak ayrılabilir.
 
-    Çıktılar:
-      - Önizleme polyline: id=landmark_id
-      - (opsiyonel) Seyreltilmiş yoğun set: id=dense_id
+    Üretilen içerikler:
+    - Parkur 1 kenar dubaları
+    - Parkur 2 kenar dubaları
+    - Parkur 2 engel dubaları
+    - Parkur 3 hedef dubaları
+    - Başlangıç / giriş / kıyı çizgileri
+    - Runtime obstacles listesi
     """
+
     name = "lidar_obstacles"
 
     def __init__(
         self,
-        # Görselleştirme
-        landmark_id: str = "lidar_scan_preview",
-        max_points: int = 2048,
-        emit_dense_points: bool = False,
-        dense_id: str = "lidar_scan_dense",
-        downsample_step: int = 3,
-
-        # Sensör extrinsics (body frame'e göre)
-        sensor_x: float = 0.0,             # m
-        sensor_y: float = 0.0,             # m
-        sensor_z: float = 0.0,             # m (şimdilik XY projeksiyonda yalnızca XY kullanıyoruz)
-        sensor_yaw_deg: float = 0.0,       # sensörün kendi Z ekseni etrafında ofseti
-        sensor_pitch_deg: float = 0.0,     # sensörün kendi Y ekseni etrafında ofseti
-        sensor_roll_deg: float = 0.0,      # sensörün kendi X ekseni etrafında ofseti
-
-        # Filtre
-        range_min: float = 0.05,
-        range_max: float = 60.0
+        landmark_id: str = "teknofest_course",
+        obstacle_id: str = "teknofest_runtime_obstacles",
+        course_origin_x: float = 0.0,
+        course_origin_y: float = 0.0,
+        scale: float = 1.0,
+        emit_obstacles: bool = True,
+        emit_dense_points: bool = True,
+        dense_id: str = "teknofest_course_dense",
+        downsample_step: int = 1,
     ):
-        # Önizleme
         self.landmark_id = landmark_id
-        self.max_points = int(max_points)
+        self.obstacle_id = obstacle_id
+        self.course_origin_x = float(course_origin_x)
+        self.course_origin_y = float(course_origin_y)
+        self.scale = float(scale)
+        self.emit_obstacles = bool(emit_obstacles)
         self.emit_dense_points = bool(emit_dense_points)
         self.dense_id = dense_id
         self.downsample_step = max(1, int(downsample_step))
 
-        # Extrinsics
-        self.sensor_xyz = (float(sensor_x), float(sensor_y), float(sensor_z))
-        self.sensor_yaw = _deg2rad(float(sensor_yaw_deg))
-        self.sensor_pitch = _deg2rad(float(sensor_pitch_deg))
-        self.sensor_roll = _deg2rad(float(sensor_roll_deg))
+        self._built = False
+        self._all_points: List[Tuple[float, float]] = []
+        self._obstacles: List[Dict[str, Any]] = []
+        self._landmarks: List[Dict[str, Any]] = []
 
-        # Aralık filtresi
-        self.rmin = float(range_min)
-        self.rmax = float(range_max)
+    def _p(self, x: float, y: float) -> Tuple[float, float]:
+        return (
+            self.course_origin_x + x * self.scale,
+            self.course_origin_y + y * self.scale,
+        )
 
-        # Yayınlanacak son dünya noktaları
-        self._last_pts_world: List[Tuple[float, float]] = []
+    def _interp_polyline(self, pts: List[Tuple[float, float]], step: float = 1.5) -> List[Tuple[float, float]]:
+        if len(pts) < 2:
+            return pts[:]
 
-    # ---------- lifecycle ----------
+        out: List[Tuple[float, float]] = []
+        for i in range(len(pts) - 1):
+            x1, y1 = pts[i]
+            x2, y2 = pts[i + 1]
+            dx = x2 - x1
+            dy = y2 - y1
+            dist = math.hypot(dx, dy)
+            n = max(1, int(dist / max(0.1, step)))
+            for k in range(n):
+                t = k / n
+                out.append((x1 + dx * t, y1 + dy * t))
+        out.append(pts[-1])
+        return out
 
-    def on_init(self, ctx: FusionContext) -> None:
-        self._last_pts_world = []
+    def _add_buoy_line(
+        self,
+        points: List[Tuple[float, float]],
+        buoy_type: str,
+        radius: float,
+        id_prefix: str,
+    ) -> None:
+        for i, (x, y) in enumerate(points):
+            self._obstacles.append({
+                "x": x,
+                "y": y,
+                "radius": radius,
+                "points": 1,
+                "kind": buoy_type,
+                "id": f"{id_prefix}_{i}",
+            })
 
-    def _build_rotation_world_from_sensor(self, ctx: FusionContext):
-        """
-        R_ws = R_world_from_body * R_body_from_sensor
-        R_world_from_body = Rz(yaw) * Ry(pitch) * Rx(roll)
-        R_body_from_sensor = Rz(syaw) * Ry(spitch) * Rx(sroll)
-        """
-        # body → world (ctx’den)
-        Rwb = _Rz(_deg2rad(ctx.yaw_deg))
-        # pitch ve roll ekle
-        Rwb = _mat3_mul(Rwb, _Ry(_deg2rad(getattr(ctx, "pitch_deg", 0.0))))
-        Rwb = _mat3_mul(Rwb, _Rx(_deg2rad(getattr(ctx, "roll_deg", 0.0))))
-
-        # sensor → body (extrinsics)
-        Rsb = _Rz(self.sensor_yaw)
-        Rsb = _mat3_mul(Rsb, _Ry(self.sensor_pitch))
-        Rsb = _mat3_mul(Rsb, _Rx(self.sensor_roll))
-
-        # sensor → world
-        Rws = _mat3_mul(Rwb, Rsb)
-        return Rws, Rwb
-
-    def on_samples(self, ctx: FusionContext, samples: List[Sample]) -> None:
-        # En son LiDAR taramasını bul
-        scan = None
-        for s in reversed(samples):
-            if getattr(s, "sensor", None) == "lidar":
-                scan = s
-                break
-        if scan is None:
-            return
-
-        sd: Dict[str, Any] = scan.data or {}
-        ranges = list(sd.get("ranges", []))[: self.max_points]
-        if not ranges:
-            self._last_pts_world = []
-            return
-
-        angle_min = float(sd.get("angle_min", -math.pi))
-        angle_inc = float(sd.get("angle_increment", math.radians(1.0)))
-
-        # Dönüş matrisi ve sensör konumunun world karşılığı
-        Rws, Rwb = self._build_rotation_world_from_sensor(ctx)
-
-        # sensör konumu (body frame’de verilen offsetin world karşılığı)
-        sx, sy, sz = self.sensor_xyz
-        sxw, syw, szw = _mat3_vec3(Rwb, (sx, sy, sz))  # body→world
-        x0, y0 = ctx.x + sxw, ctx.y + syw
-
-        # Sensör düzleminde (z=0) noktaları üret ve world’e dönüştür
-        pts_world: List[Tuple[float, float]] = []
-        a = angle_min
-        for r in ranges:
-            try:
-                r = float(r)
-            except Exception:
-                r = 0.0
-            if not (self.rmin <= r <= self.rmax) or not math.isfinite(r):
-                a += angle_inc
-                continue
-
-            # sensor frame (z=0 düzleminde)
-            xs = r * math.cos(a)
-            ys = r * math.sin(a)
-            zs = 0.0
-
-            # world frame’e döndür
-            Xw, Yw, Zw = _mat3_vec3(Rws, (xs, ys, zs))
-            pts_world.append((x0 + Xw, y0 + Yw))
-            a += angle_inc
-
-        self._last_pts_world = pts_world
-
-    def on_before_emit(self, ctx: FusionContext, out_state: FusedState) -> None:
-        if not self._last_pts_world:
-            return
-
-        # Önizleme polyline
-        ctx.add_landmark({
-            "id": self.landmark_id,
-            "type": "obstacles",
+    def _add_polyline_landmark(
+        self,
+        landmark_id: str,
+        points: List[Tuple[float, float]],
+        landmark_type: str,
+        width: int = 1,
+        color: str = "#ffffff",
+    ) -> None:
+        self._landmarks.append({
+            "id": landmark_id,
+            "type": landmark_type,
             "shape": "polyline",
-            "points": self._last_pts_world,
-            "style": {"width": 1}
+            "points": points,
+            "style": {
+                "width": width,
+                "color": color,
+            }
         })
 
-        # Yoğun nokta seti (opsiyonel, downsample)
-        if self.emit_dense_points:
-            dense = self._last_pts_world[::self.downsample_step]
+    def _add_point_landmark(
+        self,
+        landmark_id: str,
+        points: List[Tuple[float, float]],
+        landmark_type: str,
+        color: str = "#ffffff",
+    ) -> None:
+        self._landmarks.append({
+            "id": landmark_id,
+            "type": landmark_type,
+            "shape": "points",
+            "points": points,
+            "style": {
+                "width": 2,
+                "color": color,
+            }
+        })
+
+    def _build_course_once(self) -> None:
+        if self._built:
+            return
+
+        self._all_points = []
+        self._obstacles = []
+        self._landmarks = []
+
+        sea_left = self._p(0, 0)
+        sea_right = self._p(220, 0)
+        shoreline_left = self._p(0, -18)
+        shoreline_right = self._p(220, -18)
+
+        self._add_polyline_landmark(
+            "shoreline",
+            [shoreline_left, shoreline_right],
+            "shoreline",
+            width=2,
+            color="#cccccc",
+        )
+
+        self._add_polyline_landmark(
+            "sea_axis",
+            [sea_left, sea_right],
+            "sea_axis",
+            width=1,
+            color="#88bbff",
+        )
+
+        start_box = [
+            self._p(4, 10),
+            self._p(10, 10),
+            self._p(10, 16),
+            self._p(4, 16),
+            self._p(4, 10),
+        ]
+        self._add_polyline_landmark(
+            "start_box",
+            start_box,
+            "start_zone",
+            width=2,
+            color="#000000",
+        )
+
+        bb = self._p(8, 13)
+        self._obstacles.append({
+            "x": bb[0],
+            "y": bb[1],
+            "radius": 1.2 * self.scale,
+            "points": 1,
+            "kind": "start",
+            "id": "BB"
+        })
+
+        gn_points = [
+            self._p(25, 18),
+            self._p(38, 32),
+            self._p(54, 18),
+            self._p(66, 36),
+            self._p(82, 22),
+        ]
+        self._add_point_landmark(
+            "entry_nodes",
+            gn_points,
+            "entry_nodes",
+            color="#4477ff",
+        )
+
+        for i, pt in enumerate(gn_points):
+            self._obstacles.append({
+                "x": pt[0],
+                "y": pt[1],
+                "radius": 1.0 * self.scale,
+                "points": 1,
+                "kind": "entry",
+                "id": f"GN{i+1}",
+            })
+
+        p1_left_ctrl = [
+            self._p(20, 14),
+            self._p(30, 28),
+            self._p(40, 16),
+            self._p(52, 31),
+            self._p(62, 15),
+            self._p(74, 30),
+        ]
+        p1_right_ctrl = [
+            self._p(24, 24),
+            self._p(34, 38),
+            self._p(46, 26),
+            self._p(56, 41),
+            self._p(68, 24),
+            self._p(80, 40),
+        ]
+
+        p1_left = self._interp_polyline(p1_left_ctrl, step=4.0 * self.scale)
+        p1_right = self._interp_polyline(p1_right_ctrl, step=4.0 * self.scale)
+
+        self._add_polyline_landmark("parkur1_left", p1_left, "parkur1_edge_left", width=1, color="#ff9955")
+        self._add_polyline_landmark("parkur1_right", p1_right, "parkur1_edge_right", width=1, color="#ff9955")
+
+        self._add_buoy_line(p1_left, "edge_buoy", 0.55 * self.scale, "p1l")
+        self._add_buoy_line(p1_right, "edge_buoy", 0.55 * self.scale, "p1r")
+
+        p2_left_ctrl = [
+            self._p(92, 34),
+            self._p(112, 31),
+            self._p(132, 30),
+            self._p(152, 29),
+            self._p(172, 31),
+            self._p(192, 34),
+        ]
+        p2_right_ctrl = [
+            self._p(94, 14),
+            self._p(114, 12),
+            self._p(134, 12),
+            self._p(154, 13),
+            self._p(174, 14),
+            self._p(194, 15),
+        ]
+
+        p2_left = self._interp_polyline(p2_left_ctrl, step=5.0 * self.scale)
+        p2_right = self._interp_polyline(p2_right_ctrl, step=5.0 * self.scale)
+
+        self._add_polyline_landmark("parkur2_left", p2_left, "parkur2_edge_left", width=1, color="#ff9955")
+        self._add_polyline_landmark("parkur2_right", p2_right, "parkur2_edge_right", width=1, color="#ff9955")
+
+        self._add_buoy_line(p2_left, "edge_buoy", 0.55 * self.scale, "p2l")
+        self._add_buoy_line(p2_right, "edge_buoy", 0.55 * self.scale, "p2r")
+
+        obstacle_points = [
+            self._p(112, 24),
+            self._p(126, 22),
+            self._p(140, 26),
+            self._p(154, 20),
+            self._p(168, 24),
+            self._p(182, 27),
+        ]
+        self._add_point_landmark(
+            "parkur2_obstacles",
+            obstacle_points,
+            "parkur2_obstacles",
+            color="#ffcc22",
+        )
+        for i, pt in enumerate(obstacle_points):
+            self._obstacles.append({
+                "x": pt[0],
+                "y": pt[1],
+                "radius": 0.85 * self.scale,
+                "points": 1,
+                "kind": "obstacle_buoy",
+                "id": f"ENG{i+1}",
+            })
+
+        p3_target_points = [
+            self._p(210, 33),
+            self._p(210, 25),
+            self._p(210, 17),
+        ]
+        self._add_point_landmark(
+            "parkur3_targets",
+            p3_target_points,
+            "parkur3_targets",
+            color="#55ff55",
+        )
+
+        target_kinds = ["target_red", "target_green", "target_black"]
+        for i, pt in enumerate(p3_target_points):
+            self._obstacles.append({
+                "x": pt[0],
+                "y": pt[1],
+                "radius": 0.95 * self.scale,
+                "points": 1,
+                "kind": target_kinds[i],
+                "id": f"Hedef-{i+1}",
+            })
+
+        iha_box = [
+            self._p(86, -48),
+            self._p(114, -48),
+            self._p(114, -22),
+            self._p(86, -22),
+            self._p(86, -48),
+        ]
+        self._add_polyline_landmark(
+            "iha_zone",
+            iha_box,
+            "iha_zone",
+            width=1,
+            color="#aa88ff",
+        )
+
+        self._all_points = [(o["x"], o["y"]) for o in self._obstacles]
+        self._built = True
+
+    def on_init(self, ctx: FusionContext) -> None:
+        self._build_course_once()
+
+    def on_samples(self, ctx: FusionContext, samples: List[Sample]) -> None:
+        self._build_course_once()
+
+    def on_before_emit(self, ctx: FusionContext, out_state: FusedState) -> None:
+        self._build_course_once()
+
+        if self._all_points:
+            ctx.add_landmark({
+                "id": self.landmark_id,
+                "type": "obstacles",
+                "shape": "points",
+                "points": self._all_points,
+                "style": {
+                    "width": 2,
+                    "color": "#ffffff"
+                }
+            })
+
+        if self.emit_dense_points and self._all_points:
+            dense = self._all_points[::self.downsample_step]
             if dense:
                 ctx.add_landmark({
                     "id": self.dense_id,
                     "type": "obstacles_dense",
-                    "shape": "polyline",
+                    "shape": "points",
                     "points": dense,
-                    "style": {"width": 1}
+                    "style": {
+                        "width": 2,
+                        "color": "#dddddd"
+                    }
                 })
 
+        for lm in self._landmarks:
+            ctx.add_landmark(lm)
+
+        if self.emit_obstacles and self._obstacles:
+            obstacle_points = [(o["x"], o["y"]) for o in self._obstacles]
+            obstacle_payload = [
+                {
+                    "x": o["x"],
+                    "y": o["y"],
+                    "r": o["radius"],
+                    "radius": o["radius"],
+                    "kind": o.get("kind", ""),
+                    "id": o.get("id", "")
+                }
+                for o in self._obstacles
+            ]
+
+            ctx.add_landmark({
+                "id": self.obstacle_id,
+                "type": "runtime_obstacles",
+                "shape": "points",
+                "points": obstacle_points,
+                "obstacles": self._obstacles,
+                "style": {
+                    "width": 2,
+                    "color": "#ffaa33"
+                }
+            })
+
+            if not hasattr(out_state, "inputs") or out_state.inputs is None:
+                out_state.inputs = []
+
+            out_state.inputs.append({
+                "_source": "runtime_obstacles",
+                "data": {
+                    "obstacles": obstacle_payload
+                }
+            })
+
     def on_close(self, ctx: FusionContext) -> None:
-        self._last_pts_world = []
+        self._built = False
+        self._all_points = []
+        self._obstacles = []
+        self._landmarks = []
