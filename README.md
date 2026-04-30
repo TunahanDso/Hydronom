@@ -404,7 +404,9 @@ Gelecekte hedeflenen bazı yönler:
 
 Kısacası Hydronom’un geleceği yalnızca “bir tekne yazılımı” olmak değil;  
 **modüler otonominin yaşayan bir çekirdeği** haline gelmektir.
+
 ---
+
 ## 🌐 Yakında: Hydronom Filo ve Yer İstasyonu Mimarisi
 
 Hydronom, tek bir otonom araç runtime’ı olmanın ötesine geçerek; birden fazla aracın birlikte çalışabildiği, haberleşebildiği, görev paylaşabildiği ve yer istasyonu üzerinden izlenip koordine edilebildiği daha büyük bir otonom operasyon mimarisine doğru genişlemektedir.
@@ -428,6 +430,7 @@ Yani Hydronom mesajı üretir; uygun haberleşme kanalı mesajı taşır; üst s
 Bu yaklaşım sayesinde Hydronom, yalnızca tek bir aracı kontrol eden bir sistem olmaktan çıkıp; birden fazla otonom aracın birlikte görev yapabildiği, veri paylaşabildiği ve ortak operasyon yürütebildiği bir filo mimarisine doğru evrilecektir.
 
 > **Hydronom artık yalnızca bir aracı kontrol etmeyecek; otonom araçların birlikte çalışabildiği bir operasyon ekosistemini koordine edecektir.**
+
 ---
 
 ## 💙 Neden Özel?
