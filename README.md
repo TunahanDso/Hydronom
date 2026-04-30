@@ -47,6 +47,7 @@ Bu repo, o yapının yaşayan çekirdeğini temsil eder. ⚓
 - [🔄 Sistem Akışı](#-sistem-akışı)
 - [🚤 Hedeflenen Kullanım Alanları](#-hedeflenen-kullanım-alanları)
 - [🔮 Gelecek Vizyonu](#-gelecek-vizyonu)
+- [🌐 Yakında: Hydronom Filo ve Yer İstasyonu Mimarisi](#-yakında-hydronom-filo-ve-yer-istasyonu-mimarisi)
 - [💙 Neden Özel?](#-neden-özel)
 - [🛠️ Kurulum Mantığı](#️-kurulum-mantığı)
 - [📐 Geliştirme Felsefesi](#-geliştirme-felsefesi)
@@ -403,7 +404,30 @@ Gelecekte hedeflenen bazı yönler:
 
 Kısacası Hydronom’un geleceği yalnızca “bir tekne yazılımı” olmak değil;  
 **modüler otonominin yaşayan bir çekirdeği** haline gelmektir.
+---
+## 🌐 Yakında: Hydronom Filo ve Yer İstasyonu Mimarisi
 
+Hydronom, tek bir otonom araç runtime’ı olmanın ötesine geçerek; birden fazla aracın birlikte çalışabildiği, haberleşebildiği, görev paylaşabildiği ve yer istasyonu üzerinden izlenip koordine edilebildiği daha büyük bir otonom operasyon mimarisine doğru genişlemektedir.
+
+Planlanan **Filo ve Yer İstasyonu Mimarisi**, Hydronom’un mevcut modüler yapısını koruyarak sisteme şu yeni kabiliyetleri kazandırmayı hedefler:
+
+- 🤝 çoklu araç farkındalığı ve koordinasyonu
+- 📡 Hydronom sistemleri arası haberleşme
+- 🔌 tak-çalıştır haberleşme teknolojileri
+- 📊 adaptif telemetri profilleri
+- 🖥️ yer istasyonu tabanlı filo izleme ve analiz
+- 🧭 engeller, hedefler, görevler ve araç sağlığı için ortak dünya modeli
+- 🛡️ yer istasyonu ile araçlar arasında güvenlik kapısından geçirilen komut ve kontrol yapısı
+
+Bu mimaride her Hydronom aracı, kendi başına bağımsız otonom çalışabilen bir düğüm olarak kalır.  
+Yer istasyonu ise tüm araçları görebilen, uzun telemetri mesajlarını işleyebilen, filo durumunu analiz edebilen, görev koordinasyonu sağlayabilen ve gerektiğinde operatör komutlarını güvenli şekilde araçlara aktarabilen üst seviye operasyon merkezi olarak konumlanır.
+
+Haberleşme tarafında temel hedef, Wi-Fi, RF, LoRa, Ethernet, seri haberleşme, mesh veya gelecekte eklenecek farklı bağlantı teknolojilerinin üst seviye Hydronom mimarisini bozmadan sisteme dahil edilebilmesidir.  
+Yani Hydronom mesajı üretir; uygun haberleşme kanalı mesajı taşır; üst seviye sistem ise mesajın hangi teknolojiyle geldiğini bilmek zorunda kalmadan çalışmaya devam eder.
+
+Bu yaklaşım sayesinde Hydronom, yalnızca tek bir aracı kontrol eden bir sistem olmaktan çıkıp; birden fazla otonom aracın birlikte görev yapabildiği, veri paylaşabildiği ve ortak operasyon yürütebildiği bir filo mimarisine doğru evrilecektir.
+
+> **Hydronom artık yalnızca bir aracı kontrol etmeyecek; otonom araçların birlikte çalışabildiği bir operasyon ekosistemini koordine edecektir.**
 ---
 
 ## 💙 Neden Özel?
