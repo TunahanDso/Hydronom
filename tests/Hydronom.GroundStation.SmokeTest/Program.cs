@@ -9,6 +9,9 @@ using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
 using Hydronom.GroundStation.Transports;
 using Hydronom.Runtime.Fleet;
+using Hydronom.GroundStation.Transports.Tcp;
+using System.Net;
+using System.Net.Sockets;
 
 Console.WriteLine("=== Hydronom Ground Station Smoke Test ===");
 Console.WriteLine();
@@ -1449,7 +1452,87 @@ Console.WriteLine($"    Link summary                : {transportManagerOperation
 Console.WriteLine($"    Has warnings                : {transportManagerOperationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues         : {transportManagerOperationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
-Console.WriteLine("[26] Mark stale nodes offline test:");
+Console.WriteLine("[26] TcpGroundTransport local socket send test:");
+
+using var tcpTestCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+var tcpListener = new TcpListener(IPAddress.Loopback, 0);
+tcpListener.Start();
+
+var tcpPort = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
+
+var receivedTcpLineTask = Task.Run(async () =>
+{
+    using var client = await tcpListener.AcceptTcpClientAsync(tcpTestCts.Token);
+    await using var stream = client.GetStream();
+    using var reader = new StreamReader(stream);
+
+    var line = await reader.ReadLineAsync(tcpTestCts.Token);
+    return line ?? string.Empty;
+}, tcpTestCts.Token);
+
+var tcpGround = new GroundStationEngine();
+tcpGround.HandleEnvelope(heartbeatEnvelope);
+
+var tcpTransport = new TcpGroundTransport(new TcpGroundTransportOptions
+{
+    Name = "tcp-local-smoke",
+    Host = "127.0.0.1",
+    Port = tcpPort,
+    UseNdjsonFraming = true,
+    AutoConnectOnSend = true,
+    ConnectTimeout = TimeSpan.FromSeconds(2),
+    WriteTimeout = TimeSpan.FromSeconds(2)
+});
+
+var realTcpRegistered = tcpGround.RegisterTransport(tcpTransport);
+
+await tcpGround.ConnectAllTransportsAsync(tcpTestCts.Token);
+
+var tcpCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "TcpSmokeCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "tcp_local_socket_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var tcpExecution = await tcpGround.SendTrackedCommandAsync(
+    tcpCommand,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: true,
+    sendTimeout: TimeSpan.FromSeconds(2),
+    tryFallbacks: true,
+    cancellationToken: tcpTestCts.Token);
+
+var receivedTcpLine = await receivedTcpLineTask;
+
+tcpListener.Stop();
+await tcpGround.DisconnectAllTransportsAsync();
+
+Console.WriteLine($"    TCP registered        : {realTcpRegistered}");
+Console.WriteLine($"    TCP port              : {tcpPort}");
+Console.WriteLine($"    TCP connected         : {tcpTransport.IsConnected}");
+Console.WriteLine($"    Execution exists      : {tcpExecution is not null}");
+Console.WriteLine($"    ExecutionId           : {tcpExecution?.ExecutionId}");
+Console.WriteLine($"    CanRoute              : {tcpExecution?.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted           : {tcpExecution?.IsCompleted}");
+Console.WriteLine($"    HasSuccess            : {tcpExecution?.HasSuccess}");
+Console.WriteLine($"    HasAck                : {tcpExecution?.HasAck}");
+Console.WriteLine($"    LastStatus            : {tcpExecution?.LastStatus}");
+Console.WriteLine($"    Received line empty   : {string.IsNullOrWhiteSpace(receivedTcpLine)}");
+Console.WriteLine($"    Received has schema   : {receivedTcpLine.Contains("hydronom.envelope.v1")}");
+Console.WriteLine($"    Received has command  : {receivedTcpLine.Contains("TcpSmokeCommand")}");
+Console.WriteLine($"    Received length       : {receivedTcpLine.Length}");
+Console.WriteLine();
+Console.WriteLine("[27] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
