@@ -1,6 +1,7 @@
 ﻿using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
+using Hydronom.GroundStation.Routing;
 using Hydronom.Runtime.Fleet;
 
 Console.WriteLine("=== Hydronom Ground Station Smoke Test ===");
@@ -282,7 +283,64 @@ Console.WriteLine($"    Failed command count   : {failedCommands.Count}");
 
 Console.WriteLine();
 
-Console.WriteLine("[6] Mark stale nodes offline test:");
+Console.WriteLine("[6] Transport routing policy test:");
+
+var routingPolicy = new TransportRoutingPolicy();
+
+var heartbeatRoute = routingPolicy.Decide(heartbeatEnvelope);
+
+Console.WriteLine("    Heartbeat route:");
+Console.WriteLine($"    MessageType : {heartbeatRoute.MessageType}");
+Console.WriteLine($"    Reason      : {heartbeatRoute.Reason}");
+Console.WriteLine($"    Primary     : {string.Join(", ", heartbeatRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback    : {string.Join(", ", heartbeatRoute.FallbackTransports)}");
+Console.WriteLine($"    Ack         : {heartbeatRoute.RequiresAck}");
+Console.WriteLine($"    Broadcast   : {heartbeatRoute.BroadcastAllAvailableLinks}");
+Console.WriteLine($"    Valid       : {heartbeatRoute.IsValid}");
+Console.WriteLine();
+
+var normalCommandRoute = routingPolicy.Decide(commandEnvelope!);
+
+Console.WriteLine("    FleetCommand route:");
+Console.WriteLine($"    MessageType : {normalCommandRoute.MessageType}");
+Console.WriteLine($"    Reason      : {normalCommandRoute.Reason}");
+Console.WriteLine($"    Primary     : {string.Join(", ", normalCommandRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback    : {string.Join(", ", normalCommandRoute.FallbackTransports)}");
+Console.WriteLine($"    Ack         : {normalCommandRoute.RequiresAck}");
+Console.WriteLine($"    Broadcast   : {normalCommandRoute.BroadcastAllAvailableLinks}");
+Console.WriteLine($"    Valid       : {normalCommandRoute.IsValid}");
+Console.WriteLine();
+
+var emergencyCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "BROADCAST",
+    CommandType = "EmergencyStop",
+    AuthorityLevel = "EmergencyCommand",
+    Priority = MessagePriority.Emergency,
+    Args = new Dictionary<string, string>
+    {
+        ["reason"] = "smoke_test_emergency_route"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var emergencyEnvelope = HydronomEnvelopeFactory.CreateCommand(emergencyCommand);
+var emergencyRoute = routingPolicy.Decide(emergencyEnvelope);
+
+Console.WriteLine("    EmergencyStop route:");
+Console.WriteLine($"    MessageType : {emergencyRoute.MessageType}");
+Console.WriteLine($"    Reason      : {emergencyRoute.Reason}");
+Console.WriteLine($"    Primary     : {string.Join(", ", emergencyRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback    : {string.Join(", ", emergencyRoute.FallbackTransports)}");
+Console.WriteLine($"    Ack         : {emergencyRoute.RequiresAck}");
+Console.WriteLine($"    Broadcast   : {emergencyRoute.BroadcastAllAvailableLinks}");
+Console.WriteLine($"    MaxLatency  : {emergencyRoute.MaxLatency}");
+Console.WriteLine($"    Valid       : {emergencyRoute.IsValid}");
+Console.WriteLine();
+
+Console.WriteLine("[7] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
