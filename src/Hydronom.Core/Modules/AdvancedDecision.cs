@@ -5,25 +5,29 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// AdvancedDecision v2.3
+    /// AdvancedDecision v3.0
     /// ------------------------------------------------------------
-    /// - 6DoF wrench tabanlı karar modülü (Fx,Fy,Fz,Tx,Ty,Tz fiziksel).
-    /// - Navigate modunda daha güçlü yaw PD + aktif yaklaşma frenlemesi.
-    /// - Heading büyük hatadaysa ileri itki sert biçimde kapılanır.
-    /// - Hedefe yaklaşırken body-frame hız dikkate alınır.
-    /// - Gerekirse negatif Fx ile aktif yavaşlama yapılır.
-    /// - Station keeping: body-frame XY + yaw + roll/pitch + heave.
-    /// - Hold moduna girişte heading bir kez dondurulur; hold boyunca
-    ///   hedef noktasına tekrar bakılmaya çalışılmaz.
-    /// - Hedefe çok yaklaşınca zero wrench'e düşerek hunting azaltılır.
-    /// - Heave için dt tabanlı integral ve reset mantığı.
-    /// - Deterministik: Rastgelelik yok, sadece state/task/insights → komut.
-    /// - dt artık dışarıdan verilir; zaman ölçümü karar modülü içinde yapılmaz.
+    /// Platform bağımsız 6-DoF wrench tabanlı karar modülü.
+    ///
+    /// Çıktı sözleşmesi:
+    /// - Fx,Fy,Fz → Newton
+    /// - Tx,Ty,Tz → Newton-metre
+    /// - Tüm wrench body frame'dedir.
+    ///
+    /// Bu sürüm:
+    /// - Navigate / Avoid / Hold ayrımını açıklanabilir hale getirir.
+    /// - LastDecisionReport üretir.
+    /// - NaN / Infinity / bozuk dt koruması yapar.
+    /// - Hedefe yaklaşırken aktif frenleme uygular.
+    /// - Büyük heading hatasında ileri itmeyi kapılar.
+    /// - Body-frame hız ve pozisyon hatasını kullanır.
+    /// - Station keeping için XY + yaw + roll/pitch + heave kontrolü yapar.
+    /// - Heave integral anti-windup içerir.
+    /// - Deterministiktir; rastgelelik yoktur.
     /// ------------------------------------------------------------
     /// Not:
-    /// - DecisionCommand çıktı birimleri:
-    ///   Fx,Fy,Fz → Newton, Tx,Ty,Tz → Newton-metre (body frame).
-    /// - ActuatorManager, bu wrench’i thruster geometri bilgisi ile çözer.
+    /// SafetyLimiter komutu ayrıca yumuşatır.
+    /// ActuatorManager ise gerçekten üretilebilen wrench'i allocation raporuyla açıklar.
     /// </summary>
     public class AdvancedDecision : IDecisionModule
     {
@@ -33,7 +37,7 @@ namespace Hydronom.Core.Modules
         private const double GlobalEffortScale = 0.75;
 
         // ---------------------------------------------------------------------
-        // EKSEN KAPASİTELERİ (FİZİKSEL)
+        // EKSEN KAPASİTELERİ
         // ---------------------------------------------------------------------
         private const double MaxFxN = 24.0;
         private const double MaxFyN = 12.0;
@@ -56,13 +60,11 @@ namespace Hydronom.Core.Modules
         private const double CruiseThrottleNorm = 0.62;
         private const double MinApproachThrottleNorm = 0.07;
 
-        // Yaklaşırken aktif frenleme
         private const double BrakeRadiusM = 1.60;
         private const double BrakeSpeedStartMps = 0.45;
         private const double BrakeSpeedFullMps = 1.20;
         private const double MaxReverseThrottleNorm = 0.32;
 
-        // Çok büyük heading hatasında neredeyse yerinde dön
         private const double NearTurnInPlaceDeg = 95.0;
 
         // ---------------------------------------------------------------------
@@ -72,16 +74,14 @@ namespace Hydronom.Core.Modules
         private const double RudderDeadbandDeg = 3.0;
         private const double YawRateDeadbandDeg = 2.0;
 
-        // Navigate modunda eski değerden daha güçlü sönüm
         private const double NavYawKp = 1.0 / RudderFullAtDeg;
         private const double NavYawKd = 0.055;
 
-        // Hedefe çok yakınken spin söndürme için ekstra kazanç
         private const double NearYawBrakeKp = 0.030;
         private const double NearYawBrakeKd = 0.020;
 
         // ---------------------------------------------------------------------
-        // Roll/pitch PD
+        // Roll / pitch PD
         // ---------------------------------------------------------------------
         private const double AttKp = 0.035;
         private const double AttKd = 0.020;
@@ -93,14 +93,10 @@ namespace Hydronom.Core.Modules
         private const double MaxSwayNorm = 0.9;
 
         // ---------------------------------------------------------------------
-        // Station keeping X-Y (body frame)
+        // Station keeping
         // ---------------------------------------------------------------------
         private const double HoldKp = 0.45;
         private const double HoldKd = 0.30;
-
-        // ---------------------------------------------------------------------
-        // Yaw PD (station keeping)
-        // ---------------------------------------------------------------------
         private const double YawKp = 0.018;
         private const double YawKd = 0.012;
 
@@ -121,201 +117,274 @@ namespace Hydronom.Core.Modules
         private double? _frozenHoldHeadingDeg = null;
         private bool _isHoldingPosition = false;
 
+        /// <summary>
+        /// Son kararın açıklanabilir raporu.
+        /// Diagnostics, log, Hydronom Ops veya test kodu bunu okuyabilir.
+        /// </summary>
+        public AdvancedDecisionReport LastDecisionReport { get; private set; } =
+            AdvancedDecisionReport.Empty;
+
         // ---------------------------------------------------------------------
         // ANA KARAR FONKSİYONU
         // ---------------------------------------------------------------------
         public DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state, double dt)
         {
             dt = SanitizeDt(dt);
+            state = state.Sanitized();
 
             if (task is null)
             {
                 ResetControllerState();
-                return Zero();
+                return ReportAndReturn(
+                    DecisionMode.Idle,
+                    "NO_TASK",
+                    DecisionCommand.Zero,
+                    DecisionCommand.Zero,
+                    state,
+                    target: null,
+                    distanceXY: 0.0,
+                    headingErrorDeg: 0.0,
+                    forwardSpeedMps: 0.0,
+                    yawRateDeg: state.AngularVelocity.Z,
+                    obstacleAhead: insights.HasObstacleAhead
+                );
             }
 
             if (task.Target is not Vec3 target)
             {
                 ResetControllerState();
-                return Zero();
+                return ReportAndReturn(
+                    DecisionMode.Idle,
+                    "TASK_HAS_NO_VEC3_TARGET",
+                    DecisionCommand.Zero,
+                    DecisionCommand.Zero,
+                    state,
+                    target: null,
+                    distanceXY: 0.0,
+                    headingErrorDeg: 0.0,
+                    forwardSpeedMps: 0.0,
+                    yawRateDeg: state.AngularVelocity.Z,
+                    obstacleAhead: insights.HasObstacleAhead
+                );
             }
 
+            target = SanitizeVec(target);
             HandleTargetChange(target);
+
+            var nav = ComputeNavigationGeometry(target, state);
 
             if (insights.HasObstacleAhead)
             {
                 ExitHoldMode();
-                return Avoid(insights, task, state, dt);
+
+                var avoidCmd = Avoid(insights, task, state, dt, nav);
+                return ReportAndReturn(
+                    DecisionMode.Avoid,
+                    "OBSTACLE_AHEAD",
+                    avoidCmd.RawCommand,
+                    avoidCmd.OutputCommand,
+                    state,
+                    target,
+                    nav.DistanceXY,
+                    nav.HeadingErrorDeg,
+                    nav.ForwardSpeedMps,
+                    nav.YawRateDeg,
+                    obstacleAhead: true,
+                    throttleNorm: avoidCmd.ThrottleNorm,
+                    rudderNorm: avoidCmd.RudderNorm
+                );
             }
 
-            double dx = target.X - state.Position.X;
-            double dy = target.Y - state.Position.Y;
-            double distXY = Math.Sqrt(dx * dx + dy * dy);
-
-            if (distXY <= StopRadiusM)
+            if (nav.DistanceXY <= StopRadiusM)
             {
                 EnterHoldMode(state);
-                return HoldPosition(target, state, dt);
+
+                var hold = HoldPosition(target, state, dt, nav);
+                return ReportAndReturn(
+                    DecisionMode.Hold,
+                    hold.Reason,
+                    hold.RawCommand,
+                    hold.OutputCommand,
+                    state,
+                    target,
+                    nav.DistanceXY,
+                    nav.HeadingErrorDeg,
+                    nav.ForwardSpeedMps,
+                    nav.YawRateDeg,
+                    obstacleAhead: false,
+                    throttleNorm: 0.0,
+                    rudderNorm: 0.0
+                );
             }
 
             ExitHoldMode();
-            return NavigateToTarget(task, state, dt);
-        }
 
-        // ---------------------------------------------------------------------
-        // WRENCH OLUŞTURUCU
-        // ---------------------------------------------------------------------
-        private static DecisionCommand Wrench(double fx, double fy, double fz,
-                                              double tx, double ty, double tz)
-        {
-            fx *= GlobalEffortScale;
-            fy *= GlobalEffortScale;
-            fz *= GlobalEffortScale;
-            tx *= GlobalEffortScale;
-            ty *= GlobalEffortScale;
-            tz *= GlobalEffortScale;
-
-            return new DecisionCommand(
-                fx: fx,
-                fy: fy,
-                fz: fz,
-                tx: tx,
-                ty: ty,
-                tz: tz
+            var navCmd = NavigateToTarget(task, state, dt, nav);
+            return ReportAndReturn(
+                DecisionMode.Navigate,
+                navCmd.Reason,
+                navCmd.RawCommand,
+                navCmd.OutputCommand,
+                state,
+                target,
+                nav.DistanceXY,
+                nav.HeadingErrorDeg,
+                nav.ForwardSpeedMps,
+                nav.YawRateDeg,
+                obstacleAhead: false,
+                throttleNorm: navCmd.ThrottleNorm,
+                rudderNorm: navCmd.RudderNorm
             );
-        }
-
-        private DecisionCommand Zero()
-        {
-            ResetHeaveIntegral();
-            return Wrench(0, 0, 0, 0, 0, 0);
         }
 
         // ---------------------------------------------------------------------
         // ENGEL KAÇINMA
         // ---------------------------------------------------------------------
-        private DecisionCommand Avoid(Insights ins, TaskDefinition task, VehicleState state, double dt)
+        private DecisionResult Avoid(
+            Insights ins,
+            TaskDefinition task,
+            VehicleState state,
+            double dt,
+            NavigationGeometry nav)
         {
-            double sideSign = ins.ClearanceRight > ins.ClearanceLeft ? +1.0 : -1.0;
+            double left = SafeNonNegative(ins.ClearanceLeft, 0.0);
+            double right = SafeNonNegative(ins.ClearanceRight, 0.0);
+
+            double sideSign;
+            if (Math.Abs(right - left) < 0.10)
+            {
+                // Açıklıklar eşitse hedefe göre daha az ters düşen yönü seç.
+                sideSign = nav.HeadingErrorDeg >= 0.0 ? +1.0 : -1.0;
+            }
+            else
+            {
+                sideSign = right > left ? +1.0 : -1.0;
+            }
+
+            double clearanceMax = Math.Max(left, right);
+            double clearanceMin = Math.Min(left, right);
+            double clearanceBalance = (clearanceMax - clearanceMin) / Math.Max(0.5, clearanceMax);
 
             double throttleNorm = 0.10;
-            double rudderNorm = 0.55 * sideSign;
 
-            return PlanarToWrench(throttleNorm, rudderNorm, task, state, dt);
+            // Çok yakın engelde ileri itmeyi daha fazla bastır.
+            if (clearanceMin < 1.0)
+                throttleNorm = 0.02;
+            else if (clearanceMin < 2.0)
+                throttleNorm = 0.06;
+
+            double rudderNorm = (0.50 + 0.35 * Math.Clamp(clearanceBalance, 0.0, 1.0)) * sideSign;
+            rudderNorm = Math.Clamp(rudderNorm, -0.90, 0.90);
+
+            var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
+            var output = ScaleCommand(raw);
+
+            return new DecisionResult(
+                RawCommand: raw,
+                OutputCommand: output,
+                Reason: $"AVOID side={(sideSign > 0 ? "right" : "left")} clearL={left:F2} clearR={right:F2}",
+                ThrottleNorm: throttleNorm,
+                RudderNorm: rudderNorm
+            );
         }
 
         // ---------------------------------------------------------------------
         // HEDEF NAVİGASYONU
         // ---------------------------------------------------------------------
-        private DecisionCommand NavigateToTarget(TaskDefinition task, VehicleState state, double dt)
+        private DecisionResult NavigateToTarget(
+            TaskDefinition task,
+            VehicleState state,
+            double dt,
+            NavigationGeometry nav)
         {
-            if (task.Target is not Vec3 target)
-                return Zero();
+            double absDelta = Math.Abs(nav.HeadingErrorDeg);
+            double absYawRate = Math.Abs(nav.YawRateDeg);
 
-            double dx = target.X - state.Position.X;
-            double dy = target.Y - state.Position.Y;
-            double dist = Math.Sqrt(dx * dx + dy * dy);
-
-            Vec3 toTargetWorld = new Vec3(dx, dy, 0.0);
-            Vec3 toTargetBody = state.Orientation.WorldToBody(toTargetWorld);
-            Vec3 velBody = state.Orientation.WorldToBody(state.Velocity);
-
-            double forwardSpeed = velBody.X;
-            double yawRate = state.AngularVelocity.Z;
-            double absYawRate = Math.Abs(yawRate);
-
-            double targetHeading = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-            double delta = Normalize(targetHeading - state.Orientation.YawDeg);
-            double absDelta = Math.Abs(delta);
-
-            // -------------------------------------------------------------
-            // 1) Navigate yaw PD
-            // -------------------------------------------------------------
             double rudderNorm = 0.0;
 
             if (absDelta > RudderDeadbandDeg || absYawRate > YawRateDeadbandDeg)
             {
-                double p = delta * NavYawKp;
-                double d = -yawRate * NavYawKd;
+                double p = nav.HeadingErrorDeg * NavYawKp;
+                double d = -nav.YawRateDeg * NavYawKd;
                 rudderNorm = Math.Clamp(p + d, -1.0, 1.0);
             }
 
-            // Hedefe çok yaklaşınca mevcut spin'i daha sert söndür
-            if (dist < BrakeRadiusM)
+            if (nav.DistanceXY < BrakeRadiusM)
             {
-                double nearBrake = delta * NearYawBrakeKp - yawRate * NearYawBrakeKd;
+                double nearBrake = nav.HeadingErrorDeg * NearYawBrakeKp - nav.YawRateDeg * NearYawBrakeKd;
                 rudderNorm = Math.Clamp(nearBrake, -1.0, 1.0);
             }
 
-            // -------------------------------------------------------------
-            // 2) Temel ileri itki profili
-            // -------------------------------------------------------------
-            double throttleNorm;
-            if (dist >= SlowRadiusM)
-            {
-                throttleNorm = CruiseThrottleNorm;
-            }
-            else
-            {
-                double k = (dist - StopRadiusM) / (SlowRadiusM - StopRadiusM);
-                k = Math.Clamp(k, 0.0, 1.0);
-                throttleNorm = MinApproachThrottleNorm + k * (CruiseThrottleNorm - MinApproachThrottleNorm);
-            }
+            double throttleNorm = ComputeApproachThrottle(nav.DistanceXY);
 
-            // Heading büyük hatadaysa önce dönsün
             throttleNorm *= HeadingScale(absDelta);
             throttleNorm *= HeadingThrottleGate(absDelta, absYawRate);
 
             if (absDelta >= NearTurnInPlaceDeg)
                 throttleNorm = Math.Min(throttleNorm, 0.03);
 
-            // -------------------------------------------------------------
-            // 3) Yaklaşma yönü ve aktif frenleme
-            // -------------------------------------------------------------
-            // toTargetBody.X:
-            // > 0 ise hedef burnun önünde
-            // < 0 ise hedef burnun arkasında
-            double desiredForwardSign = toTargetBody.X >= 0.0 ? 1.0 : -1.0;
+            double desiredForwardSign = nav.TargetBody.X >= 0.0 ? 1.0 : -1.0;
 
-            // Yakınken ve ileri hız fazlaysa ters thrust ile frenle
-            if (dist < BrakeRadiusM && desiredForwardSign > 0.0)
+            if (nav.DistanceXY < BrakeRadiusM && desiredForwardSign > 0.0)
             {
-                double brakeNorm = ComputeApproachBrakeNorm(dist, forwardSpeed);
-
+                double brakeNorm = ComputeApproachBrakeNorm(nav.DistanceXY, nav.ForwardSpeedMps);
                 if (brakeNorm > 0.0)
-                {
-                    // İleri komutu yerine aktif fren uygula
                     throttleNorm = -brakeNorm;
-                }
             }
 
-            // Heading çok bozukken ve araç hâlâ ileri akıyorsa ileri itkiyi bastır
-            if (absDelta > 70.0 && forwardSpeed > 0.35)
+            if (absDelta > 70.0 && nav.ForwardSpeedMps > 0.35)
             {
-                double brakeAssist = Math.Clamp((forwardSpeed - 0.35) / 0.75, 0.0, MaxReverseThrottleNorm * 0.7);
+                double brakeAssist = Math.Clamp(
+                    (nav.ForwardSpeedMps - 0.35) / 0.75,
+                    0.0,
+                    MaxReverseThrottleNorm * 0.7
+                );
+
                 throttleNorm = Math.Min(throttleNorm, 0.0);
                 throttleNorm -= brakeAssist;
             }
 
             throttleNorm = Math.Clamp(throttleNorm, -MaxReverseThrottleNorm, CruiseThrottleNorm);
 
-            return PlanarToWrench(throttleNorm, rudderNorm, task, state, dt);
+            var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
+            var output = ScaleCommand(raw);
+
+            return new DecisionResult(
+                RawCommand: raw,
+                OutputCommand: output,
+                Reason: "NAVIGATE",
+                ThrottleNorm: throttleNorm,
+                RudderNorm: rudderNorm
+            );
+        }
+
+        private static double ComputeApproachThrottle(double distanceM)
+        {
+            if (distanceM >= SlowRadiusM)
+                return CruiseThrottleNorm;
+
+            double k = (distanceM - StopRadiusM) / (SlowRadiusM - StopRadiusM);
+            k = Math.Clamp(k, 0.0, 1.0);
+
+            return MinApproachThrottleNorm + k * (CruiseThrottleNorm - MinApproachThrottleNorm);
         }
 
         // ---------------------------------------------------------------------
         // STATION KEEPING
         // ---------------------------------------------------------------------
-        private DecisionCommand HoldPosition(Vec3 target, VehicleState state, double dt)
+        private DecisionResult HoldPosition(
+            Vec3 target,
+            VehicleState state,
+            double dt,
+            NavigationGeometry nav)
         {
-            double dx = target.X - state.Position.X;
-            double dy = target.Y - state.Position.Y;
-            double distXY = Math.Sqrt(dx * dx + dy * dy);
+            Vec3 posErrWorld = new Vec3(
+                target.X - state.Position.X,
+                target.Y - state.Position.Y,
+                0.0
+            );
 
-            // Pozisyon hatasını body-frame'e taşı
-            Vec3 posErrWorld = new Vec3(dx, dy, 0.0);
             Vec3 posErrBody = state.Orientation.WorldToBody(posErrWorld);
-
-            // Hızları body-frame'de ele al
             Vec3 velB = state.Orientation.WorldToBody(state.Velocity);
 
             bool linearSlow =
@@ -328,20 +397,25 @@ namespace Hydronom.Core.Modules
                 Math.Abs(state.AngularVelocity.Y) < CloseAngVelThreshDeg &&
                 Math.Abs(state.AngularVelocity.Z) < CloseAngVelThreshDeg;
 
-            // Hedefe yeterince yakın ve zaten neredeyse durmuşsak tam zero wrench ver
-            if (distXY < CloseEnoughRadiusM && linearSlow && angularSlow)
+            if (nav.DistanceXY < CloseEnoughRadiusM && linearSlow && angularSlow)
             {
                 ResetHeaveIntegral();
 
                 if (_frozenHoldHeadingDeg is null)
                     FreezeHoldHeading(state.Orientation.YawDeg);
 
-                return Wrench(0, 0, 0, 0, 0, 0);
+                var zero = DecisionCommand.Zero;
+                return new DecisionResult(
+                    RawCommand: zero,
+                    OutputCommand: zero,
+                    Reason: "HOLD_SETTLED_ZERO_WRENCH",
+                    ThrottleNorm: 0.0,
+                    RudderNorm: 0.0
+                );
             }
 
-            double posScale = Math.Clamp(distXY / StopRadiusM, 0.2, 1.0);
+            double posScale = Math.Clamp(nav.DistanceXY / StopRadiusM, 0.2, 1.0);
 
-            // Pozisyon hatası ve hız body-frame olduğu için PD tutarlı
             double fxNorm = (posErrBody.X * HoldKp - velB.X * HoldKd) * posScale;
             double fyNorm = (posErrBody.Y * HoldKp - velB.Y * HoldKd) * posScale;
 
@@ -351,8 +425,6 @@ namespace Hydronom.Core.Modules
             double fx = fxNorm * MaxFxN;
             double fy = fyNorm * MaxFyN;
 
-            // Hold modunda heading artık hedef noktasına göre değil,
-            // hold'a girişte dondurulan mevcut yaw'a göre korunur.
             if (_frozenHoldHeadingDeg is null)
                 FreezeHoldHeading(state.Orientation.YawDeg);
 
@@ -381,27 +453,60 @@ namespace Hydronom.Core.Modules
             double fzNorm = ComputeHeave(target.Z, state, dt) * posScale;
             double fz = fzNorm * MaxFzN;
 
-            return Wrench(fx, fy, fz, tx, ty, tz);
-        }
-
-        // ---------------------------------------------------------------------
-        // PLANAR → 6DoF
-        // ---------------------------------------------------------------------
-        private DecisionCommand PlanarToWrench(double throttleNorm, double rudderNorm,
-                                               TaskDefinition task, VehicleState state, double dt)
-        {
-            var (fy, fz, tx, ty) = ComputeSecondaryAxes(task, state, dt);
-
-            double fx = Math.Clamp(throttleNorm, -1.0, 1.0) * MaxFxN;
-            double tz = -Math.Clamp(rudderNorm, -1.0, 1.0) * MaxTzNm;
-
-            return Wrench(
+            var raw = new DecisionCommand(
                 fx: fx,
                 fy: fy,
                 fz: fz,
                 tx: tx,
                 ty: ty,
                 tz: tz
+            );
+
+            var output = ScaleCommand(raw);
+
+            return new DecisionResult(
+                RawCommand: raw,
+                OutputCommand: output,
+                Reason: "HOLD_POSITION",
+                ThrottleNorm: fxNorm,
+                RudderNorm: tzNorm
+            );
+        }
+
+        // ---------------------------------------------------------------------
+        // PLANAR → 6DoF
+        // ---------------------------------------------------------------------
+        private DecisionCommand PlanarToRawWrench(
+            double throttleNorm,
+            double rudderNorm,
+            TaskDefinition task,
+            VehicleState state,
+            double dt)
+        {
+            var secondary = ComputeSecondaryAxes(task, state, dt);
+
+            double fx = Math.Clamp(throttleNorm, -1.0, 1.0) * MaxFxN;
+            double tz = -Math.Clamp(rudderNorm, -1.0, 1.0) * MaxTzNm;
+
+            return new DecisionCommand(
+                fx: fx,
+                fy: secondary.Fy,
+                fz: secondary.Fz,
+                tx: secondary.Tx,
+                ty: secondary.Ty,
+                tz: tz
+            );
+        }
+
+        private static DecisionCommand ScaleCommand(DecisionCommand raw)
+        {
+            return new DecisionCommand(
+                fx: Safe(raw.Fx) * GlobalEffortScale,
+                fy: Safe(raw.Fy) * GlobalEffortScale,
+                fz: Safe(raw.Fz) * GlobalEffortScale,
+                tx: Safe(raw.Tx) * GlobalEffortScale,
+                ty: Safe(raw.Ty) * GlobalEffortScale,
+                tz: Safe(raw.Tz) * GlobalEffortScale
             );
         }
 
@@ -412,7 +517,7 @@ namespace Hydronom.Core.Modules
             ComputeSecondaryAxes(TaskDefinition task, VehicleState state, double dt)
         {
             Vec3 velB = state.Orientation.WorldToBody(state.Velocity);
-            double vy = velB.Y;
+            double vy = Safe(velB.Y);
 
             double fyNorm = -vy * SwayVelGain;
             fyNorm = Math.Clamp(fyNorm, -MaxSwayNorm, MaxSwayNorm);
@@ -424,8 +529,8 @@ namespace Hydronom.Core.Modules
             double tyNorm = (-state.Orientation.PitchDeg) * AttKp
                             - state.AngularVelocity.Y * AttKd;
 
-            txNorm = Math.Clamp(txNorm, -1.0, 1.0);
-            tyNorm = Math.Clamp(tyNorm, -1.0, 1.0);
+            txNorm = Math.Clamp(Safe(txNorm), -1.0, 1.0);
+            tyNorm = Math.Clamp(Safe(tyNorm), -1.0, 1.0);
 
             double tx = txNorm * MaxTxNm;
             double ty = tyNorm * MaxTyNm;
@@ -449,17 +554,18 @@ namespace Hydronom.Core.Modules
         // ---------------------------------------------------------------------
         private double ComputeHeave(double targetZ, VehicleState state, double dt)
         {
-            double error = targetZ - state.Position.Z;
-            double vz = state.Velocity.Z;
+            double error = Safe(targetZ - state.Position.Z);
+            double vz = Safe(state.Velocity.Z);
+
+            // Hata çok küçükse integral yavaşça sönsün.
+            if (Math.Abs(error) < 0.03)
+                _heaveIntegral *= 0.90;
 
             _heaveIntegral += error * HeaveKi * dt;
             _heaveIntegral = Math.Clamp(_heaveIntegral, -HeaveImax, HeaveImax);
 
-            double fzNorm = error * HeaveKp
-                            + _heaveIntegral
-                            - vz * HeaveKd;
-
-            return Math.Clamp(fzNorm, -MaxHeaveNorm, MaxHeaveNorm);
+            double fzNorm = error * HeaveKp + _heaveIntegral - vz * HeaveKd;
+            return Math.Clamp(Safe(fzNorm), -MaxHeaveNorm, MaxHeaveNorm);
         }
 
         private void ResetHeaveIntegral()
@@ -518,18 +624,92 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // YARDIMCILAR
+        // RAPORLAMA
         // ---------------------------------------------------------------------
+        private DecisionCommand ReportAndReturn(
+            DecisionMode mode,
+            string reason,
+            DecisionCommand rawCommand,
+            DecisionCommand outputCommand,
+            VehicleState state,
+            Vec3? target,
+            double distanceXY,
+            double headingErrorDeg,
+            double forwardSpeedMps,
+            double yawRateDeg,
+            bool obstacleAhead,
+            double throttleNorm = 0.0,
+            double rudderNorm = 0.0)
+        {
+            LastDecisionReport = new AdvancedDecisionReport(
+                Mode: mode,
+                Reason: reason,
+                Target: target,
+                Position: state.Position,
+                DistanceXY: SafeNonNegative(distanceXY, 0.0),
+                HeadingErrorDeg: Safe(headingErrorDeg),
+                ForwardSpeedMps: Safe(forwardSpeedMps),
+                YawRateDeg: Safe(yawRateDeg),
+                ObstacleAhead: obstacleAhead,
+                IsHoldingPosition: _isHoldingPosition,
+                FrozenHoldHeadingDeg: _frozenHoldHeadingDeg,
+                ThrottleNorm: Math.Clamp(Safe(throttleNorm), -1.0, 1.0),
+                RudderNorm: Math.Clamp(Safe(rudderNorm), -1.0, 1.0),
+                RawCommand: rawCommand,
+                OutputCommand: outputCommand
+            );
+
+            return outputCommand;
+        }
+
+        // ---------------------------------------------------------------------
+        // GEOMETRİ / YARDIMCILAR
+        // ---------------------------------------------------------------------
+        private static NavigationGeometry ComputeNavigationGeometry(Vec3 target, VehicleState state)
+        {
+            double dx = Safe(target.X - state.Position.X);
+            double dy = Safe(target.Y - state.Position.Y);
+
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (!double.IsFinite(dist))
+                dist = 0.0;
+
+            Vec3 toTargetWorld = new Vec3(dx, dy, 0.0);
+            Vec3 toTargetBody = state.Orientation.WorldToBody(toTargetWorld);
+            Vec3 velBody = state.Orientation.WorldToBody(state.Velocity);
+
+            double targetHeading = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+            double delta = Normalize(targetHeading - state.Orientation.YawDeg);
+
+            return new NavigationGeometry(
+                DistanceXY: dist,
+                TargetBody: toTargetBody,
+                VelocityBody: velBody,
+                HeadingErrorDeg: delta,
+                ForwardSpeedMps: velBody.X,
+                YawRateDeg: state.AngularVelocity.Z
+            );
+        }
+
         private static double Normalize(double deg)
         {
-            while (deg > 180) deg -= 360;
-            while (deg < -180) deg += 360;
+            if (!double.IsFinite(deg))
+                return 0.0;
+
+            deg %= 360.0;
+
+            if (deg > 180.0)
+                deg -= 360.0;
+
+            if (deg < -180.0)
+                deg += 360.0;
+
             return deg;
         }
 
         private static double SanitizeDt(double dt)
         {
-            if (double.IsNaN(dt) || double.IsInfinity(dt))
+            if (!double.IsFinite(dt))
                 return 0.1;
 
             if (dt <= 1e-4)
@@ -541,21 +721,44 @@ namespace Hydronom.Core.Modules
             return dt;
         }
 
-        private double HeadingScale(double absDelta)
+        private static Vec3 SanitizeVec(Vec3 v)
+        {
+            return new Vec3(
+                Safe(v.X),
+                Safe(v.Y),
+                Safe(v.Z)
+            );
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
+        }
+
+        private static double SafeNonNegative(double value, double fallback)
+        {
+            if (!double.IsFinite(value))
+                return fallback;
+
+            return Math.Max(0.0, value);
+        }
+
+        private static double HeadingScale(double absDelta)
         {
             if (absDelta <= 10.0) return 1.0;
             if (absDelta >= 90.0) return 0.22;
 
             double x = (absDelta - 10.0) / 80.0;
             double s = x * x * (3.0 - 2.0 * x);
+
             return 1.0 + (0.22 - 1.0) * s;
         }
 
         /// <summary>
-        /// Heading hatasına ve yaw rate'e göre throttle için ek kapı fonksiyonu.
+        /// Heading hatasına ve yaw rate'e göre throttle kapısı.
         /// Amaç: büyük açı hatasında önce yönelimi toparlamak.
         /// </summary>
-        private double HeadingThrottleGate(double absDeltaDeg, double absYawRateDeg)
+        private static double HeadingThrottleGate(double absDeltaDeg, double absYawRateDeg)
         {
             double gate;
 
@@ -578,7 +781,7 @@ namespace Hydronom.Core.Modules
             return gate;
         }
 
-        private double ComputeApproachBrakeNorm(double dist, double forwardSpeed)
+        private static double ComputeApproachBrakeNorm(double dist, double forwardSpeed)
         {
             if (dist >= BrakeRadiusM)
                 return 0.0;
@@ -595,6 +798,79 @@ namespace Hydronom.Core.Modules
 
             double brake = distFactor * speedFactor * MaxReverseThrottleNorm;
             return Math.Clamp(brake, 0.0, MaxReverseThrottleNorm);
+        }
+
+        private readonly record struct NavigationGeometry(
+            double DistanceXY,
+            Vec3 TargetBody,
+            Vec3 VelocityBody,
+            double HeadingErrorDeg,
+            double ForwardSpeedMps,
+            double YawRateDeg
+        );
+
+        private readonly record struct DecisionResult(
+            DecisionCommand RawCommand,
+            DecisionCommand OutputCommand,
+            string Reason,
+            double ThrottleNorm,
+            double RudderNorm
+        );
+    }
+
+    public enum DecisionMode
+    {
+        Idle = 0,
+        Navigate = 1,
+        Avoid = 2,
+        Hold = 3
+    }
+
+    public readonly record struct AdvancedDecisionReport(
+        DecisionMode Mode,
+        string Reason,
+        Vec3? Target,
+        Vec3 Position,
+        double DistanceXY,
+        double HeadingErrorDeg,
+        double ForwardSpeedMps,
+        double YawRateDeg,
+        bool ObstacleAhead,
+        bool IsHoldingPosition,
+        double? FrozenHoldHeadingDeg,
+        double ThrottleNorm,
+        double RudderNorm,
+        DecisionCommand RawCommand,
+        DecisionCommand OutputCommand
+    )
+    {
+        public static AdvancedDecisionReport Empty { get; } =
+            new(
+                Mode: DecisionMode.Idle,
+                Reason: "NOT_COMPUTED",
+                Target: null,
+                Position: Vec3.Zero,
+                DistanceXY: 0.0,
+                HeadingErrorDeg: 0.0,
+                ForwardSpeedMps: 0.0,
+                YawRateDeg: 0.0,
+                ObstacleAhead: false,
+                IsHoldingPosition: false,
+                FrozenHoldHeadingDeg: null,
+                ThrottleNorm: 0.0,
+                RudderNorm: 0.0,
+                RawCommand: DecisionCommand.Zero,
+                OutputCommand: DecisionCommand.Zero
+            );
+
+        public override string ToString()
+        {
+            return
+                $"Decision mode={Mode} reason={Reason} " +
+                $"dist={DistanceXY:F2}m dHead={HeadingErrorDeg:F1}° " +
+                $"vFwd={ForwardSpeedMps:F2}m/s yawRate={YawRateDeg:F1}°/s " +
+                $"obs={ObstacleAhead} hold={IsHoldingPosition} " +
+                $"thr={ThrottleNorm:F2} rud={RudderNorm:F2}";
         }
     }
 }

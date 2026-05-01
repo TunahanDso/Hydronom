@@ -4,174 +4,164 @@ using Hydronom.Core.Domain;
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// Komut güvenliği:
-    /// - 6DoF wrench komutları için NaN/∞ koruması
+    /// 6-DoF komut güvenliği ve hareket yumuşatma katmanı.
+    ///
+    /// Decision katmanından gelen wrench komutunu güvenli hale getirir:
+    /// - NaN / Infinity temizliği
+    /// - dt güvenliği
+    /// - eksen bazlı deadband
     /// - eksen bazlı rate limit
-    /// - eksen bazlı mikro-oynama filtresi (deadband)
-    /// - dt clamp
-    /// - planar kullanım için turn-assist
-    ///
-    /// Amaç:
-    /// - Decision katmanının ürettiği 6DoF komutu bozmadan yumuşatmak
-    /// - ani sıçramaları ve jitter'ı azaltmak
-    /// - fakat sistemi gereksiz yere hantallaştırmamak
-    ///
-    /// Not:
-    /// - Sert saturasyon burada yapılmaz.
-    /// - Gerçek fiziksel saturasyon / authority / mixer sınırı ActuatorManager tarafındadır.
+    /// - opsiyonel mutlak eksen limiti
+    /// - planar turn-assist
+    /// - açıklanabilir rapor üretimi
     /// </summary>
     public sealed class SafetyLimiter
     {
-        // ---------------------------------------------------------------------
-        // dt güvenliği
-        // ---------------------------------------------------------------------
         private const double DtMin = 1e-4;
         private const double DtMax = 0.25;
         private const double DtFallback = 0.10;
 
-        // ---------------------------------------------------------------------
-        // Varsayılan rate limit değerleri
-        // Birimler:
-        // Fx,Fy,Fz -> N/s
-        // Tx,Ty,Tz -> N·m/s
-        // ---------------------------------------------------------------------
-        private double _fxRatePerSec;
-        private double _fyRatePerSec;
-        private double _fzRatePerSec;
+        private AxisValues _ratePerSec;
+        private AxisValues _deadband;
+        private AxisValues _maxAbs;
 
-        private double _txRatePerSec;
-        private double _tyRatePerSec;
-        private double _tzRatePerSec;
+        private bool _absoluteLimitsEnabled;
 
-        // ---------------------------------------------------------------------
-        // Deadband (mikro jitter filtresi)
-        // Kuvvet eksenleri için N, tork eksenleri için N·m
-        // ---------------------------------------------------------------------
-        private double _fxDeadband;
-        private double _fyDeadband;
-        private double _fzDeadband;
-
-        private double _txDeadband;
-        private double _tyDeadband;
-        private double _tzDeadband;
-
-        // ---------------------------------------------------------------------
-        // Planar turn assist
-        // ---------------------------------------------------------------------
         private bool _turnAssistEnabled = true;
-        private double _minFxWhenTurning = 2.0;      // N
-        private double _turnTzAbsThreshold = 1.2;    // N·m
+        private double _minFxWhenTurning = 2.0;
+        private double _turnTzAbsThreshold = 1.2;
 
-        // ---------------------------------------------------------------------
-        // Geçmiş komut
-        // ---------------------------------------------------------------------
         private DecisionCommand _last = DecisionCommand.Zero;
-        private bool _hasLast = false;
+        private bool _hasLast;
 
-        // ---------------------------------------------------------------------
-        // Geri uyum API'si
-        // ---------------------------------------------------------------------
-        public double ThrottleRatePerSec => _fxRatePerSec;
-        public double RudderRatePerSec => _tzRatePerSec;
+        /// <summary>
+        /// Son limiter çalışmasının açıklanabilir raporu.
+        /// Runtime log, Analysis, Diagnostics ve Ops tarafı bunu okuyabilir.
+        /// </summary>
+        public SafetyLimitReport LastReport { get; private set; } =
+            SafetyLimitReport.Empty;
+
+        public double ThrottleRatePerSec => _ratePerSec.Fx;
+        public double RudderRatePerSec => _ratePerSec.Tz;
 
         public SafetyLimiter(
             double throttleRatePerSec = 100.0,
             double rudderRatePerSec = 35.0)
         {
-            // Ana eksenler
-            _fxRatePerSec = ClampNonNegative(throttleRatePerSec);
-            _tzRatePerSec = ClampNonNegative(rudderRatePerSec);
+            SetProfile(throttleRatePerSec, rudderRatePerSec);
 
-            // Yardımcı eksenler
-            _fyRatePerSec = ClampNonNegative(throttleRatePerSec * 0.85);
-            _fzRatePerSec = ClampNonNegative(throttleRatePerSec * 0.85);
+            _deadband = new AxisValues(
+                Fx: 0.03,
+                Fy: 0.03,
+                Fz: 0.03,
+                Tx: 0.015,
+                Ty: 0.015,
+                Tz: 0.015
+            );
 
-            _txRatePerSec = ClampNonNegative(rudderRatePerSec * 0.80);
-            _tyRatePerSec = ClampNonNegative(rudderRatePerSec * 0.80);
-
-            // Deadband varsayılanları
-            _fxDeadband = 0.03;
-            _fyDeadband = 0.03;
-            _fzDeadband = 0.03;
-
-            _txDeadband = 0.015;
-            _tyDeadband = 0.015;
-            _tzDeadband = 0.015;
+            _maxAbs = AxisValues.DisabledLimits;
+            _absoluteLimitsEnabled = false;
         }
 
         /// <summary>
         /// Geri uyumlu ayar:
         /// - throttleRatePerSec -> Fx
         /// - rudderRatePerSec   -> Tz
-        ///
-        /// Not:
-        /// Bu çağrı, yan eksenleri otomatik yeniden türetmez.
-        /// Yan eksenleri özel yönetmek isteyen akışlar için daha güvenlidir.
+        /// Yan eksenleri değiştirmez.
         /// </summary>
         public void SetRates(double? thrRatePerSec, double? rudRatePerSec)
         {
             if (thrRatePerSec.HasValue)
-                _fxRatePerSec = ClampNonNegative(thrRatePerSec.Value);
+                _ratePerSec = _ratePerSec with { Fx = ClampNonNegative(thrRatePerSec.Value) };
 
             if (rudRatePerSec.HasValue)
-                _tzRatePerSec = ClampNonNegative(rudRatePerSec.Value);
+                _ratePerSec = _ratePerSec with { Tz = ClampNonNegative(rudRatePerSec.Value) };
         }
 
         /// <summary>
         /// Fx/Tz tabanlı hızlı profil ayarı.
-        /// Yan eksenler de otomatik türetilir.
-        /// Operasyon sırasında toplu yeniden ayarlama için uygundur.
+        /// Yan eksenler otomatik türetilir.
         /// </summary>
         public void SetProfile(double throttleRatePerSec, double rudderRatePerSec)
         {
-            _fxRatePerSec = ClampNonNegative(throttleRatePerSec);
-            _tzRatePerSec = ClampNonNegative(rudderRatePerSec);
+            double fx = ClampNonNegative(throttleRatePerSec);
+            double tz = ClampNonNegative(rudderRatePerSec);
 
-            _fyRatePerSec = ClampNonNegative(throttleRatePerSec * 0.85);
-            _fzRatePerSec = ClampNonNegative(throttleRatePerSec * 0.85);
-
-            _txRatePerSec = ClampNonNegative(rudderRatePerSec * 0.80);
-            _tyRatePerSec = ClampNonNegative(rudderRatePerSec * 0.80);
+            _ratePerSec = new AxisValues(
+                Fx: fx,
+                Fy: fx * 0.85,
+                Fz: fx * 0.85,
+                Tx: tz * 0.80,
+                Ty: tz * 0.80,
+                Tz: tz
+            );
         }
 
         /// <summary>
-        /// 6DoF eksenleri için ayrı rate limit ayarı.
+        /// 6-DoF eksenleri için ayrı rate limit ayarı.
         /// Null verilen eksen değişmeden kalır.
         /// </summary>
         public void SetAxisRates(
             double? fx = null, double? fy = null, double? fz = null,
             double? tx = null, double? ty = null, double? tz = null)
         {
-            if (fx.HasValue) _fxRatePerSec = ClampNonNegative(fx.Value);
-            if (fy.HasValue) _fyRatePerSec = ClampNonNegative(fy.Value);
-            if (fz.HasValue) _fzRatePerSec = ClampNonNegative(fz.Value);
-
-            if (tx.HasValue) _txRatePerSec = ClampNonNegative(tx.Value);
-            if (ty.HasValue) _tyRatePerSec = ClampNonNegative(ty.Value);
-            if (tz.HasValue) _tzRatePerSec = ClampNonNegative(tz.Value);
+            _ratePerSec = new AxisValues(
+                Fx: fx.HasValue ? ClampNonNegative(fx.Value) : _ratePerSec.Fx,
+                Fy: fy.HasValue ? ClampNonNegative(fy.Value) : _ratePerSec.Fy,
+                Fz: fz.HasValue ? ClampNonNegative(fz.Value) : _ratePerSec.Fz,
+                Tx: tx.HasValue ? ClampNonNegative(tx.Value) : _ratePerSec.Tx,
+                Ty: ty.HasValue ? ClampNonNegative(ty.Value) : _ratePerSec.Ty,
+                Tz: tz.HasValue ? ClampNonNegative(tz.Value) : _ratePerSec.Tz
+            );
         }
 
         /// <summary>
-        /// 6DoF eksenleri için deadband ayarı.
+        /// 6-DoF eksenleri için deadband ayarı.
         /// Null verilen eksen değişmeden kalır.
         /// </summary>
         public void SetAxisDeadbands(
             double? fx = null, double? fy = null, double? fz = null,
             double? tx = null, double? ty = null, double? tz = null)
         {
-            if (fx.HasValue) _fxDeadband = ClampNonNegative(fx.Value);
-            if (fy.HasValue) _fyDeadband = ClampNonNegative(fy.Value);
-            if (fz.HasValue) _fzDeadband = ClampNonNegative(fz.Value);
-
-            if (tx.HasValue) _txDeadband = ClampNonNegative(tx.Value);
-            if (ty.HasValue) _tyDeadband = ClampNonNegative(ty.Value);
-            if (tz.HasValue) _tzDeadband = ClampNonNegative(tz.Value);
+            _deadband = new AxisValues(
+                Fx: fx.HasValue ? ClampNonNegative(fx.Value) : _deadband.Fx,
+                Fy: fy.HasValue ? ClampNonNegative(fy.Value) : _deadband.Fy,
+                Fz: fz.HasValue ? ClampNonNegative(fz.Value) : _deadband.Fz,
+                Tx: tx.HasValue ? ClampNonNegative(tx.Value) : _deadband.Tx,
+                Ty: ty.HasValue ? ClampNonNegative(ty.Value) : _deadband.Ty,
+                Tz: tz.HasValue ? ClampNonNegative(tz.Value) : _deadband.Tz
+            );
         }
 
         /// <summary>
-        /// Turn-assist parametreleri.
-        /// - minFxWhenTurning: dönüşte ileri itiş çok küçük kalırsa taban uygular
-        /// - turnTzAbsThreshold: ne kadar yaw torkundan sonra "dönüş" sayılacağı
+        /// Opsiyonel mutlak eksen limitleri.
+        ///
+        /// Varsayılan olarak kapalıdır.
+        /// Bu limitler açılırsa DecisionCommand değerleri belirtilen maksimum mutlak değerleri aşamaz.
+        /// Fiziksel actuator authority yine ActuatorManager tarafında denetlenmelidir.
+        /// </summary>
+        public void SetAxisAbsoluteLimits(
+            bool enabled,
+            double? fx = null, double? fy = null, double? fz = null,
+            double? tx = null, double? ty = null, double? tz = null)
+        {
+            _absoluteLimitsEnabled = enabled;
+
+            _maxAbs = new AxisValues(
+                Fx: fx.HasValue ? ClampNonNegative(fx.Value) : _maxAbs.Fx,
+                Fy: fy.HasValue ? ClampNonNegative(fy.Value) : _maxAbs.Fy,
+                Fz: fz.HasValue ? ClampNonNegative(fz.Value) : _maxAbs.Fz,
+                Tx: tx.HasValue ? ClampNonNegative(tx.Value) : _maxAbs.Tx,
+                Ty: ty.HasValue ? ClampNonNegative(ty.Value) : _maxAbs.Ty,
+                Tz: tz.HasValue ? ClampNonNegative(tz.Value) : _maxAbs.Tz
+            );
+        }
+
+        /// <summary>
+        /// Planar turn-assist parametreleri.
+        ///
+        /// Turn-assist rate limitten önce uygulanır.
+        /// Böylece assist de güvenli geçiş filtresinden geçer.
         /// </summary>
         public void SetTurnAssist(
             bool? enabled = null,
@@ -190,108 +180,125 @@ namespace Hydronom.Core.Modules
 
         /// <summary>
         /// Geçmiş limiter durumunu sıfırlar.
-        /// Görev değişimlerinde, emergency stop sonrası veya mod değişiminde çağrılabilir.
+        /// Görev değişimi, emergency stop, mode transition veya external override sonrası çağrılabilir.
         /// </summary>
         public void Reset()
         {
             _last = DecisionCommand.Zero;
             _hasLast = false;
+            LastReport = SafetyLimitReport.Empty;
         }
 
         /// <summary>
-        /// 6DoF limiter ana fonksiyonu.
+        /// Geri uyumlu ana API.
         /// </summary>
         public (DecisionCommand cmd, LimitFlags flags) Limit(DecisionCommand desired, double dtSeconds)
         {
+            var report = LimitAdvanced(desired, dtSeconds);
+            return (report.Output, report.Flags);
+        }
+
+        /// <summary>
+        /// Açıklanabilir gelişmiş limiter API'si.
+        /// </summary>
+        public SafetyLimitReport LimitAdvanced(DecisionCommand desired, double dtSeconds)
+        {
             var flags = new LimitFlags();
 
-            // -----------------------------------------------------------------
-            // 0) dt clamp
-            // -----------------------------------------------------------------
             double dt = NormalizeDt(dtSeconds, ref flags);
 
-            // -----------------------------------------------------------------
-            // 1) Ham komutları al
-            // -----------------------------------------------------------------
-            double fx = desired.Fx;
-            double fy = desired.Fy;
-            double fz = desired.Fz;
+            var input = AxisValues.FromCommand(desired).Sanitized(ref flags);
 
-            double tx = desired.Tx;
-            double ty = desired.Ty;
-            double tz = desired.Tz;
+            var afterAssist = ApplyTurnAssist(input, ref flags);
 
-            // -----------------------------------------------------------------
-            // 2) NaN / Infinity guard
-            // -----------------------------------------------------------------
-            fx = Sanitize(fx, ref flags.InvalidFx);
-            fy = Sanitize(fy, ref flags.InvalidFy);
-            fz = Sanitize(fz, ref flags.InvalidFz);
+            var afterDeadband = _hasLast
+                ? ApplyDeadbands(afterAssist, AxisValues.FromCommand(_last), ref flags)
+                : afterAssist;
 
-            tx = Sanitize(tx, ref flags.InvalidTx);
-            ty = Sanitize(ty, ref flags.InvalidTy);
-            tz = Sanitize(tz, ref flags.InvalidTz);
+            var afterRate = _hasLast
+                ? ApplyRateLimits(afterDeadband, AxisValues.FromCommand(_last), dt, ref flags)
+                : afterDeadband;
 
-            // -----------------------------------------------------------------
-            // 3) Deadband
-            // -----------------------------------------------------------------
-            if (_hasLast)
-            {
-                fx = ApplyDeadband(fx, _last.Fx, _fxDeadband, ref flags.DeadbandedFx);
-                fy = ApplyDeadband(fy, _last.Fy, _fyDeadband, ref flags.DeadbandedFy);
-                fz = ApplyDeadband(fz, _last.Fz, _fzDeadband, ref flags.DeadbandedFz);
+            var afterAbsolute = _absoluteLimitsEnabled
+                ? ApplyAbsoluteLimits(afterRate, ref flags)
+                : afterRate;
 
-                tx = ApplyDeadband(tx, _last.Tx, _txDeadband, ref flags.DeadbandedTx);
-                ty = ApplyDeadband(ty, _last.Ty, _tyDeadband, ref flags.DeadbandedTy);
-                tz = ApplyDeadband(tz, _last.Tz, _tzDeadband, ref flags.DeadbandedTz);
-            }
-
-            // -----------------------------------------------------------------
-            // 4) Rate limit
-            // -----------------------------------------------------------------
-            if (_hasLast)
-            {
-                fx = ApplyRateLimit(fx, _last.Fx, _fxRatePerSec, dt, ref flags.RateLimitedFx);
-                fy = ApplyRateLimit(fy, _last.Fy, _fyRatePerSec, dt, ref flags.RateLimitedFy);
-                fz = ApplyRateLimit(fz, _last.Fz, _fzRatePerSec, dt, ref flags.RateLimitedFz);
-
-                tx = ApplyRateLimit(tx, _last.Tx, _txRatePerSec, dt, ref flags.RateLimitedTx);
-                ty = ApplyRateLimit(ty, _last.Ty, _tyRatePerSec, dt, ref flags.RateLimitedTy);
-                tz = ApplyRateLimit(tz, _last.Tz, _tzRatePerSec, dt, ref flags.RateLimitedTz);
-            }
-
-            // -----------------------------------------------------------------
-            // 5) Turn assist
-            // Büyük yaw torku isterken ileri itiş çok küçük ve pozitifse,
-            // teknenin "ölü kalmaması" için minimum Fx uygula.
-            // -----------------------------------------------------------------
-            if (_turnAssistEnabled &&
-                fx > 0.0 &&
-                Math.Abs(tz) >= _turnTzAbsThreshold &&
-                fx < _minFxWhenTurning)
-            {
-                fx = _minFxWhenTurning;
-                flags.TurnAssistApplied = true;
-            }
-
-            var output = new DecisionCommand(
-                fx: fx,
-                fy: fy,
-                fz: fz,
-                tx: tx,
-                ty: ty,
-                tz: tz
-            );
+            var output = afterAbsolute.ToCommand();
 
             _last = output;
             _hasLast = true;
 
-            return (output, flags);
+            var report = new SafetyLimitReport(
+                Input: input.ToCommand(),
+                Output: output,
+                Flags: flags,
+                DtRequested: dtSeconds,
+                DtUsed: dt,
+                RateProfile: _ratePerSec,
+                DeadbandProfile: _deadband,
+                AbsoluteLimitProfile: _maxAbs,
+                AbsoluteLimitsEnabled: _absoluteLimitsEnabled
+            );
+
+            LastReport = report;
+            return report;
+        }
+
+        private AxisValues ApplyTurnAssist(AxisValues current, ref LimitFlags flags)
+        {
+            if (!_turnAssistEnabled)
+                return current;
+
+            if (current.Fx > 0.0 &&
+                Math.Abs(current.Tz) >= _turnTzAbsThreshold &&
+                current.Fx < _minFxWhenTurning)
+            {
+                flags.TurnAssistApplied = true;
+                return current with { Fx = _minFxWhenTurning };
+            }
+
+            return current;
+        }
+
+        private AxisValues ApplyDeadbands(AxisValues current, AxisValues previous, ref LimitFlags flags)
+        {
+            return new AxisValues(
+                Fx: ApplyDeadband(current.Fx, previous.Fx, _deadband.Fx, ref flags.DeadbandedFx),
+                Fy: ApplyDeadband(current.Fy, previous.Fy, _deadband.Fy, ref flags.DeadbandedFy),
+                Fz: ApplyDeadband(current.Fz, previous.Fz, _deadband.Fz, ref flags.DeadbandedFz),
+                Tx: ApplyDeadband(current.Tx, previous.Tx, _deadband.Tx, ref flags.DeadbandedTx),
+                Ty: ApplyDeadband(current.Ty, previous.Ty, _deadband.Ty, ref flags.DeadbandedTy),
+                Tz: ApplyDeadband(current.Tz, previous.Tz, _deadband.Tz, ref flags.DeadbandedTz)
+            );
+        }
+
+        private AxisValues ApplyRateLimits(AxisValues current, AxisValues previous, double dt, ref LimitFlags flags)
+        {
+            return new AxisValues(
+                Fx: ApplyRateLimit(current.Fx, previous.Fx, _ratePerSec.Fx, dt, ref flags.RateLimitedFx),
+                Fy: ApplyRateLimit(current.Fy, previous.Fy, _ratePerSec.Fy, dt, ref flags.RateLimitedFy),
+                Fz: ApplyRateLimit(current.Fz, previous.Fz, _ratePerSec.Fz, dt, ref flags.RateLimitedFz),
+                Tx: ApplyRateLimit(current.Tx, previous.Tx, _ratePerSec.Tx, dt, ref flags.RateLimitedTx),
+                Ty: ApplyRateLimit(current.Ty, previous.Ty, _ratePerSec.Ty, dt, ref flags.RateLimitedTy),
+                Tz: ApplyRateLimit(current.Tz, previous.Tz, _ratePerSec.Tz, dt, ref flags.RateLimitedTz)
+            );
+        }
+
+        private AxisValues ApplyAbsoluteLimits(AxisValues current, ref LimitFlags flags)
+        {
+            return new AxisValues(
+                Fx: ApplyAbsoluteLimit(current.Fx, _maxAbs.Fx, ref flags.AbsoluteLimitedFx),
+                Fy: ApplyAbsoluteLimit(current.Fy, _maxAbs.Fy, ref flags.AbsoluteLimitedFy),
+                Fz: ApplyAbsoluteLimit(current.Fz, _maxAbs.Fz, ref flags.AbsoluteLimitedFz),
+                Tx: ApplyAbsoluteLimit(current.Tx, _maxAbs.Tx, ref flags.AbsoluteLimitedTx),
+                Ty: ApplyAbsoluteLimit(current.Ty, _maxAbs.Ty, ref flags.AbsoluteLimitedTy),
+                Tz: ApplyAbsoluteLimit(current.Tz, _maxAbs.Tz, ref flags.AbsoluteLimitedTz)
+            );
         }
 
         private static double NormalizeDt(double dtSeconds, ref LimitFlags flags)
         {
-            if (double.IsNaN(dtSeconds) || double.IsInfinity(dtSeconds) || dtSeconds <= 0.0)
+            if (!double.IsFinite(dtSeconds) || dtSeconds <= 0.0)
             {
                 flags.DtClamped = true;
                 return DtFallback;
@@ -304,17 +311,6 @@ namespace Hydronom.Core.Modules
             }
 
             return dtSeconds;
-        }
-
-        private static double Sanitize(double value, ref bool flagged)
-        {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                flagged = true;
-                return 0.0;
-            }
-
-            return value;
         }
 
         private static double ApplyDeadband(double current, double previous, double epsilon, ref bool flagged)
@@ -330,7 +326,6 @@ namespace Hydronom.Core.Modules
 
         private static double ApplyRateLimit(double current, double previous, double ratePerSec, double dt, ref bool flagged)
         {
-            // 0 veya negatif ise bu eksende rate limit kapalı kabul edilir
             if (ratePerSec <= 0.0)
                 return current;
 
@@ -346,9 +341,22 @@ namespace Hydronom.Core.Modules
             return current;
         }
 
+        private static double ApplyAbsoluteLimit(double value, double maxAbs, ref bool flagged)
+        {
+            if (maxAbs <= 0.0 || !double.IsFinite(maxAbs))
+                return value;
+
+            double limited = Math.Clamp(value, -maxAbs, maxAbs);
+
+            if (Math.Abs(limited - value) > 1e-9)
+                flagged = true;
+
+            return limited;
+        }
+
         private static double ClampNonNegative(double value)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value))
+            if (!double.IsFinite(value))
                 return 0.0;
 
             return Math.Max(0.0, value);
@@ -356,8 +364,82 @@ namespace Hydronom.Core.Modules
     }
 
     /// <summary>
-    /// Limiter’in yaptığı işlemleri raporlar.
-    /// 6DoF ayrıntılarını saklar, ToString içinde özet verir.
+    /// 6 eksenli değer paketi.
+    /// Fx,Fy,Fz kuvvet; Tx,Ty,Tz tork eksenleridir.
+    /// </summary>
+    public readonly record struct AxisValues(
+        double Fx,
+        double Fy,
+        double Fz,
+        double Tx,
+        double Ty,
+        double Tz
+    )
+    {
+        public static AxisValues Zero => new(
+            Fx: 0.0,
+            Fy: 0.0,
+            Fz: 0.0,
+            Tx: 0.0,
+            Ty: 0.0,
+            Tz: 0.0
+        );
+
+        public static AxisValues DisabledLimits => Zero;
+
+        public static AxisValues FromCommand(DecisionCommand cmd)
+        {
+            return new AxisValues(
+                Fx: cmd.Fx,
+                Fy: cmd.Fy,
+                Fz: cmd.Fz,
+                Tx: cmd.Tx,
+                Ty: cmd.Ty,
+                Tz: cmd.Tz
+            );
+        }
+
+        public DecisionCommand ToCommand()
+        {
+            return new DecisionCommand(
+                fx: Fx,
+                fy: Fy,
+                fz: Fz,
+                tx: Tx,
+                ty: Ty,
+                tz: Tz
+            );
+        }
+
+        public AxisValues Sanitized(ref LimitFlags flags)
+        {
+            return new AxisValues(
+                Fx: Sanitize(Fx, ref flags.InvalidFx),
+                Fy: Sanitize(Fy, ref flags.InvalidFy),
+                Fz: Sanitize(Fz, ref flags.InvalidFz),
+                Tx: Sanitize(Tx, ref flags.InvalidTx),
+                Ty: Sanitize(Ty, ref flags.InvalidTy),
+                Tz: Sanitize(Tz, ref flags.InvalidTz)
+            );
+        }
+
+        private static double Sanitize(double value, ref bool flag)
+        {
+            if (!double.IsFinite(value))
+            {
+                flag = true;
+                return 0.0;
+            }
+
+            return value;
+        }
+
+        public override string ToString()
+            => $"F=({Fx:F2},{Fy:F2},{Fz:F2}) T=({Tx:F2},{Ty:F2},{Tz:F2})";
+    }
+
+    /// <summary>
+    /// Limiter'in yaptığı işlemleri raporlar.
     /// </summary>
     public struct LimitFlags
     {
@@ -382,6 +464,13 @@ namespace Hydronom.Core.Modules
         public bool DeadbandedTy;
         public bool DeadbandedTz;
 
+        public bool AbsoluteLimitedFx;
+        public bool AbsoluteLimitedFy;
+        public bool AbsoluteLimitedFz;
+        public bool AbsoluteLimitedTx;
+        public bool AbsoluteLimitedTy;
+        public bool AbsoluteLimitedTz;
+
         public bool DtClamped;
         public bool TurnAssistApplied;
 
@@ -397,10 +486,15 @@ namespace Hydronom.Core.Modules
             DeadbandedFx || DeadbandedFy || DeadbandedFz ||
             DeadbandedTx || DeadbandedTy || DeadbandedTz;
 
+        public bool AnyAbsoluteLimited =>
+            AbsoluteLimitedFx || AbsoluteLimitedFy || AbsoluteLimitedFz ||
+            AbsoluteLimitedTx || AbsoluteLimitedTy || AbsoluteLimitedTz;
+
         public bool Any =>
             AnyInvalid ||
             AnyRateLimited ||
             AnyDeadbanded ||
+            AnyAbsoluteLimited ||
             DtClamped ||
             TurnAssistApplied;
 
@@ -413,9 +507,51 @@ namespace Hydronom.Core.Modules
                 $"inv=({B(InvalidFx)}{B(InvalidFy)}{B(InvalidFz)}|{B(InvalidTx)}{B(InvalidTy)}{B(InvalidTz)}), " +
                 $"rl=({B(RateLimitedFx)}{B(RateLimitedFy)}{B(RateLimitedFz)}|{B(RateLimitedTx)}{B(RateLimitedTy)}{B(RateLimitedTz)}), " +
                 $"db=({B(DeadbandedFx)}{B(DeadbandedFy)}{B(DeadbandedFz)}|{B(DeadbandedTx)}{B(DeadbandedTy)}{B(DeadbandedTz)}), " +
+                $"abs=({B(AbsoluteLimitedFx)}{B(AbsoluteLimitedFy)}{B(AbsoluteLimitedFz)}|{B(AbsoluteLimitedTx)}{B(AbsoluteLimitedTy)}{B(AbsoluteLimitedTz)}), " +
                 $"dt={DtClamped}, assist={TurnAssistApplied}";
         }
 
         private static char B(bool v) => v ? '1' : '0';
+    }
+
+    /// <summary>
+    /// SafetyLimiter çalışmasının açıklanabilir raporu.
+    /// </summary>
+    public readonly record struct SafetyLimitReport(
+        DecisionCommand Input,
+        DecisionCommand Output,
+        LimitFlags Flags,
+        double DtRequested,
+        double DtUsed,
+        AxisValues RateProfile,
+        AxisValues DeadbandProfile,
+        AxisValues AbsoluteLimitProfile,
+        bool AbsoluteLimitsEnabled
+    )
+    {
+        public static SafetyLimitReport Empty { get; } =
+            new(
+                Input: DecisionCommand.Zero,
+                Output: DecisionCommand.Zero,
+                Flags: new LimitFlags(),
+                DtRequested: 0.0,
+                DtUsed: 0.0,
+                RateProfile: AxisValues.Zero,
+                DeadbandProfile: AxisValues.Zero,
+                AbsoluteLimitProfile: AxisValues.DisabledLimits,
+                AbsoluteLimitsEnabled: false
+            );
+
+        public bool WasLimited => Flags.Any;
+
+        public override string ToString()
+        {
+            return
+                $"SafetyLimit limited={WasLimited} " +
+                $"dt={DtUsed:F4}s " +
+                $"in={AxisValues.FromCommand(Input)} " +
+                $"out={AxisValues.FromCommand(Output)} " +
+                $"flags=[{Flags}]";
+        }
     }
 }
