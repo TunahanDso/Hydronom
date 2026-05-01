@@ -1,6 +1,7 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.Core.Fleet;
+using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.TransportExecution;
@@ -16,6 +17,7 @@ using Hydronom.GroundStation.WorldModel;
 /// - GroundWorldModel durumunu yorumlamak,
 /// - LinkHealthTracker bağlantı sağlığını yorumlamak,
 /// - GroundTransportExecutionTracker route/gönderim durumunu yorumlamak,
+/// - CommandAckCorrelator gerçek ACK/result korelasyon durumunu yorumlamak,
 /// - genel health ve kısa açıklama üretmektir.
 /// 
 /// Böylece Hydronom Ops veya ilerideki Gateway katmanı tek çağrıyla
@@ -24,9 +26,9 @@ using Hydronom.GroundStation.WorldModel;
 public sealed class GroundDiagnosticsEngine
 {
     /// <summary>
-    /// Filo, komut, dünya modeli, bağlantı sağlığı ve route execution verilerinden operasyon snapshot'ı üretir.
+    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution ve ACK correlation verilerinden operasyon snapshot'ı üretir.
     /// 
-    /// linkHealthSnapshot ve routeExecutionSnapshot opsiyoneldir.
+    /// linkHealthSnapshot, routeExecutionSnapshot ve ackCorrelationSnapshot opsiyoneldir.
     /// Böylece eski çağrılar bozulmadan çalışmaya devam eder.
     /// </summary>
     public GroundOperationSnapshot CreateSnapshot(
@@ -34,12 +36,14 @@ public sealed class GroundDiagnosticsEngine
         IReadOnlyList<CommandRecord> commandSnapshot,
         GroundWorldModel worldModel,
         IReadOnlyList<VehicleLinkHealthSnapshot>? linkHealthSnapshot = null,
-        IReadOnlyList<RouteExecutionSnapshot>? routeExecutionSnapshot = null)
+        IReadOnlyList<RouteExecutionSnapshot>? routeExecutionSnapshot = null,
+        IReadOnlyList<CommandAckCorrelationSnapshot>? ackCorrelationSnapshot = null)
     {
         fleetSnapshot ??= Array.Empty<VehicleNodeStatus>();
         commandSnapshot ??= Array.Empty<CommandRecord>();
         linkHealthSnapshot ??= Array.Empty<VehicleLinkHealthSnapshot>();
         routeExecutionSnapshot ??= Array.Empty<RouteExecutionSnapshot>();
+        ackCorrelationSnapshot ??= Array.Empty<CommandAckCorrelationSnapshot>();
 
         var totalNodes = fleetSnapshot.Count;
         var onlineNodes = fleetSnapshot.Count(x => x.IsOnline);
@@ -165,6 +169,51 @@ public sealed class GroundDiagnosticsEngine
             averageRouteExecutionLatencyMs,
             worstRouteExecutionLatencyMs);
 
+        var ackCorrelations = ackCorrelationSnapshot.ToArray();
+
+        var totalAckCorrelations = ackCorrelations.Length;
+        var pendingAckCorrelations = ackCorrelations.Count(x => !x.IsAcked);
+        var ackedCorrelations = ackCorrelations.Count(x => x.IsAcked);
+        var completedAckCorrelations = ackCorrelations.Count(x => x.IsCompleted);
+        var successfulAckCorrelations = ackCorrelations.Count(x => x.IsSuccessful);
+        var failedAckCorrelations = ackCorrelations.Count(x => x.IsFailed);
+
+        // İlk faz için varsayılan gerçek ACK timeout eşiği.
+        // İleride bu değer config üzerinden alınabilir.
+        var ackTimeout = TimeSpan.FromSeconds(5);
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        var expiredPendingAckCorrelations = ackCorrelations.Count(x =>
+            !x.IsAcked &&
+            nowUtc - x.CreatedUtc >= ackTimeout);
+
+        var ackLatencies = ackCorrelations
+            .Where(x => x.AckLatencyMs.HasValue)
+            .Select(x => x.AckLatencyMs!.Value)
+            .ToArray();
+
+        double? averageAckCorrelationLatencyMs = ackLatencies.Length == 0
+            ? null
+            : Math.Round(ackLatencies.Average(), 2);
+
+        double? bestAckCorrelationLatencyMs = ackLatencies.Length == 0
+            ? null
+            : Math.Round(ackLatencies.Min(), 2);
+
+        double? worstAckCorrelationLatencyMs = ackLatencies.Length == 0
+            ? null
+            : Math.Round(ackLatencies.Max(), 2);
+
+        var ackCorrelationSummary = BuildAckCorrelationSummary(
+            totalAckCorrelations,
+            pendingAckCorrelations,
+            ackedCorrelations,
+            successfulAckCorrelations,
+            failedAckCorrelations,
+            expiredPendingAckCorrelations,
+            averageAckCorrelationLatencyMs,
+            worstAckCorrelationLatencyMs);
+
         var overallHealth = EvaluateOverallHealth(
             totalNodes,
             onlineNodes,
@@ -181,7 +230,11 @@ public sealed class GroundDiagnosticsEngine
             pendingRouteExecutions,
             timeoutRouteExecutions,
             failedRouteExecutions,
-            routeUnavailableExecutions);
+            routeUnavailableExecutions,
+            totalAckCorrelations,
+            pendingAckCorrelations,
+            failedAckCorrelations,
+            expiredPendingAckCorrelations);
 
         var summary = BuildSummary(
             overallHealth,
@@ -192,7 +245,8 @@ public sealed class GroundDiagnosticsEngine
             activeObstacles,
             activeTargets,
             linkHealthSummary,
-            routeExecutionSummary);
+            routeExecutionSummary,
+            ackCorrelationSummary);
 
         return new GroundOperationSnapshot
         {
@@ -249,6 +303,19 @@ public sealed class GroundDiagnosticsEngine
             RouteExecutionSummary = routeExecutionSummary,
             RouteExecutions = routeExecutions,
 
+            TotalAckCorrelationCount = totalAckCorrelations,
+            PendingAckCorrelationCount = pendingAckCorrelations,
+            AckedCorrelationCount = ackedCorrelations,
+            CompletedAckCorrelationCount = completedAckCorrelations,
+            SuccessfulAckCorrelationCount = successfulAckCorrelations,
+            FailedAckCorrelationCount = failedAckCorrelations,
+            ExpiredPendingAckCorrelationCount = expiredPendingAckCorrelations,
+            AverageAckCorrelationLatencyMs = averageAckCorrelationLatencyMs,
+            BestAckCorrelationLatencyMs = bestAckCorrelationLatencyMs,
+            WorstAckCorrelationLatencyMs = worstAckCorrelationLatencyMs,
+            AckCorrelationSummary = ackCorrelationSummary,
+            AckCorrelations = ackCorrelations,
+
             OverallHealth = overallHealth,
             Summary = summary
         };
@@ -282,7 +349,7 @@ public sealed class GroundDiagnosticsEngine
     /// Ground Station genel sağlık durumunu değerlendirir.
     /// 
     /// İlk fazda basit kural tabanlı değerlendirme kullanıyoruz.
-    /// Link health ve route execution verisi varsa bunlar da genel değerlendirmeye katılır.
+    /// Link health, route execution ve gerçek ACK correlation verisi varsa bunlar da genel değerlendirmeye katılır.
     /// </summary>
     private static string EvaluateOverallHealth(
         int totalNodes,
@@ -300,7 +367,11 @@ public sealed class GroundDiagnosticsEngine
         int pendingRouteExecutions,
         int timeoutRouteExecutions,
         int failedRouteExecutions,
-        int routeUnavailableExecutions)
+        int routeUnavailableExecutions,
+        int totalAckCorrelations,
+        int pendingAckCorrelations,
+        int failedAckCorrelations,
+        int expiredPendingAckCorrelations)
     {
         if (totalNodes == 0)
             return "Critical";
@@ -325,6 +396,17 @@ public sealed class GroundDiagnosticsEngine
             return "Critical";
         }
 
+        // Gerçek ACK/result korelasyonunda süresi dolmuş pending kayıtlar varsa kritik kabul edilir.
+        if (expiredPendingAckCorrelations > 0)
+            return "Critical";
+
+        // ACK correlation verisi varsa ve başarısız correlation sayısı baskınsa kritik kabul edilir.
+        if (totalAckCorrelations > 0 &&
+            failedAckCorrelations >= Math.Max(3, totalAckCorrelations))
+        {
+            return "Critical";
+        }
+
         if (warningNodes > 0)
             return "Warning";
 
@@ -344,6 +426,9 @@ public sealed class GroundDiagnosticsEngine
             return "Warning";
 
         if (timeoutRouteExecutions > 0 || failedRouteExecutions > 0 || routeUnavailableExecutions > 0)
+            return "Warning";
+
+        if (pendingAckCorrelations > 0 || failedAckCorrelations > 0)
             return "Warning";
 
         return "OK";
@@ -419,6 +504,43 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
+    /// Gerçek ACK/result korelasyonu için kısa özet cümlesi üretir.
+    /// </summary>
+    private static string BuildAckCorrelationSummary(
+        int totalAckCorrelations,
+        int pendingAckCorrelations,
+        int ackedCorrelations,
+        int successfulAckCorrelations,
+        int failedAckCorrelations,
+        int expiredPendingAckCorrelations,
+        double? averageAckCorrelationLatencyMs,
+        double? worstAckCorrelationLatencyMs)
+    {
+        if (totalAckCorrelations == 0)
+            return "No ACK correlation data.";
+
+        var avgText = averageAckCorrelationLatencyMs.HasValue
+            ? averageAckCorrelationLatencyMs.Value.ToString("0.##")
+            : "n/a";
+
+        var worstText = worstAckCorrelationLatencyMs.HasValue
+            ? worstAckCorrelationLatencyMs.Value.ToString("0.##")
+            : "n/a";
+
+        if (expiredPendingAckCorrelations > 0)
+        {
+            return $"ACK correlation critical: {expiredPendingAckCorrelations} expired pending, {ackedCorrelations}/{totalAckCorrelations} acked, {failedAckCorrelations} failed, avg ACK {avgText} ms, worst {worstText} ms.";
+        }
+
+        if (pendingAckCorrelations > 0 || failedAckCorrelations > 0)
+        {
+            return $"ACK correlation warning: {ackedCorrelations}/{totalAckCorrelations} acked, {pendingAckCorrelations} pending, {failedAckCorrelations} failed, avg ACK {avgText} ms, worst {worstText} ms.";
+        }
+
+        return $"ACK correlations OK: {ackedCorrelations}/{totalAckCorrelations} acked, {successfulAckCorrelations} successful, avg ACK {avgText} ms, worst {worstText} ms.";
+    }
+
+    /// <summary>
     /// Snapshot için kısa özet cümlesi üretir.
     /// </summary>
     private static string BuildSummary(
@@ -430,18 +552,19 @@ public sealed class GroundDiagnosticsEngine
         int activeObstacles,
         int activeTargets,
         string linkHealthSummary,
-        string routeExecutionSummary)
+        string routeExecutionSummary,
+        string ackCorrelationSummary)
     {
         if (string.Equals(overallHealth, "Critical", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary}";
+            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
         }
 
         if (string.Equals(overallHealth, "Warning", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary}";
+            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
         }
 
-        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary}";
+        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
     }
 }

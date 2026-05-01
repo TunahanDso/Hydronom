@@ -829,6 +829,11 @@ Console.WriteLine($"    Total links          : {operationSnapshot.TotalLinkCount
 Console.WriteLine($"    Link summary         : {operationSnapshot.LinkHealthSummary}");
 Console.WriteLine($"    Route executions     : {operationSnapshot.TotalRouteExecutionCount}");
 Console.WriteLine($"    Route summary        : {operationSnapshot.RouteExecutionSummary}");
+Console.WriteLine($"    ACK correlations     : {operationSnapshot.TotalAckCorrelationCount}");
+Console.WriteLine($"    Pending real ACKs    : {operationSnapshot.PendingAckCorrelationCount}");
+Console.WriteLine($"    Acked correlations   : {operationSnapshot.AckedCorrelationCount}");
+Console.WriteLine($"    Failed correlations  : {operationSnapshot.FailedAckCorrelationCount}");
+Console.WriteLine($"    ACK summary          : {operationSnapshot.AckCorrelationSummary}");
 Console.WriteLine($"    Has warnings         : {operationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues  : {operationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
@@ -1451,6 +1456,11 @@ Console.WriteLine($"    Timeout send results        : {transportManagerOperation
 Console.WriteLine($"    Failed send results         : {transportManagerOperationSnapshot.FailedTransportSendResultCount}");
 Console.WriteLine($"    Route summary               : {transportManagerOperationSnapshot.RouteExecutionSummary}");
 Console.WriteLine($"    Link summary                : {transportManagerOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    ACK correlations            : {transportManagerOperationSnapshot.TotalAckCorrelationCount}");
+Console.WriteLine($"    Pending real ACKs           : {transportManagerOperationSnapshot.PendingAckCorrelationCount}");
+Console.WriteLine($"    Acked correlations          : {transportManagerOperationSnapshot.AckedCorrelationCount}");
+Console.WriteLine($"    Failed correlations         : {transportManagerOperationSnapshot.FailedAckCorrelationCount}");
+Console.WriteLine($"    ACK summary                 : {transportManagerOperationSnapshot.AckCorrelationSummary}");
 Console.WriteLine($"    Has warnings                : {transportManagerOperationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues         : {transportManagerOperationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
@@ -1954,6 +1964,14 @@ Console.WriteLine($"    Execution has ACK     : {ackExecutionAfterResult?.HasAck
 Console.WriteLine($"    Execution has success : {ackExecutionAfterResult?.HasSuccess}");
 Console.WriteLine($"    Execution last status : {ackExecutionAfterResult?.LastStatus}");
 Console.WriteLine($"    Execution result count: {ackExecutionAfterResult?.SendResults.Count}");
+var realAckOperationSnapshot = ackGround.CreateOperationSnapshot();
+
+Console.WriteLine($"    Operation ACK count   : {realAckOperationSnapshot.TotalAckCorrelationCount}");
+Console.WriteLine($"    Operation pending ACK : {realAckOperationSnapshot.PendingAckCorrelationCount}");
+Console.WriteLine($"    Operation acked count : {realAckOperationSnapshot.AckedCorrelationCount}");
+Console.WriteLine($"    Operation success ACK : {realAckOperationSnapshot.SuccessfulAckCorrelationCount}");
+Console.WriteLine($"    Operation failed ACK  : {realAckOperationSnapshot.FailedAckCorrelationCount}");
+Console.WriteLine($"    Operation ACK summary : {realAckOperationSnapshot.AckCorrelationSummary}");
 Console.WriteLine();
 Console.WriteLine("[32] Mark stale nodes offline test:");
 

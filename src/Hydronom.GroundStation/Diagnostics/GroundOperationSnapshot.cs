@@ -1,5 +1,6 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
+using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.TransportExecution;
 
@@ -15,6 +16,7 @@ using Hydronom.GroundStation.TransportExecution;
 /// - Ortak dünya modeli,
 /// - Bağlantı/link sağlığı,
 /// - Route execution / transport gönderim durumu,
+/// - Gerçek command ACK/result korelasyon durumu,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -311,6 +313,92 @@ public sealed record GroundOperationSnapshot
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> RouteExecutions { get; init; } =
         Array.Empty<RouteExecutionSnapshot>();
+
+    /// <summary>
+    /// Toplam command ACK correlation kaydı sayısı.
+    /// 
+    /// Bu değer CommandAckCorrelator içinde takip edilen CommandId → RouteExecution bağlantılarını gösterir.
+    /// </summary>
+    public int TotalAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Henüz gerçek FleetCommandResult almamış correlation sayısı.
+    /// </summary>
+    public int PendingAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Gerçek FleetCommandResult ile ACK/result almış correlation sayısı.
+    /// </summary>
+    public int AckedCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Tamamlanmış correlation sayısı.
+    /// 
+    /// Applied, Completed, Failed, Rejected, Timeout gibi nihai durumlar burada sayılır.
+    /// </summary>
+    public int CompletedAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Başarılı correlation sayısı.
+    /// 
+    /// Accepted, Applied veya Completed durumları başarılı kabul edilir.
+    /// </summary>
+    public int SuccessfulAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Başarısız correlation sayısı.
+    /// 
+    /// Rejected, Failed, Expired veya Timeout durumları başarısız kabul edilir.
+    /// </summary>
+    public int FailedAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// Belirli bir süre içinde gerçek ACK/result almamış pending correlation sayısı.
+    /// 
+    /// Diagnostics motoru ilk fazda varsayılan timeout eşiği ile hesaplar.
+    /// </summary>
+    public int ExpiredPendingAckCorrelationCount { get; init; }
+
+    /// <summary>
+    /// ACK/result alınan correlation kayıtları için ortalama ACK gecikmesi.
+    /// 
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? AverageAckCorrelationLatencyMs { get; init; }
+
+    /// <summary>
+    /// ACK/result alınan correlation kayıtları içinde en iyi gecikme.
+    /// 
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? BestAckCorrelationLatencyMs { get; init; }
+
+    /// <summary>
+    /// ACK/result alınan correlation kayıtları içinde en kötü gecikme.
+    /// 
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? WorstAckCorrelationLatencyMs { get; init; }
+
+    /// <summary>
+    /// Command ACK correlation durumunun kısa insan-okunabilir açıklaması.
+    /// 
+    /// Hydronom Ops command delivery / ACK diagnostics panelinde gösterilebilir.
+    /// </summary>
+    public string AckCorrelationSummary { get; init; } = "No ACK correlation data.";
+
+    /// <summary>
+    /// Command ACK correlation snapshot listesi.
+    /// 
+    /// Bu alan Hydronom Ops tarafında:
+    /// - gerçek ACK izleme,
+    /// - command delivery trace,
+    /// - CommandId → ExecutionId eşleşmesi,
+    /// - ACK latency analizi
+    /// ekranlarını besleyebilir.
+    /// </summary>
+    public IReadOnlyList<CommandAckCorrelationSnapshot> AckCorrelations { get; init; } =
+        Array.Empty<CommandAckCorrelationSnapshot>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.
