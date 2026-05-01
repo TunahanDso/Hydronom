@@ -3,6 +3,7 @@ namespace Hydronom.GroundStation;
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Commanding;
+using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.WorldModel;
@@ -18,6 +19,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
 /// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
+/// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -91,6 +93,21 @@ public sealed class GroundStationEngine
     /// - FleetCoordinator bu kararı FleetCommand'a dönüştürür.
     /// </summary>
     public FleetCoordinator FleetCoordinator { get; }
+
+    /// <summary>
+    /// Gönderilecek HydronomEnvelope mesajları için route sonucu üreten iletişim yönlendiricisidir.
+    /// 
+    /// Bu yapı şimdilik gerçek gönderim yapmaz.
+    /// İlk fazda:
+    /// - TransportRoutingPolicy kararını alır,
+    /// - hedef node'un AvailableTransports listesini okur,
+    /// - route kararını uygulanabilir transport'lara göre filtreler,
+    /// - mesaj gönderilebilir mi sorusuna cevap verir.
+    /// 
+    /// İleride TransportManager, ITransport implementasyonları, retry/ACK ve send queue
+    /// bu yapının üzerine bağlanacaktır.
+    /// </summary>
+    public CommunicationRouter CommunicationRouter { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -227,6 +244,44 @@ public sealed class GroundStationEngine
             Envelope = trackedEnvelope,
             Reason = $"{coordination.Reason} Command tracked by GroundStationEngine."
         };
+    }
+
+    /// <summary>
+    /// Verilen envelope için mevcut fleet snapshot üzerinden route sonucu üretir.
+    /// 
+    /// Bu metot gerçek gönderim yapmaz.
+    /// Sadece CommunicationRouter üzerinden:
+    /// - hedef node biliniyor mu,
+    /// - hedef hangi transport'lara sahip,
+    /// - policy hangi route'u öneriyor,
+    /// - filtre sonrası uygulanabilir transport kaldı mı
+    /// sorularına cevap verir.
+    /// </summary>
+    public CommunicationRouteResult RouteEnvelope(HydronomEnvelope envelope)
+    {
+        return CommunicationRouter.Route(
+            envelope,
+            FleetRegistry.GetSnapshot());
+    }
+
+    /// <summary>
+    /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için route sonucu üretir.
+    /// 
+    /// Bu metot görevi fiziksel olarak göndermez.
+    /// Sadece:
+    /// - görev koordinasyonunu,
+    /// - komut tracking işlemini,
+    /// - route kararını
+    /// tek sonuçta birleştirmek isteyen test/diagnostics akışları için yardımcıdır.
+    /// </summary>
+    public CommunicationRouteResult? CoordinateMissionAndRoute(MissionRequest request)
+    {
+        var coordination = CoordinateMission(request);
+
+        if (!coordination.Success || coordination.Envelope is null)
+            return null;
+
+        return RouteEnvelope(coordination.Envelope);
     }
 
     /// <summary>

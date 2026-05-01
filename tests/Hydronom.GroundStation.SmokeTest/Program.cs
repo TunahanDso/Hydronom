@@ -646,7 +646,71 @@ Console.WriteLine($"    HasCommand      : {coordinatorFailed.Command is not null
 Console.WriteLine($"    HasEnvelope     : {coordinatorFailed.Envelope is not null}");
 Console.WriteLine();
 
-Console.WriteLine("[11] Mark stale nodes offline test:");
+Console.WriteLine("[11] Communication router test:");
+
+if (coordination.Envelope is not null)
+{
+    var route = ground.RouteEnvelope(coordination.Envelope);
+
+    Console.WriteLine("    Coordinated mission envelope route:");
+    Console.WriteLine($"    CanRoute        : {route.CanRoute}");
+    Console.WriteLine($"    Reason          : {route.Reason}");
+    Console.WriteLine($"    MessageType     : {route.MessageType}");
+    Console.WriteLine($"    Source          : {route.SourceNodeId}");
+    Console.WriteLine($"    Target          : {route.TargetNodeId}");
+    Console.WriteLine($"    TargetKnown     : {route.TargetKnown}");
+    Console.WriteLine($"    TargetAvailable : {string.Join(", ", route.TargetAvailableTransports)}");
+    Console.WriteLine($"    Primary         : {string.Join(", ", route.PrimaryTransports)}");
+    Console.WriteLine($"    Fallback        : {string.Join(", ", route.FallbackTransports)}");
+    Console.WriteLine($"    Ack             : {route.RequiresAck}");
+    Console.WriteLine($"    Broadcast       : {route.BroadcastAllAvailableLinks}");
+}
+
+var emergencyRouteResult = ground.RouteEnvelope(emergencyEnvelope);
+
+Console.WriteLine();
+Console.WriteLine("    Emergency broadcast route:");
+Console.WriteLine($"    CanRoute        : {emergencyRouteResult.CanRoute}");
+Console.WriteLine($"    Reason          : {emergencyRouteResult.Reason}");
+Console.WriteLine($"    MessageType     : {emergencyRouteResult.MessageType}");
+Console.WriteLine($"    Source          : {emergencyRouteResult.SourceNodeId}");
+Console.WriteLine($"    Target          : {emergencyRouteResult.TargetNodeId}");
+Console.WriteLine($"    TargetKnown     : {emergencyRouteResult.TargetKnown}");
+Console.WriteLine($"    TargetAvailable : {string.Join(", ", emergencyRouteResult.TargetAvailableTransports)}");
+Console.WriteLine($"    Primary         : {string.Join(", ", emergencyRouteResult.PrimaryTransports)}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", emergencyRouteResult.FallbackTransports)}");
+Console.WriteLine($"    Ack             : {emergencyRouteResult.RequiresAck}");
+Console.WriteLine($"    Broadcast       : {emergencyRouteResult.BroadcastAllAvailableLinks}");
+
+var unknownTargetCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-UNKNOWN-001",
+    CommandType = "AssignMission",
+    AuthorityLevel = "MissionCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["missionId"] = "MISSION-UNKNOWN-TARGET"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var unknownTargetEnvelope = HydronomEnvelopeFactory.CreateCommand(unknownTargetCommand);
+var unknownTargetRoute = ground.RouteEnvelope(unknownTargetEnvelope);
+
+Console.WriteLine();
+Console.WriteLine("    Unknown target route:");
+Console.WriteLine($"    CanRoute        : {unknownTargetRoute.CanRoute}");
+Console.WriteLine($"    Reason          : {unknownTargetRoute.Reason}");
+Console.WriteLine($"    Target          : {unknownTargetRoute.TargetNodeId}");
+Console.WriteLine($"    TargetKnown     : {unknownTargetRoute.TargetKnown}");
+Console.WriteLine($"    Primary         : {string.Join(", ", unknownTargetRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", unknownTargetRoute.FallbackTransports)}");
+Console.WriteLine();
+
+Console.WriteLine("[12] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
