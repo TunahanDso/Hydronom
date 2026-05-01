@@ -1,5 +1,6 @@
 ﻿using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
+using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
@@ -1836,7 +1837,125 @@ Console.WriteLine($"    First event transport  : {tcpReceiveEvents.FirstOrDefaul
 Console.WriteLine($"    First event type       : {tcpReceiveEvents.FirstOrDefault()?.Envelope?.MessageType}");
 Console.WriteLine($"    Link vehicle count     : {tcpReceiveLinks.Count}");
 Console.WriteLine();
-Console.WriteLine("[31] Mark stale nodes offline test:");
+Console.WriteLine("[31] Real ACK correlation test:");
+
+var ackGround = new GroundStationEngine();
+ackGround.HandleEnvelope(heartbeatEnvelope);
+
+var ackMockTransport = new MockGroundTransport(
+    name: "mock-ack-correlation-tcp",
+    kind: TransportKind.Tcp,
+    isConnected: true)
+{
+    SimulatedSendDelay = TimeSpan.FromMilliseconds(15)
+};
+
+var ackTransportRegistered = ackGround.RegisterTransport(ackMockTransport);
+
+var ackCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "RealAckCorrelationCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "real_ack_correlation_test",
+        ["desiredHeadingDeg"] = "123"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "smoke_test",
+        ["ackMode"] = "real_command_result"
+    }
+};
+
+var realAckExecution = await ackGround.SendTrackedCommandAsync(
+    ackCommand,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: false,
+    sendTimeout: TimeSpan.FromSeconds(1),
+    tryFallbacks: true);
+
+var ackCorrelationBeforeResult = ackGround
+    .GetCommandAckCorrelationSnapshot()
+    .FirstOrDefault(x => x.CommandId == ackCommand.CommandId);
+
+var ackExecutionBeforeResult = ackGround
+    .GetRouteExecutionSnapshot()
+    .FirstOrDefault(x => x.ExecutionId == realAckExecution?.ExecutionId);
+
+Console.WriteLine("    Before real FleetCommandResult:");
+Console.WriteLine($"    Transport registered  : {ackTransportRegistered}");
+Console.WriteLine($"    Execution exists      : {realAckExecution is not null}");
+Console.WriteLine($"    ExecutionId           : {realAckExecution?.ExecutionId}");
+Console.WriteLine($"    CommandId             : {ackCommand.CommandId}");
+Console.WriteLine($"    Mock sent count       : {ackMockTransport.SentCount}");
+Console.WriteLine($"    Correlation exists    : {ackCorrelationBeforeResult is not null}");
+Console.WriteLine($"    Correlation acked     : {ackCorrelationBeforeResult?.IsAcked}");
+Console.WriteLine($"    Correlation pending   : {ackGround.GetPendingCommandCorrelationSnapshot().Count}");
+Console.WriteLine($"    Execution has success : {ackExecutionBeforeResult?.HasSuccess}");
+Console.WriteLine($"    Execution has ACK     : {ackExecutionBeforeResult?.HasAck}");
+Console.WriteLine($"    Execution last status : {ackExecutionBeforeResult?.LastStatus}");
+Console.WriteLine();
+
+var realAckResult = new FleetCommandResult
+{
+    CommandId = ackCommand.CommandId,
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    TargetNodeId = "GROUND-001",
+    Status = "Applied",
+    Success = true,
+    Message = "Real command result correlated as ACK through GroundStationEngine.",
+    ProcessingStage = "RealAckCorrelationApplied",
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "real_ack_correlation_smoke_test",
+        ["latencyMs"] = "44",
+        ["transport"] = "mock_tcp"
+    }
+};
+
+var realAckEnvelope = HydronomEnvelopeFactory.CreateCommandResult(realAckResult);
+var realAckHandled = ackGround.HandleEnvelope(realAckEnvelope);
+
+var ackCorrelationAfterResult = ackGround
+    .GetCommandAckCorrelationSnapshot()
+    .FirstOrDefault(x => x.CommandId == ackCommand.CommandId);
+
+var ackExecutionAfterResult = ackGround
+    .GetRouteExecutionSnapshot()
+    .FirstOrDefault(x => x.ExecutionId == realAckExecution?.ExecutionId);
+
+var ackCommandRecord = ackGround
+    .GetCommandHistorySnapshot()
+    .FirstOrDefault(x => x.Command.CommandId == ackCommand.CommandId);
+
+Console.WriteLine("    After real FleetCommandResult:");
+Console.WriteLine($"    Result handled        : {realAckHandled}");
+Console.WriteLine($"    Correlation exists    : {ackCorrelationAfterResult is not null}");
+Console.WriteLine($"    Correlation acked     : {ackCorrelationAfterResult?.IsAcked}");
+Console.WriteLine($"    Correlation completed : {ackCorrelationAfterResult?.IsCompleted}");
+Console.WriteLine($"    Correlation success   : {ackCorrelationAfterResult?.IsSuccessful}");
+Console.WriteLine($"    Correlation failed    : {ackCorrelationAfterResult?.IsFailed}");
+Console.WriteLine($"    Correlation status    : {ackCorrelationAfterResult?.LastStatus}");
+Console.WriteLine($"    Correlation stage     : {ackCorrelationAfterResult?.LastProcessingStage}");
+Console.WriteLine($"    Ack latency ms        : {ackCorrelationAfterResult?.AckLatencyMs}");
+Console.WriteLine($"    Pending correlations  : {ackGround.GetPendingCommandCorrelationSnapshot().Count}");
+Console.WriteLine($"    Acked correlations    : {ackGround.GetAckedCommandCorrelationSnapshot().Count}");
+Console.WriteLine($"    Failed correlations   : {ackGround.GetFailedCommandCorrelationSnapshot().Count}");
+Console.WriteLine($"    Command completed     : {ackCommandRecord?.IsCompleted}");
+Console.WriteLine($"    Command successful    : {ackCommandRecord?.IsSuccessful}");
+Console.WriteLine($"    Command last status   : {ackCommandRecord?.LastResult?.Status}");
+Console.WriteLine($"    Execution has ACK     : {ackExecutionAfterResult?.HasAck}");
+Console.WriteLine($"    Execution has success : {ackExecutionAfterResult?.HasSuccess}");
+Console.WriteLine($"    Execution last status : {ackExecutionAfterResult?.LastStatus}");
+Console.WriteLine($"    Execution result count: {ackExecutionAfterResult?.SendResults.Count}");
+Console.WriteLine();
+Console.WriteLine("[32] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),

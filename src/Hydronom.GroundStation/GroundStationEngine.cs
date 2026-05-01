@@ -2,6 +2,7 @@ namespace Hydronom.GroundStation;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
+using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
@@ -22,6 +23,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// Amacı:
 /// - FleetRegistry'yi tek merkezden yönetmek,
 /// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
+/// - CommandAckCorrelator ile gönderilen command ile gerçek FleetCommandResult cevabını eşleştirmek,
 /// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
 /// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
@@ -30,7 +32,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
 /// - GroundTransportExecutionTracker ile route/gönderim sonuçlarını takip etmek,
 /// - GroundTransportManager ile route kararını gerçek ITransport.SendAsync zincirine bağlamak,
-/// /// - GroundTransportReceiver ile transportlardan gelen envelope'ları otomatik dinlemek,
+/// - GroundTransportReceiver ile transportlardan gelen envelope'ları otomatik dinlemek,
 /// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Yer istasyonu tarafında büyüyecek modüller için ana koordinasyon noktası olmaktır.
@@ -46,6 +48,14 @@ public sealed class GroundStationEngine
     /// Yer istasyonu tarafından gönderilen komutları ve araçlardan dönen sonuçları takip eder.
     /// </summary>
     public CommandTracker CommandTracker { get; } = new();
+
+    /// <summary>
+    /// Yer istasyonu tarafından gönderilen komutlar ile araçtan gelen gerçek FleetCommandResult cevaplarını eşleştirir.
+    /// 
+    /// Bu yapı, SendAsync başarılı oldu diye ACK varsaymak yerine,
+    /// gerçek command result geldiğinde ilgili route execution kaydını günceller.
+    /// </summary>
+    public CommandAckCorrelator CommandAckCorrelator { get; } = new();
 
     /// <summary>
     /// Yer istasyonunun ortak dünya modelidir.
@@ -84,40 +94,16 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Ground Station tarafındaki gerçek/mock transport instance'larını tutan registry.
-    /// 
-    /// Örnek:
-    /// - MockGroundTransport
-    /// - TcpTransport
-    /// - WebSocketTransport
-    /// - LoRa/RF adapter
-    /// 
-    /// GroundTransportManager gönderim yaparken kullanılabilir transport'u buradan seçer.
     /// </summary>
     public GroundTransportRegistry TransportRegistry { get; } = new();
 
     /// <summary>
     /// Route kararını gerçek ITransport.SendAsync zincirine bağlayan transport manager.
-    /// 
-    /// Bu yapı:
-    /// - CommunicationRouteResult içindeki candidate transport listesini okur,
-    /// - TransportRegistry içinden bağlı transport'u bulur,
-    /// - ITransport.SendAsync çağırır,
-    /// - başarı / timeout / exception sonucunu TransportExecutionTracker'a işler,
-    /// - dolaylı olarak LinkHealthTracker'ı günceller.
     /// </summary>
     public GroundTransportManager TransportManager { get; }
+
     /// <summary>
     /// Transportlardan gelen HydronomEnvelope mesajlarını dinleyen receive pipeline'dır.
-    /// 
-    /// Bu yapı:
-    /// - ITransport.ReceiveAsync akışlarını dinler,
-    /// - gelen envelope'ları GroundStationEngine.HandleEnvelope metoduna aktarır,
-    /// - receive event geçmişi tutar,
-    /// - LinkHealthTracker üzerinde gelen mesajın linkini görüldü olarak işler.
-    /// 
-    /// Böylece Ground Station yalnızca mesaj gönderen değil,
-    /// transportlardan gelen heartbeat/command result gibi mesajları otomatik işleyen
-    /// aktif bir merkez haline gelir.
     /// </summary>
     public GroundTransportReceiver TransportReceiver { get; }
 
@@ -254,8 +240,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Transport registry içine yeni transport ekler.
-    /// 
-    /// Mock, TCP, WebSocket, LoRa veya RF adapter burada kaydedilebilir.
     /// </summary>
     public bool RegisterTransport(ITransport transport)
     {
@@ -285,12 +269,9 @@ public sealed class GroundStationEngine
     {
         return TransportRegistry.DisconnectAllAsync(cancellationToken);
     }
+
     /// <summary>
     /// Kayıtlı ve bağlı tüm transport'lar için receive pipeline çalıştırır.
-    /// 
-    /// Bu metot cancellationToken iptal edilene kadar bağlı transport'ların
-    /// ReceiveAsync akışlarını dinler.
-    /// Gelen her HydronomEnvelope, GroundStationEngine.HandleEnvelope metoduna aktarılır.
     /// </summary>
     public Task RunTransportReceiversAsync(CancellationToken cancellationToken = default)
     {
@@ -299,8 +280,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli bir transport için receive pipeline çalıştırır.
-    /// 
-    /// Testlerde veya tekil transport dinleme senaryolarında kullanılabilir.
     /// </summary>
     public Task RunTransportReceiverAsync(
         ITransport transport,
@@ -313,13 +292,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Transport receive event geçmişinin snapshot listesini döndürür.
-    /// 
-    /// Hydronom Ops tarafında:
-    /// - inbound message history,
-    /// - heartbeat receive log,
-    /// - command result receive log,
-    /// - transport receive diagnostics
-    /// ekranları için kullanılabilir.
     /// </summary>
     public IReadOnlyList<GroundTransportReceiveEvent> GetTransportReceiveSnapshot()
     {
@@ -334,8 +306,8 @@ public sealed class GroundStationEngine
     /// <summary>
     /// Verilen envelope için route üretir ve transport manager üzerinden gerçek/mock SendAsync zincirini çalıştırır.
     /// 
-    /// Bu metot artık manuel RecordTransportAcked/Timeout çağırmadan,
-    /// transport gönderim sonucunu otomatik olarak TransportExecutionTracker'a işler.
+    /// Bu metot genel envelope gönderimi içindir.
+    /// FleetCommand correlation gerekiyorsa SendTrackedCommandAsync kullanılmalıdır.
     /// </summary>
     public async Task<RouteExecutionRecord> SendEnvelopeAsync(
         HydronomEnvelope envelope,
@@ -368,7 +340,12 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// FleetCommand üretir, CommandTracker'a kaydeder, envelope'a sarar ve transport manager üzerinden gönderir.
+    /// FleetCommand üretir, CommandTracker'a kaydeder, envelope'a sarar,
+    /// transport manager üzerinden gönderir ve ACK correlation kaydı açar.
+    /// 
+    /// treatSuccessfulSendAsAckWhenRequired false verilirse gerçek ACK/result gelene kadar
+    /// execution yalnızca Sent olarak kalabilir. FleetCommandResult geldiğinde HandleCommandResult
+    /// üzerinden gerçek ACK correlation yapılır.
     /// </summary>
     public async Task<RouteExecutionRecord?> SendTrackedCommandAsync(
         FleetCommand command,
@@ -383,7 +360,7 @@ public sealed class GroundStationEngine
         if (envelope is null)
             return null;
 
-        return await SendEnvelopeAsync(
+        var execution = await SendEnvelopeAsync(
             envelope,
             useLinkHealthRouting,
             treatSuccessfulSendAsAckWhenRequired,
@@ -391,14 +368,18 @@ public sealed class GroundStationEngine
             tryFallbacks,
             sendToAllForBroadcast: true,
             cancellationToken);
+
+        TrackCommandAckCorrelation(
+            command,
+            envelope,
+            execution);
+
+        return execution;
     }
 
     /// <summary>
-    /// Görev isteğini koordine eder, command envelope üretir, command'ı takip eder ve transport manager ile gönderir.
-    /// 
-    /// Bu helper:
-    /// MissionRequest → FleetCommand → HydronomEnvelope → Route → SendAsync → RouteExecutionRecord
-    /// zincirini tek çağrıda çalıştırır.
+    /// Görev isteğini koordine eder, command envelope üretir, command'ı takip eder,
+    /// transport manager ile gönderir ve ACK correlation kaydı açar.
     /// </summary>
     public async Task<RouteExecutionRecord?> CoordinateMissionAndSendAsync(
         MissionRequest request,
@@ -410,10 +391,10 @@ public sealed class GroundStationEngine
     {
         var coordination = CoordinateMission(request);
 
-        if (!coordination.Success || coordination.Envelope is null)
+        if (!coordination.Success || coordination.Envelope is null || coordination.Command is null)
             return null;
 
-        return await SendEnvelopeAsync(
+        var execution = await SendEnvelopeAsync(
             coordination.Envelope,
             useLinkHealthRouting,
             treatSuccessfulSendAsAckWhenRequired,
@@ -421,13 +402,17 @@ public sealed class GroundStationEngine
             tryFallbacks,
             sendToAllForBroadcast: true,
             cancellationToken);
+
+        TrackCommandAckCorrelation(
+            coordination.Command,
+            coordination.Envelope,
+            execution);
+
+        return execution;
     }
 
     /// <summary>
     /// Verilen envelope için route sonucu üretir ve route execution kaydı başlatır.
-    /// 
-    /// Bu metot gerçek gönderim yapmaz.
-    /// Sadece gönderim denemesinin takip edilebilir kayıt nesnesini üretir.
     /// </summary>
     public RouteExecutionRecord BeginRouteExecution(
         HydronomEnvelope envelope,
@@ -443,9 +428,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen envelope için link health destekli route sonucu üretir ve route execution kaydı başlatır.
-    /// 
-    /// Bu metot gerçek gönderim yapmaz.
-    /// Sadece link-aware route ile execution kaydı üretir.
     /// </summary>
     public RouteExecutionRecord BeginRouteExecutionWithLinkHealth(
         HydronomEnvelope envelope,
@@ -589,6 +571,48 @@ public sealed class GroundStationEngine
     public IReadOnlyList<RouteExecutionSnapshot> GetFailedRouteExecutionSnapshot()
     {
         return TransportExecutionTracker.GetFailedSnapshot();
+    }
+
+    /// <summary>
+    /// Tüm command ACK correlation kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<CommandAckCorrelationSnapshot> GetCommandAckCorrelationSnapshot()
+    {
+        return CommandAckCorrelator.GetSnapshot();
+    }
+
+    /// <summary>
+    /// ACK almış command correlation kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<CommandAckCorrelationSnapshot> GetAckedCommandCorrelationSnapshot()
+    {
+        return CommandAckCorrelator.GetAckedSnapshot();
+    }
+
+    /// <summary>
+    /// Henüz gerçek ACK/result almamış command correlation kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<CommandAckCorrelationSnapshot> GetPendingCommandCorrelationSnapshot()
+    {
+        return CommandAckCorrelator.GetPendingSnapshot();
+    }
+
+    /// <summary>
+    /// Başarısız command correlation kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<CommandAckCorrelationSnapshot> GetFailedCommandCorrelationSnapshot()
+    {
+        return CommandAckCorrelator.GetFailedSnapshot();
+    }
+
+    /// <summary>
+    /// Belirli süreden uzun süredir gerçek ACK/result almamış command correlation sayısını döndürür.
+    /// </summary>
+    public int CountExpiredPendingCommandCorrelations(
+        TimeSpan timeout,
+        DateTimeOffset? nowUtc = null)
+    {
+        return CommandAckCorrelator.CountExpiredPending(timeout, nowUtc);
     }
 
     /// <summary>
@@ -852,13 +876,24 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// FleetCommandResult mesajlarını işler.
+    /// 
+    /// Bu metot artık sadece CommandTracker'a result uygulamaz.
+    /// Aynı zamanda CommandAckCorrelator üzerinden gerçek ACK/result eşleştirmesi yapar
+    /// ve ilgili RouteExecutionRecord kaydını Acked veya Failed olarak günceller.
     /// </summary>
     private bool HandleCommandResult(FleetCommandResult result)
     {
         if (result is null || !result.IsValid)
             return false;
 
-        return CommandTracker.ApplyResult(result);
+        var appliedToCommandTracker = CommandTracker.ApplyResult(result);
+
+        if (!appliedToCommandTracker)
+            return false;
+
+        ApplyCommandAckCorrelation(result);
+
+        return true;
     }
 
     /// <summary>
@@ -915,5 +950,61 @@ public sealed class GroundStationEngine
     public int DeactivateStaleWorldObjects(TimeSpan maxAge, DateTimeOffset? nowUtc = null)
     {
         return WorldModel.DeactivateStaleObjects(maxAge, nowUtc);
+    }
+
+    /// <summary>
+    /// Gönderilen FleetCommand ile oluşan route execution kaydı arasında ACK correlation kaydı açar.
+    /// </summary>
+    private CommandAckCorrelationRecord? TrackCommandAckCorrelation(
+        FleetCommand command,
+        HydronomEnvelope envelope,
+        RouteExecutionRecord execution)
+    {
+        var selectedTransport =
+            execution.SendResults.FirstOrDefault(x => x.Success || x.HasAck)?.TransportKind ??
+            execution.CandidateTransports.FirstOrDefault();
+
+        return CommandAckCorrelator.Track(
+            command,
+            envelope,
+            execution,
+            selectedTransport);
+    }
+
+    /// <summary>
+    /// Gelen FleetCommandResult mesajını daha önce track edilen command execution kaydı ile eşleştirir.
+    /// </summary>
+    private void ApplyCommandAckCorrelation(FleetCommandResult result)
+    {
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        var correlation = CommandAckCorrelator.ApplyResult(
+            result,
+            nowUtc);
+
+        if (correlation is null)
+            return;
+
+        if (correlation.IsFailed)
+        {
+            TransportExecutionTracker.RecordFailure(
+                correlation.ExecutionId,
+                correlation.TransportKind,
+                TransportSendStatus.Failed,
+                correlation.CreatedUtc,
+                correlation.LastResultUtc ?? nowUtc,
+                $"Command result correlated as failure: {result.Status}",
+                result.Message);
+
+            return;
+        }
+
+        TransportExecutionTracker.RecordAcked(
+            correlation.ExecutionId,
+            correlation.TransportKind,
+            correlation.CreatedUtc,
+            correlation.LastResultUtc ?? nowUtc,
+            correlation.LastResultLatencyMs,
+            $"Command result correlated as ACK/result: {result.Status}");
     }
 }
