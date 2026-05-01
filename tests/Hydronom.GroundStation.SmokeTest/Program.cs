@@ -1,4 +1,5 @@
-﻿using Hydronom.Core.Communication;
+﻿/*
+using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation;
@@ -1700,8 +1701,53 @@ Console.WriteLine($"    Completed commands           : {receiveOperationSnapshot
 Console.WriteLine($"    Successful commands          : {receiveOperationSnapshot.SuccessfulCommandCount}");
 Console.WriteLine($"    Link vehicles                : {receiveOperationSnapshot.LinkVehicleCount}");
 Console.WriteLine($"    Link summary                 : {receiveOperationSnapshot.LinkHealthSummary}");
+
+Console.WriteLine();
+Console.WriteLine("    Receive diagnostics from operation snapshot:");
+Console.WriteLine($"    Snapshot receive events      : {receiveOperationSnapshot.TotalReceiveEventCount}");
+Console.WriteLine($"    Handled receive events       : {receiveOperationSnapshot.HandledReceiveEventCount}");
+Console.WriteLine($"    Failed receive events        : {receiveOperationSnapshot.FailedReceiveEventCount}");
+Console.WriteLine($"    Unhandled receive events     : {receiveOperationSnapshot.UnhandledReceiveEventCount}");
+Console.WriteLine($"    Last receive UTC             : {receiveOperationSnapshot.LastReceiveUtc}");
+Console.WriteLine($"    Receive health summary       : {receiveOperationSnapshot.ReceiveHealthSummary}");
+Console.WriteLine($"    Inbound heartbeats           : {receiveOperationSnapshot.InboundFleetHeartbeatCount}");
+Console.WriteLine($"    Inbound command results      : {receiveOperationSnapshot.InboundFleetCommandResultCount}");
+Console.WriteLine($"    Inbound commands             : {receiveOperationSnapshot.InboundFleetCommandCount}");
+Console.WriteLine($"    Inbound node statuses        : {receiveOperationSnapshot.InboundVehicleNodeStatusCount}");
+Console.WriteLine($"    Inbound unknown messages     : {receiveOperationSnapshot.InboundUnknownMessageCount}");
+Console.WriteLine($"    Snapshot receive list count  : {receiveOperationSnapshot.ReceiveEvents.Count}");
+
+foreach (var receiveEvent in receiveOperationSnapshot.ReceiveEvents)
+{
+    Console.WriteLine("    Receive event:");
+    Console.WriteLine($"      EventId       : {receiveEvent.ReceiveEventId}");
+    Console.WriteLine($"      ReceivedUtc   : {receiveEvent.ReceivedUtc}");
+    Console.WriteLine($"      Transport     : {receiveEvent.TransportName} / {receiveEvent.TransportKind}");
+    Console.WriteLine($"      MessageType   : {receiveEvent.Envelope?.MessageType}");
+    Console.WriteLine($"      Source        : {receiveEvent.Envelope?.SourceNodeId}");
+    Console.WriteLine($"      Target        : {receiveEvent.Envelope?.TargetNodeId}");
+    Console.WriteLine($"      Handled       : {receiveEvent.Handled}");
+    Console.WriteLine($"      HasError      : {receiveEvent.HasError}");
+    Console.WriteLine($"      Error         : {receiveEvent.ErrorMessage}");
+    Console.WriteLine($"      Reason        : {receiveEvent.Reason}");
+}
+
 Console.WriteLine();
 Console.WriteLine("[30] TcpGroundTransport real receive listener test:");
+var tcpReceiveOperationSnapshot = tcpReceiveGround.CreateOperationSnapshot();
+
+Console.WriteLine("    TCP receive diagnostics:");
+Console.WriteLine($"    Snapshot receive events      : {tcpReceiveOperationSnapshot.TotalReceiveEventCount}");
+Console.WriteLine($"    Handled receive events       : {tcpReceiveOperationSnapshot.HandledReceiveEventCount}");
+Console.WriteLine($"    Failed receive events        : {tcpReceiveOperationSnapshot.FailedReceiveEventCount}");
+Console.WriteLine($"    Unhandled receive events     : {tcpReceiveOperationSnapshot.UnhandledReceiveEventCount}");
+Console.WriteLine($"    Last receive UTC             : {tcpReceiveOperationSnapshot.LastReceiveUtc}");
+Console.WriteLine($"    Receive health summary       : {tcpReceiveOperationSnapshot.ReceiveHealthSummary}");
+Console.WriteLine($"    Inbound heartbeats           : {tcpReceiveOperationSnapshot.InboundFleetHeartbeatCount}");
+Console.WriteLine($"    Inbound command results      : {tcpReceiveOperationSnapshot.InboundFleetCommandResultCount}");
+Console.WriteLine($"    Inbound commands             : {tcpReceiveOperationSnapshot.InboundFleetCommandCount}");
+Console.WriteLine($"    Inbound node statuses        : {tcpReceiveOperationSnapshot.InboundVehicleNodeStatusCount}");
+Console.WriteLine($"    Inbound unknown messages     : {tcpReceiveOperationSnapshot.InboundUnknownMessageCount}");
 
 var tcpReceiveGround = new GroundStationEngine();
 
@@ -2005,4 +2051,428 @@ Console.WriteLine($"    Has warnings         : {offlineOperationSnapshot.HasWarn
 Console.WriteLine($"    Has critical issues  : {offlineOperationSnapshot.HasCriticalIssues}");
 
 Console.WriteLine();
-Console.WriteLine("=== Smoke test completed ===");
+Console.WriteLine("=== Smoke test completed ==="); */
+
+
+using Hydronom.GroundStation.Diagnostics;
+using Hydronom.Core.Communication;
+using Hydronom.Core.Fleet;
+using Hydronom.GroundStation;
+using Hydronom.GroundStation.Transports;
+using Hydronom.GroundStation.Transports.Tcp;
+using Hydronom.Runtime.Fleet;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
+
+Console.WriteLine("=== Hydronom Ground Station Receive Diagnostics Smoke Test ===");
+Console.WriteLine();
+
+var alphaIdentity = new NodeIdentity
+{
+    NodeId = "VEHICLE-ALPHA-001",
+    DisplayName = "Alpha",
+    NodeType = "Vehicle",
+    VehicleType = "SurfaceVessel",
+    Role = "Leader",
+    SoftwareVersion = "fleet-v1-dev",
+    HardwareProfile = "Simulation",
+    IsSimulation = true
+};
+
+var alphaAgent = new VehicleFleetAgent(alphaIdentity);
+
+var heartbeatEnvelope = alphaAgent.CreateHeartbeatEnvelope(
+    mode: "Autonomous",
+    health: "OK",
+    batteryPercent: 76,
+    activeMissionId: "MISSION-RECEIVE-DIAG-001",
+    missionState: "Running",
+    latitude: 41.040,
+    longitude: 29.030,
+    headingDeg: 105.0,
+    speedMps: 1.75,
+    availableTransports: new[]
+    {
+        TransportKind.Mock
+    },
+    capabilities: new[]
+    {
+        new VehicleCapability
+        {
+            Name = "navigation",
+            Description = "Navigation capability received through transport pipeline",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Mock
+            }
+        },
+        new VehicleCapability
+        {
+            Name = "fleet_heartbeat",
+            Description = "Can announce itself to Ground Station",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Mock
+            }
+        }
+    },
+    metadata: new Dictionary<string, string>
+    {
+        ["source"] = "receive_diagnostics_smoke_test",
+        ["transport"] = "mock"
+    });
+
+Console.WriteLine("[1] Direct HandleEnvelope baseline test");
+
+var directGround = new GroundStationEngine();
+var directHandled = directGround.HandleEnvelope(heartbeatEnvelope);
+var directSnapshot = directGround.CreateOperationSnapshot();
+
+Console.WriteLine($"    Direct handled              : {directHandled}");
+Console.WriteLine($"    Fleet node count            : {directSnapshot.TotalNodeCount}");
+Console.WriteLine($"    Online node count           : {directSnapshot.OnlineNodeCount}");
+Console.WriteLine($"    Receive event count         : {directSnapshot.TotalReceiveEventCount}");
+Console.WriteLine($"    Receive summary             : {directSnapshot.ReceiveHealthSummary}");
+Console.WriteLine();
+
+Console.WriteLine("[2] Mock receive pipeline heartbeat test");
+
+var receiveGround = new GroundStationEngine();
+
+var receiveMockTransport = new MockGroundTransport(
+    name: "mock-receive-link",
+    kind: TransportKind.Mock,
+    isConnected: true);
+
+var receiveRegistered = receiveGround.RegisterTransport(receiveMockTransport);
+
+receiveMockTransport.EnqueueReceived(heartbeatEnvelope);
+
+await RunReceiverForShortTimeAsync(
+    receiveGround,
+    receiveMockTransport,
+    TimeSpan.FromMilliseconds(150));
+
+var receiveFleetSnapshot = receiveGround.GetFleetSnapshot();
+var receiveEventsAfterHeartbeat = receiveGround.GetTransportReceiveSnapshot();
+var receiveSnapshotAfterHeartbeat = receiveGround.CreateOperationSnapshot();
+
+Console.WriteLine($"    Receive transport registered: {receiveRegistered}");
+Console.WriteLine($"    Receive event count         : {receiveEventsAfterHeartbeat.Count}");
+Console.WriteLine($"    Fleet node count            : {receiveFleetSnapshot.Count}");
+Console.WriteLine($"    First node id               : {receiveFleetSnapshot.FirstOrDefault()?.Identity.NodeId}");
+Console.WriteLine($"    First node mission          : {receiveFleetSnapshot.FirstOrDefault()?.ActiveMissionId}");
+Console.WriteLine($"    First event handled         : {receiveEventsAfterHeartbeat.FirstOrDefault()?.Handled}");
+Console.WriteLine($"    First event type            : {receiveEventsAfterHeartbeat.FirstOrDefault()?.Envelope?.MessageType}");
+Console.WriteLine($"    Snapshot receive count      : {receiveSnapshotAfterHeartbeat.TotalReceiveEventCount}");
+Console.WriteLine($"    Snapshot handled receive    : {receiveSnapshotAfterHeartbeat.HandledReceiveEventCount}");
+Console.WriteLine($"    Snapshot heartbeat count    : {receiveSnapshotAfterHeartbeat.InboundFleetHeartbeatCount}");
+Console.WriteLine($"    Snapshot receive summary    : {receiveSnapshotAfterHeartbeat.ReceiveHealthSummary}");
+Console.WriteLine();
+
+Console.WriteLine("[3] Mock receive pipeline command result test");
+
+var receiveCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "ReceiveDiagnosticsCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "receive_diagnostics_command_result_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var receiveCommandEnvelope = receiveGround.CreateTrackedCommandEnvelope(receiveCommand);
+
+var receiveCommandResult = new FleetCommandResult
+{
+    CommandId = receiveCommand.CommandId,
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    TargetNodeId = "GROUND-001",
+    Status = "Applied",
+    Success = true,
+    Message = "Command result received through transport receive pipeline.",
+    ProcessingStage = "ReceiveDiagnosticsApplied",
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "receive_diagnostics_smoke_test",
+        ["latencyMs"] = "37"
+    }
+};
+
+var receiveCommandResultEnvelope = HydronomEnvelopeFactory.CreateCommandResult(receiveCommandResult);
+
+receiveMockTransport.EnqueueReceived(receiveCommandResultEnvelope);
+
+await RunReceiverForShortTimeAsync(
+    receiveGround,
+    receiveMockTransport,
+    TimeSpan.FromMilliseconds(150));
+
+var receiveCommandHistory = receiveGround.GetCommandHistorySnapshot();
+var receiveCommandRecord = receiveCommandHistory.FirstOrDefault(x =>
+    x.Command.CommandId == receiveCommand.CommandId);
+
+var receiveEventsAfterCommand = receiveGround.GetTransportReceiveSnapshot();
+var receiveSnapshotAfterCommand = receiveGround.CreateOperationSnapshot();
+
+Console.WriteLine($"    Command envelope exists     : {receiveCommandEnvelope is not null}");
+Console.WriteLine($"    Command history count       : {receiveCommandHistory.Count}");
+Console.WriteLine($"    Command result status       : {receiveCommandRecord?.LastResult?.Status}");
+Console.WriteLine($"    Command completed           : {receiveCommandRecord?.IsCompleted}");
+Console.WriteLine($"    Command successful          : {receiveCommandRecord?.IsSuccessful}");
+Console.WriteLine($"    Receive event count         : {receiveEventsAfterCommand.Count}");
+Console.WriteLine($"    Snapshot receive count      : {receiveSnapshotAfterCommand.TotalReceiveEventCount}");
+Console.WriteLine($"    Snapshot handled receive    : {receiveSnapshotAfterCommand.HandledReceiveEventCount}");
+Console.WriteLine($"    Snapshot command results    : {receiveSnapshotAfterCommand.InboundFleetCommandResultCount}");
+Console.WriteLine($"    Snapshot failed receive     : {receiveSnapshotAfterCommand.FailedReceiveEventCount}");
+Console.WriteLine($"    Snapshot unhandled receive  : {receiveSnapshotAfterCommand.UnhandledReceiveEventCount}");
+Console.WriteLine($"    Snapshot receive summary    : {receiveSnapshotAfterCommand.ReceiveHealthSummary}");
+Console.WriteLine();
+
+Console.WriteLine("[4] Operation snapshot receive diagnostics verification");
+
+PrintReceiveDiagnostics(receiveSnapshotAfterCommand);
+
+Console.WriteLine();
+
+Console.WriteLine("[5] TcpGroundTransport real receive listener diagnostics test");
+
+var tcpReceiveGround = new GroundStationEngine();
+
+var tcpReceiveOptions = new TcpGroundTransportOptions
+{
+    Name = "tcp-receive-diagnostics-smoke",
+    Host = "127.0.0.1",
+    Port = 5060,
+    EnableReceiveListener = true,
+    ListenHost = "127.0.0.1",
+    ListenPort = 0,
+    UseNdjsonFraming = true,
+    IgnoreEmptyReceiveLines = true,
+    ContinueOnInvalidReceiveJson = true
+};
+
+var tcpReceiveTransport = new TcpGroundTransport(tcpReceiveOptions);
+var tcpReceiveRegistered = tcpReceiveGround.RegisterTransport(tcpReceiveTransport);
+
+using var tcpReceiveCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+var tcpReceiveTask = Task.Run(async () =>
+{
+    try
+    {
+        await tcpReceiveGround.RunTransportReceiverAsync(
+            tcpReceiveTransport,
+            tcpReceiveCts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        // Testte receive loop kısa süre sonra bilinçli olarak durdurulur.
+    }
+}, tcpReceiveCts.Token);
+
+await WaitUntilAsync(
+    condition: () => tcpReceiveTransport.BoundListenPort is not null,
+    timeout: TimeSpan.FromSeconds(1),
+    delay: TimeSpan.FromMilliseconds(20),
+    cancellationToken: tcpReceiveCts.Token);
+
+var boundReceivePort = tcpReceiveTransport.BoundListenPort;
+
+if (boundReceivePort is null)
+    throw new InvalidOperationException("TCP receive listener port alamadı.");
+
+var tcpReceiveHeartbeatEnvelope = alphaAgent.CreateHeartbeatEnvelope(
+    mode: "Autonomous",
+    health: "OK",
+    batteryPercent: 69,
+    activeMissionId: "MISSION-TCP-RECEIVE-DIAG-001",
+    missionState: "Running",
+    latitude: 41.050,
+    longitude: 29.040,
+    headingDeg: 135.0,
+    speedMps: 2.10,
+    availableTransports: new[]
+    {
+        TransportKind.Tcp
+    },
+    capabilities: new[]
+    {
+        new VehicleCapability
+        {
+            Name = "tcp_receive",
+            Description = "Heartbeat received through real TCP NDJSON listener",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Tcp
+            }
+        }
+    },
+    metadata: new Dictionary<string, string>
+    {
+        ["source"] = "tcp_receive_diagnostics_smoke_test",
+        ["transport"] = "tcp"
+    });
+
+await SendEnvelopeToTcpListenerAsync(
+    tcpReceiveHeartbeatEnvelope,
+    "127.0.0.1",
+    boundReceivePort.Value,
+    tcpReceiveCts.Token);
+
+await WaitUntilAsync(
+    condition: () => tcpReceiveGround.TransportReceiveEventCount > 0,
+    timeout: TimeSpan.FromSeconds(1),
+    delay: TimeSpan.FromMilliseconds(20),
+    cancellationToken: tcpReceiveCts.Token);
+
+tcpReceiveCts.Cancel();
+
+try
+{
+    await tcpReceiveTask;
+}
+catch (OperationCanceledException)
+{
+    // Test bitiminde beklenen iptal.
+}
+
+var tcpReceiveEvents = tcpReceiveGround.GetTransportReceiveSnapshot();
+var tcpReceiveFleetSnapshot = tcpReceiveGround.GetFleetSnapshot();
+var tcpReceiveOperationSnapshot = tcpReceiveGround.CreateOperationSnapshot();
+
+Console.WriteLine($"    TCP receive registered       : {tcpReceiveRegistered}");
+Console.WriteLine($"    TCP bound port               : {boundReceivePort}");
+Console.WriteLine($"    TCP receive events           : {tcpReceiveEvents.Count}");
+Console.WriteLine($"    Fleet node count             : {tcpReceiveFleetSnapshot.Count}");
+Console.WriteLine($"    First event handled          : {tcpReceiveEvents.FirstOrDefault()?.Handled}");
+Console.WriteLine($"    First event type             : {tcpReceiveEvents.FirstOrDefault()?.Envelope?.MessageType}");
+Console.WriteLine($"    First event transport        : {tcpReceiveEvents.FirstOrDefault()?.TransportName}");
+Console.WriteLine();
+
+PrintReceiveDiagnostics(tcpReceiveOperationSnapshot);
+
+Console.WriteLine();
+Console.WriteLine("=== Receive Diagnostics Smoke Test completed ===");
+
+static async Task RunReceiverForShortTimeAsync(
+    GroundStationEngine ground,
+    ITransport transport,
+    TimeSpan duration)
+{
+    using var cts = new CancellationTokenSource(duration);
+
+    try
+    {
+        await ground.RunTransportReceiverAsync(
+            transport,
+            cts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        // Testte receive loop kısa süre sonra bilinçli olarak durdurulur.
+    }
+}
+
+static async Task SendEnvelopeToTcpListenerAsync(
+    HydronomEnvelope envelope,
+    string host,
+    int port,
+    CancellationToken cancellationToken)
+{
+    var json = JsonSerializer.Serialize(
+        envelope,
+        new JsonSerializerOptions
+        {
+            WriteIndented = false
+        });
+
+    using var client = new TcpClient();
+
+    await client.ConnectAsync(
+        host,
+        port,
+        cancellationToken);
+
+    await using var stream = client.GetStream();
+
+    var line = json
+        .Replace("\r", string.Empty)
+        .Replace("\n", string.Empty) + "\n";
+
+    var bytes = Encoding.UTF8.GetBytes(line);
+
+    await stream.WriteAsync(
+        bytes, cancellationToken);
+
+    await stream.FlushAsync(cancellationToken);
+}
+
+static async Task WaitUntilAsync(
+    Func<bool> condition,
+    TimeSpan timeout,
+    TimeSpan delay,
+    CancellationToken cancellationToken)
+{
+    var startedUtc = DateTimeOffset.UtcNow;
+
+    while (!condition())
+    {
+        if (DateTimeOffset.UtcNow - startedUtc >= timeout)
+            return;
+
+        await Task.Delay(
+            delay,
+            cancellationToken);
+    }
+}
+
+static void PrintReceiveDiagnostics(GroundOperationSnapshot snapshot)
+{
+    Console.WriteLine("    Receive diagnostics:");
+    Console.WriteLine($"    Operation health             : {snapshot.OverallHealth}");
+    Console.WriteLine($"    Operation summary            : {snapshot.Summary}");
+    Console.WriteLine($"    Total receive events         : {snapshot.TotalReceiveEventCount}");
+    Console.WriteLine($"    Handled receive events       : {snapshot.HandledReceiveEventCount}");
+    Console.WriteLine($"    Failed receive events        : {snapshot.FailedReceiveEventCount}");
+    Console.WriteLine($"    Unhandled receive events     : {snapshot.UnhandledReceiveEventCount}");
+    Console.WriteLine($"    Last receive UTC             : {snapshot.LastReceiveUtc}");
+    Console.WriteLine($"    Receive health summary       : {snapshot.ReceiveHealthSummary}");
+    Console.WriteLine($"    Inbound heartbeats           : {snapshot.InboundFleetHeartbeatCount}");
+    Console.WriteLine($"    Inbound command results      : {snapshot.InboundFleetCommandResultCount}");
+    Console.WriteLine($"    Inbound commands             : {snapshot.InboundFleetCommandCount}");
+    Console.WriteLine($"    Inbound node statuses        : {snapshot.InboundVehicleNodeStatusCount}");
+    Console.WriteLine($"    Inbound unknown messages     : {snapshot.InboundUnknownMessageCount}");
+    Console.WriteLine($"    Snapshot receive list count  : {snapshot.ReceiveEvents.Count}");
+
+    foreach (var receiveEvent in snapshot.ReceiveEvents)
+    {
+        Console.WriteLine("    Receive event:");
+        Console.WriteLine($"      EventId       : {receiveEvent.ReceiveEventId}");
+        Console.WriteLine($"      ReceivedUtc   : {receiveEvent.ReceivedUtc}");
+        Console.WriteLine($"      Transport     : {receiveEvent.TransportName} / {receiveEvent.TransportKind}");
+        Console.WriteLine($"      MessageType   : {receiveEvent.Envelope?.MessageType}");
+        Console.WriteLine($"      Source        : {receiveEvent.Envelope?.SourceNodeId}");
+        Console.WriteLine($"      Target        : {receiveEvent.Envelope?.TargetNodeId}");
+        Console.WriteLine($"      Handled       : {receiveEvent.Handled}");
+        Console.WriteLine($"      HasError      : {receiveEvent.HasError}");
+        Console.WriteLine($"      Error         : {receiveEvent.ErrorMessage}");
+        Console.WriteLine($"      Reason        : {receiveEvent.Reason}");
+    }
+}

@@ -704,7 +704,8 @@ public sealed class GroundStationEngine
             WorldModel,
             LinkHealthTracker.GetSnapshot(DateTime.UtcNow),
             TransportExecutionTracker.GetSnapshot(),
-            CommandAckCorrelator.GetSnapshot());
+            CommandAckCorrelator.GetSnapshot(),
+            TransportReceiver.GetSnapshot());
     }
 
     /// <summary>

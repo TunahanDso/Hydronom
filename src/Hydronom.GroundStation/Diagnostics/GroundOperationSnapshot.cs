@@ -1,6 +1,8 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.GroundStation.Ack;
+using Hydronom.GroundStation.Communication;
+using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.TransportExecution;
 
@@ -17,6 +19,7 @@ using Hydronom.GroundStation.TransportExecution;
 /// - Bağlantı/link sağlığı,
 /// - Route execution / transport gönderim durumu,
 /// - Gerçek command ACK/result korelasyon durumu,
+/// - Inbound receive / gelen mesaj trafiği durumu,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -399,6 +402,89 @@ public sealed record GroundOperationSnapshot
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> AckCorrelations { get; init; } =
         Array.Empty<CommandAckCorrelationSnapshot>();
+
+    /// <summary>
+    /// Toplam receive event sayısı.
+    /// 
+    /// Bu değer GroundTransportReceiver üzerinden alınan tüm inbound mesaj olaylarını gösterir.
+    /// </summary>
+    public int TotalReceiveEventCount { get; init; }
+
+    /// <summary>
+    /// Başarıyla işlenmiş receive event sayısı.
+    /// 
+    /// HandleEnvelope tarafından kabul edilip ilgili Ground Station modüllerine aktarılmış mesajları sayar.
+    /// </summary>
+    public int HandledReceiveEventCount { get; init; }
+
+    /// <summary>
+    /// İşlenirken hata oluşmuş receive event sayısı.
+    /// 
+    /// Deserialize, dispatch, payload restore veya HandleEnvelope aşamasında hata alan inbound mesajlar burada sayılır.
+    /// </summary>
+    public int FailedReceiveEventCount { get; init; }
+
+    /// <summary>
+    /// Alınmış fakat anlamlı şekilde işlenememiş receive event sayısı.
+    /// 
+    /// Mesaj geldiği halde bilinmeyen tip, eksik payload veya handler eksikliği nedeniyle kullanılamayan olaylar için kullanılır.
+    /// </summary>
+    public int UnhandledReceiveEventCount { get; init; }
+
+    /// <summary>
+    /// Son inbound mesajın alındığı UTC zaman.
+    /// 
+    /// Hiç receive event yoksa null kalır.
+    /// </summary>
+    public DateTimeOffset? LastReceiveUtc { get; init; }
+
+    /// <summary>
+    /// Inbound receive durumunun kısa insan-okunabilir açıklaması.
+    /// 
+    /// Hydronom Ops inbound communication panelinde veya diagnostics özetinde gösterilebilir.
+    /// </summary>
+    public string ReceiveHealthSummary { get; init; } = "No receive data.";
+
+    /// <summary>
+    /// Gelen FleetHeartbeat mesajı sayısı.
+    /// </summary>
+    public int InboundFleetHeartbeatCount { get; init; }
+
+    /// <summary>
+    /// Gelen FleetCommandResult mesajı sayısı.
+    /// </summary>
+    public int InboundFleetCommandResultCount { get; init; }
+
+    /// <summary>
+    /// Gelen FleetCommand mesajı sayısı.
+    /// 
+    /// Ground Station tarafında genelde araçtan komut gelmesi beklenmez;
+    /// ama peer/relay veya test senaryolarında anlamlı olabilir.
+    /// </summary>
+    public int InboundFleetCommandCount { get; init; }
+
+    /// <summary>
+    /// Gelen VehicleNodeStatus mesajı sayısı.
+    /// </summary>
+    public int InboundVehicleNodeStatusCount { get; init; }
+
+    /// <summary>
+    /// Bilinmeyen veya sınıflandırılamayan inbound mesaj sayısı.
+    /// </summary>
+    public int InboundUnknownMessageCount { get; init; }
+
+    /// <summary>
+    /// Receive event snapshot listesi.
+    /// 
+    /// Bu alan Hydronom Ops tarafında:
+    /// - inbound message history,
+    /// - heartbeat geçmişi,
+    /// - command result geçmişi,
+    /// - receive hata geçmişi,
+    /// - transport bazlı gelen trafik ekranlarını besleyebilir.
+    /// </summary>
+    public IReadOnlyList<GroundTransportReceiveEvent> ReceiveEvents { get; init; } =
+        Array.Empty<GroundTransportReceiveEvent>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.

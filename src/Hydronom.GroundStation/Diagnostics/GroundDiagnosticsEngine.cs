@@ -5,6 +5,7 @@ using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.TransportExecution;
+using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.WorldModel;
 
 /// <summary>
@@ -18,6 +19,7 @@ using Hydronom.GroundStation.WorldModel;
 /// - LinkHealthTracker bağlantı sağlığını yorumlamak,
 /// - GroundTransportExecutionTracker route/gönderim durumunu yorumlamak,
 /// - CommandAckCorrelator gerçek ACK/result korelasyon durumunu yorumlamak,
+/// - GroundTransportReceiver inbound/gelen mesaj durumunu yorumlamak,
 /// - genel health ve kısa açıklama üretmektir.
 /// 
 /// Böylece Hydronom Ops veya ilerideki Gateway katmanı tek çağrıyla
@@ -26,9 +28,10 @@ using Hydronom.GroundStation.WorldModel;
 public sealed class GroundDiagnosticsEngine
 {
     /// <summary>
-    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution ve ACK correlation verilerinden operasyon snapshot'ı üretir.
+    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution, ACK correlation
+    /// ve receive event verilerinden operasyon snapshot'ı üretir.
     /// 
-    /// linkHealthSnapshot, routeExecutionSnapshot ve ackCorrelationSnapshot opsiyoneldir.
+    /// linkHealthSnapshot, routeExecutionSnapshot, ackCorrelationSnapshot ve receiveEventSnapshot opsiyoneldir.
     /// Böylece eski çağrılar bozulmadan çalışmaya devam eder.
     /// </summary>
     public GroundOperationSnapshot CreateSnapshot(
@@ -37,13 +40,15 @@ public sealed class GroundDiagnosticsEngine
         GroundWorldModel worldModel,
         IReadOnlyList<VehicleLinkHealthSnapshot>? linkHealthSnapshot = null,
         IReadOnlyList<RouteExecutionSnapshot>? routeExecutionSnapshot = null,
-        IReadOnlyList<CommandAckCorrelationSnapshot>? ackCorrelationSnapshot = null)
+        IReadOnlyList<CommandAckCorrelationSnapshot>? ackCorrelationSnapshot = null,
+        IReadOnlyList<GroundTransportReceiveEvent>? receiveEventSnapshot = null)
     {
         fleetSnapshot ??= Array.Empty<VehicleNodeStatus>();
         commandSnapshot ??= Array.Empty<CommandRecord>();
         linkHealthSnapshot ??= Array.Empty<VehicleLinkHealthSnapshot>();
         routeExecutionSnapshot ??= Array.Empty<RouteExecutionSnapshot>();
         ackCorrelationSnapshot ??= Array.Empty<CommandAckCorrelationSnapshot>();
+        receiveEventSnapshot ??= Array.Empty<GroundTransportReceiveEvent>();
 
         var totalNodes = fleetSnapshot.Count;
         var onlineNodes = fleetSnapshot.Count(x => x.IsOnline);
@@ -214,6 +219,48 @@ public sealed class GroundDiagnosticsEngine
             averageAckCorrelationLatencyMs,
             worstAckCorrelationLatencyMs);
 
+        var receiveEvents = receiveEventSnapshot
+            .OrderByDescending(x => x.ReceivedUtc)
+            .ToArray();
+
+        var totalReceiveEvents = receiveEvents.Length;
+        var handledReceiveEvents = receiveEvents.Count(x => x.Handled && !x.HasError);
+        var failedReceiveEvents = receiveEvents.Count(x => x.HasError);
+        var unhandledReceiveEvents = receiveEvents.Count(x => !x.Handled && !x.HasError);
+
+        DateTimeOffset? lastReceiveUtc = receiveEvents.Length == 0
+            ? null
+            : receiveEvents.Max(x => x.ReceivedUtc);
+
+        var inboundFleetHeartbeatCount = receiveEvents.Count(x =>
+            IsMessageType(x, "FleetHeartbeat"));
+
+        var inboundFleetCommandResultCount = receiveEvents.Count(x =>
+            IsMessageType(x, "FleetCommandResult"));
+
+        var inboundFleetCommandCount = receiveEvents.Count(x =>
+            IsMessageType(x, "FleetCommand"));
+
+        var inboundVehicleNodeStatusCount = receiveEvents.Count(x =>
+            IsMessageType(x, "VehicleNodeStatus"));
+
+        var inboundUnknownMessageCount = receiveEvents.Count(x =>
+            x.Envelope is null ||
+            string.IsNullOrWhiteSpace(x.Envelope.MessageType) ||
+            IsMessageType(x, "Unknown"));
+
+        var receiveHealthSummary = BuildReceiveHealthSummary(
+            totalReceiveEvents,
+            handledReceiveEvents,
+            failedReceiveEvents,
+            unhandledReceiveEvents,
+            inboundFleetHeartbeatCount,
+            inboundFleetCommandResultCount,
+            inboundFleetCommandCount,
+            inboundVehicleNodeStatusCount,
+            inboundUnknownMessageCount,
+            lastReceiveUtc);
+
         var overallHealth = EvaluateOverallHealth(
             totalNodes,
             onlineNodes,
@@ -234,7 +281,10 @@ public sealed class GroundDiagnosticsEngine
             totalAckCorrelations,
             pendingAckCorrelations,
             failedAckCorrelations,
-            expiredPendingAckCorrelations);
+            expiredPendingAckCorrelations,
+            totalReceiveEvents,
+            failedReceiveEvents,
+            unhandledReceiveEvents);
 
         var summary = BuildSummary(
             overallHealth,
@@ -246,7 +296,8 @@ public sealed class GroundDiagnosticsEngine
             activeTargets,
             linkHealthSummary,
             routeExecutionSummary,
-            ackCorrelationSummary);
+            ackCorrelationSummary,
+            receiveHealthSummary);
 
         return new GroundOperationSnapshot
         {
@@ -316,6 +367,19 @@ public sealed class GroundDiagnosticsEngine
             AckCorrelationSummary = ackCorrelationSummary,
             AckCorrelations = ackCorrelations,
 
+            TotalReceiveEventCount = totalReceiveEvents,
+            HandledReceiveEventCount = handledReceiveEvents,
+            FailedReceiveEventCount = failedReceiveEvents,
+            UnhandledReceiveEventCount = unhandledReceiveEvents,
+            LastReceiveUtc = lastReceiveUtc,
+            ReceiveHealthSummary = receiveHealthSummary,
+            InboundFleetHeartbeatCount = inboundFleetHeartbeatCount,
+            InboundFleetCommandResultCount = inboundFleetCommandResultCount,
+            InboundFleetCommandCount = inboundFleetCommandCount,
+            InboundVehicleNodeStatusCount = inboundVehicleNodeStatusCount,
+            InboundUnknownMessageCount = inboundUnknownMessageCount,
+            ReceiveEvents = receiveEvents,
+
             OverallHealth = overallHealth,
             Summary = summary
         };
@@ -346,10 +410,25 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
+    /// Receive event mesaj tipini güvenli şekilde kontrol eder.
+    /// </summary>
+    private static bool IsMessageType(GroundTransportReceiveEvent receiveEvent, string messageType)
+    {
+        if (receiveEvent?.Envelope is null)
+            return false;
+
+        return string.Equals(
+            receiveEvent.Envelope.MessageType,
+            messageType,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Ground Station genel sağlık durumunu değerlendirir.
     /// 
     /// İlk fazda basit kural tabanlı değerlendirme kullanıyoruz.
-    /// Link health, route execution ve gerçek ACK correlation verisi varsa bunlar da genel değerlendirmeye katılır.
+    /// Link health, route execution, gerçek ACK correlation ve receive diagnostics verisi varsa
+    /// bunlar da genel değerlendirmeye katılır.
     /// </summary>
     private static string EvaluateOverallHealth(
         int totalNodes,
@@ -371,7 +450,10 @@ public sealed class GroundDiagnosticsEngine
         int totalAckCorrelations,
         int pendingAckCorrelations,
         int failedAckCorrelations,
-        int expiredPendingAckCorrelations)
+        int expiredPendingAckCorrelations,
+        int totalReceiveEvents,
+        int failedReceiveEvents,
+        int unhandledReceiveEvents)
     {
         if (totalNodes == 0)
             return "Critical";
@@ -407,6 +489,13 @@ public sealed class GroundDiagnosticsEngine
             return "Critical";
         }
 
+        // Receive pipeline içinde hata baskınsa inbound haberleşme kritik kabul edilir.
+        if (totalReceiveEvents > 0 &&
+            failedReceiveEvents >= Math.Max(3, totalReceiveEvents))
+        {
+            return "Critical";
+        }
+
         if (warningNodes > 0)
             return "Warning";
 
@@ -429,6 +518,9 @@ public sealed class GroundDiagnosticsEngine
             return "Warning";
 
         if (pendingAckCorrelations > 0 || failedAckCorrelations > 0)
+            return "Warning";
+
+        if (failedReceiveEvents > 0 || unhandledReceiveEvents > 0)
             return "Warning";
 
         return "OK";
@@ -541,6 +633,44 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
+    /// Receive diagnostics için kısa özet cümlesi üretir.
+    /// </summary>
+    private static string BuildReceiveHealthSummary(
+        int totalReceiveEvents,
+        int handledReceiveEvents,
+        int failedReceiveEvents,
+        int unhandledReceiveEvents,
+        int inboundFleetHeartbeatCount,
+        int inboundFleetCommandResultCount,
+        int inboundFleetCommandCount,
+        int inboundVehicleNodeStatusCount,
+        int inboundUnknownMessageCount,
+        DateTimeOffset? lastReceiveUtc)
+    {
+        if (totalReceiveEvents == 0)
+            return "No receive data.";
+
+        var lastText = lastReceiveUtc.HasValue
+            ? lastReceiveUtc.Value.ToString("O")
+            : "n/a";
+
+        var messageBreakdown =
+            $"heartbeat={inboundFleetHeartbeatCount}, commandResult={inboundFleetCommandResultCount}, command={inboundFleetCommandCount}, nodeStatus={inboundVehicleNodeStatusCount}, unknown={inboundUnknownMessageCount}";
+
+        if (failedReceiveEvents > 0)
+        {
+            return $"Receive warning: {handledReceiveEvents}/{totalReceiveEvents} handled, {failedReceiveEvents} failed, {unhandledReceiveEvents} unhandled, {messageBreakdown}, last={lastText}.";
+        }
+
+        if (unhandledReceiveEvents > 0 || inboundUnknownMessageCount > 0)
+        {
+            return $"Receive degraded: {handledReceiveEvents}/{totalReceiveEvents} handled, {unhandledReceiveEvents} unhandled, {messageBreakdown}, last={lastText}.";
+        }
+
+        return $"Receive OK: {handledReceiveEvents}/{totalReceiveEvents} handled, {messageBreakdown}, last={lastText}.";
+    }
+
+    /// <summary>
     /// Snapshot için kısa özet cümlesi üretir.
     /// </summary>
     private static string BuildSummary(
@@ -553,18 +683,19 @@ public sealed class GroundDiagnosticsEngine
         int activeTargets,
         string linkHealthSummary,
         string routeExecutionSummary,
-        string ackCorrelationSummary)
+        string ackCorrelationSummary,
+        string receiveHealthSummary)
     {
         if (string.Equals(overallHealth, "Critical", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
+            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
         }
 
         if (string.Equals(overallHealth, "Warning", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
+            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
         }
 
-        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary}";
+        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
     }
 }
