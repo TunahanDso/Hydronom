@@ -2743,6 +2743,7 @@ static void PrintCommandSafetyDiagnostics(GroundOperationSnapshot snapshot)
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
+using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Diagnostics;
 using Hydronom.GroundStation.MissionCompatibility;
 using Hydronom.GroundStation.Security;
@@ -2994,6 +2995,65 @@ foreach (var result in realHardwareOnlyResults)
 }
 
 Console.WriteLine();
+
+Console.WriteLine("[6] Mission allocator integration test");
+
+var surfaceMissionRequest = new MissionRequest
+{
+    MissionId = "MISSION-ALLOC-SURFACE-001",
+    MissionType = "SurfacePatrol",
+    AllowedVehicleTypes = new[]
+    {
+        "SurfaceVessel"
+    },
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "fleet_heartbeat"
+    },
+    PreferredCapabilities = new[]
+    {
+        "lidar"
+    },
+    Priority = 5
+};
+
+var surfaceAllocation = ground.AllocateMission(surfaceMissionRequest);
+
+PrintMissionAllocation(
+    "Surface patrol allocation",
+    surfaceAllocation);
+
+Console.WriteLine();
+
+var underwaterMissionRequest = new MissionRequest
+{
+    MissionId = "MISSION-ALLOC-UNDERWATER-001",
+    MissionType = "UnderwaterInspection",
+    AllowedVehicleTypes = new[]
+    {
+        "Submarine",
+        "UnderwaterDrone"
+    },
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "fleet_heartbeat"
+    },
+    PreferredCapabilities = new[]
+    {
+        "lidar"
+    },
+    Priority = 5
+};
+
+var underwaterAllocation = ground.AllocateMission(underwaterMissionRequest);
+
+PrintMissionAllocation(
+    "Underwater mission allocation",
+    underwaterAllocation);
+
+Console.WriteLine();
 Console.WriteLine("=== Latest Features Smoke Test completed ===");
 
 static void PrintCommandValidation(
@@ -3049,5 +3109,24 @@ static void PrintMissionCompatibility(MissionCompatibilityResult result)
     foreach (var issue in result.Issues)
     {
         Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
+    }
+}
+
+static void PrintMissionAllocation(
+    string title,
+    MissionAllocationResult result)
+{
+    Console.WriteLine($"    {title}:");
+    Console.WriteLine($"      Success          : {result.Success}");
+    Console.WriteLine($"      MissionId        : {result.MissionId}");
+    Console.WriteLine($"      Selected node    : {result.SelectedNodeId}");
+    Console.WriteLine($"      Selected name    : {result.SelectedDisplayName}");
+    Console.WriteLine($"      Score            : {result.Score}");
+    Console.WriteLine($"      Reason           : {result.Reason}");
+    Console.WriteLine($"      Candidates       : {string.Join(", ", result.CandidateNodeIds)}");
+
+    foreach (var rejected in result.RejectedNodeReasons)
+    {
+        Console.WriteLine($"      Rejected {rejected.Key}: {rejected.Value}");
     }
 }

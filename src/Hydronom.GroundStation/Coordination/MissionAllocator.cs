@@ -1,19 +1,28 @@
 namespace Hydronom.GroundStation.Coordination;
 
 using Hydronom.Core.Fleet;
+using Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
-/// Ground Station tarafında bir görevi filo içindeki en uygun araca atamaya çalışan basit görev dağıtıcıdır.
+/// Ground Station tarafında bir görevi filo içindeki en uygun araca atamaya çalışan görev dağıtıcıdır.
 /// 
 /// Bu sınıf PDF'deki MissionAllocator mantığının ilk çekirdeğidir.
-/// Şimdilik karmaşık rota, enerji, mesafe veya risk hesabı yapmaz.
-/// İlk hedef:
-/// - Online araçları filtrelemek,
-/// - Araç tipi uygun mu bakmak,
-/// - Zorunlu kabiliyetler var mı kontrol etmek,
-/// - Tercih edilen kabiliyetlere göre skor vermek,
-/// - Batarya ve health durumunu basitçe hesaba katmak,
-/// - En yüksek skorlu aracı seçmektir.
+/// 
+/// Bu sürümde görev ataması artık sadece online/offline kontrolüne bakmaz.
+/// MissionCompatibilityEvaluator üzerinden:
+/// - Araç tipi uygunluğu,
+/// - Zorunlu capability uygunluğu,
+/// - Tercih edilen capability durumu,
+/// - Capability enabled/health durumu,
+/// - Simülasyon/gerçek araç politikası
+/// değerlendirmesi yapılır.
+/// 
+/// Sonrasında allocator:
+/// - Mission compatibility skorunu,
+/// - Health katkısını,
+/// - Batarya katkısını,
+/// - Role/mission bonusunu
+/// birleştirerek en uygun aracı seçer.
 /// 
 /// İleride bu sınıf:
 /// - GroundWorldModel,
@@ -26,6 +35,14 @@ using Hydronom.Core.Fleet;
 /// </summary>
 public sealed class MissionAllocator
 {
+    private readonly MissionCompatibilityEvaluator _compatibilityEvaluator;
+
+    public MissionAllocator(
+        MissionCompatibilityEvaluator? compatibilityEvaluator = null)
+    {
+        _compatibilityEvaluator = compatibilityEvaluator ?? new MissionCompatibilityEvaluator();
+    }
+
     /// <summary>
     /// Verilen görev isteği için en uygun aracı seçer.
     /// </summary>
@@ -47,8 +64,13 @@ public sealed class MissionAllocator
                 "No vehicles available in fleet snapshot.");
         }
 
-        var rejected = new Dictionary<string, string>();
-        var candidates = new List<(VehicleNodeStatus Status, double Score)>();
+        var rejected = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = new List<(VehicleNodeStatus Status, MissionCompatibilityResult Compatibility, double Score)>();
+
+        var capabilityRequirements = BuildCapabilityRequirements(request);
+
+        var allowedVehicleTypes = request.AllowedVehicleTypes?.ToArray()
+            ?? Array.Empty<string>();
 
         foreach (var status in fleetSnapshot)
         {
@@ -60,38 +82,39 @@ public sealed class MissionAllocator
                 continue;
             }
 
-            if (!status.IsOnline)
+            var compatibility = _compatibilityEvaluator.Evaluate(
+                status,
+                request.MissionType,
+                allowedVehicleTypes,
+                capabilityRequirements,
+                requireOnline: true,
+                allowSimulation: true);
+
+            if (!compatibility.IsCompatible)
             {
-                rejected[nodeId] = "Vehicle is offline.";
+                rejected[nodeId] = BuildRejectionReason(compatibility);
                 continue;
             }
 
-            if (!IsVehicleTypeAllowed(request, status))
-            {
-                rejected[nodeId] = "Vehicle type is not allowed for this mission.";
-                continue;
-            }
+            var score = CalculateScore(
+                request,
+                status,
+                compatibility);
 
-            if (!HasRequiredCapabilities(request, status, out var missingCapability))
-            {
-                rejected[nodeId] = $"Missing required capability: {missingCapability}";
-                continue;
-            }
-
-            var score = CalculateScore(request, status);
-            candidates.Add((status, score));
+            candidates.Add((status, compatibility, score));
         }
 
         if (candidates.Count == 0)
         {
             return MissionAllocationResult.Failed(
                 request,
-                "No online vehicle satisfies mission requirements.",
+                "No vehicle satisfies mission compatibility requirements.",
                 rejected);
         }
 
         var selected = candidates
             .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Compatibility.Score)
             .ThenBy(x => x.Status.Identity.DisplayName)
             .First();
 
@@ -106,62 +129,88 @@ public sealed class MissionAllocator
                 .Select(x => x.Status.Identity.NodeId)
                 .ToArray(),
             RejectedNodeReasons = rejected,
-            Reason = $"Selected {selected.Status.Identity.DisplayName} because it satisfies required capabilities and has the best score."
+            Reason =
+                $"Selected {selected.Status.Identity.DisplayName} because it passed mission compatibility evaluation " +
+                $"and has the best allocation score. CompatibilityScore={selected.Compatibility.Score:0.##}, FinalScore={selected.Score:0.##}."
         };
     }
 
     /// <summary>
-    /// Görev isteğindeki araç tipi kısıtına göre aracın uygun olup olmadığını kontrol eder.
-    /// 
-    /// AllowedVehicleTypes boşsa her araç tipi kabul edilir.
+    /// MissionRequest içindeki required/preferred capability listelerini
+    /// MissionCompatibilityEvaluator tarafından anlaşılacak requirement listesine çevirir.
     /// </summary>
-    private static bool IsVehicleTypeAllowed(
-        MissionRequest request,
-        VehicleNodeStatus status)
+    private static IReadOnlyList<MissionCapabilityRequirement> BuildCapabilityRequirements(
+        MissionRequest request)
     {
-        if (request.AllowedVehicleTypes.Count == 0)
-            return true;
+        var requirements = new List<MissionCapabilityRequirement>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        return request.AllowedVehicleTypes
-            .Any(x => string.Equals(
-                x,
-                status.Identity.VehicleType,
-                StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <summary>
-    /// Aracın görevin zorunlu kabiliyetlerini taşıyıp taşımadığını kontrol eder.
-    /// </summary>
-    private static bool HasRequiredCapabilities(
-        MissionRequest request,
-        VehicleNodeStatus status,
-        out string missingCapability)
-    {
-        missingCapability = string.Empty;
-
-        var capabilityNames = status.Capabilities
-            .Where(x => x.IsEnabled)
-            .Select(x => x.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var required in request.RequiredCapabilities)
+        foreach (var required in request.RequiredCapabilities ?? Array.Empty<string>())
         {
-            if (capabilityNames.Contains(required))
+            if (string.IsNullOrWhiteSpace(required))
                 continue;
 
-            missingCapability = required;
-            return false;
+            if (!seen.Add(required))
+                continue;
+
+            requirements.Add(new MissionCapabilityRequirement
+            {
+                Name = required,
+                Required = true,
+                RequireEnabled = true,
+                RequireHealthy = true,
+                Weight = 2.0
+            });
         }
 
-        return true;
+        foreach (var preferred in request.PreferredCapabilities ?? Array.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(preferred))
+                continue;
+
+            if (!seen.Add(preferred))
+                continue;
+
+            requirements.Add(new MissionCapabilityRequirement
+            {
+                Name = preferred,
+                Required = false,
+                RequireEnabled = true,
+                RequireHealthy = true,
+                Weight = 0.5
+            });
+        }
+
+        return requirements;
     }
 
     /// <summary>
-    /// Basit görev uygunluk skoru hesaplar.
+    /// Mission compatibility reddini kısa ve okunabilir allocator gerekçesine çevirir.
+    /// </summary>
+    private static string BuildRejectionReason(
+        MissionCompatibilityResult compatibility)
+    {
+        if (compatibility.Issues.Count == 0)
+            return compatibility.Reason;
+
+        var blockingIssues = compatibility.Issues
+            .Where(x => x.IsBlocking)
+            .Select(x => x.Code)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (blockingIssues.Length == 0)
+            return compatibility.Reason;
+
+        return $"{compatibility.Reason} BlockingIssues={string.Join(", ", blockingIssues)}.";
+    }
+
+    /// <summary>
+    /// Görev uygunluk skorunu hesaplar.
     /// 
     /// İlk faz skor mantığı:
-    /// - Temel uygunluk: 100
-    /// - Her preferred capability: +10
+    /// - MissionCompatibilityEvaluator skoru temel alınır.
     /// - Health OK ise +20
     /// - Health Warning ise -15
     /// - Health Critical/Fault ise -50
@@ -170,26 +219,16 @@ public sealed class MissionAllocator
     /// </summary>
     private static double CalculateScore(
         MissionRequest request,
-        VehicleNodeStatus status)
+        VehicleNodeStatus status,
+        MissionCompatibilityResult compatibility)
     {
-        var score = 100.0;
-
-        var capabilityNames = status.Capabilities
-            .Where(x => x.IsEnabled)
-            .Select(x => x.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var preferred in request.PreferredCapabilities)
-        {
-            if (capabilityNames.Contains(preferred))
-                score += 10.0;
-        }
+        var score = compatibility.Score;
 
         score += CalculateHealthScore(status.Health);
         score += CalculateBatteryScore(status.BatteryPercent);
         score += CalculateRoleBonus(request, status);
 
-        return score;
+        return Math.Round(score, 2);
     }
 
     /// <summary>
