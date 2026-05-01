@@ -88,6 +88,13 @@ public sealed class GroundStationEngine
     /// Smoke test, diagnostics veya ileride Hydronom Ops tarafında son reddetme sebebini göstermek için kullanılabilir.
     /// </summary>
     public CommandValidationResult? LastCommandSafetyResult { get; private set; }
+    /// <summary>
+    /// En son yapılan mission allocation / görev atama sonucu.
+    /// 
+    /// Hydronom Ops, diagnostics ve Gateway tarafında son görev atama kararının
+    /// neden başarılı veya başarısız olduğunu göstermek için kullanılır.
+    /// </summary>
+    public MissionAllocationResult? LastMissionAllocationResult { get; private set; }
 
     /// <summary>
     /// Gönderilecek HydronomEnvelope mesajları için route sonucu üreten iletişim yönlendiricisidir.
@@ -217,11 +224,18 @@ public sealed class GroundStationEngine
     /// <summary>
     /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
     /// </summary>
+    /// <summary>
+    /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
+    /// 
+    /// Son allocation sonucu LastMissionAllocationResult içinde saklanır.
+    /// </summary>
     public MissionAllocationResult AllocateMission(MissionRequest request)
     {
-        return MissionAllocator.Allocate(
+        LastMissionAllocationResult = MissionAllocator.Allocate(
             request,
             FleetRegistry.GetSnapshot());
+
+        return LastMissionAllocationResult;
     }
 
     /// <summary>
@@ -234,6 +248,8 @@ public sealed class GroundStationEngine
             FleetRegistry.GetSnapshot(),
             Identity.NodeId,
             isOperatorIssued: true);
+
+        LastMissionAllocationResult = coordination.Allocation;
 
         if (!coordination.Success || coordination.Command is null)
             return coordination;
@@ -751,7 +767,8 @@ public sealed class GroundStationEngine
             TransportExecutionTracker.GetSnapshot(),
             CommandAckCorrelator.GetSnapshot(),
             TransportReceiver.GetSnapshot(),
-            LastCommandSafetyResult);
+            LastCommandSafetyResult,
+            LastMissionAllocationResult);
     }
 
     /// <summary>

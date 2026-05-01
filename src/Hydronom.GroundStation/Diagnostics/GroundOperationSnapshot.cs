@@ -21,6 +21,7 @@ using Hydronom.GroundStation.Transports.Receive;
 /// - Gerçek command ACK/result korelasyon durumu,
 /// - Inbound receive / gelen mesaj trafiği durumu,
 /// - Command safety/security değerlendirme durumu,
+/// - Mission allocation / görev atama karar durumu,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -542,6 +543,60 @@ public sealed record GroundOperationSnapshot
     /// </summary>
     public IReadOnlyList<CommandValidationIssue> LastCommandSafetyIssues { get; init; } =
         Array.Empty<CommandValidationIssue>();
+
+    /// <summary>
+    /// Son görev atama kararının MissionId değeri.
+    /// 
+    /// Hiç görev ataması yapılmadıysa boş kalır.
+    /// </summary>
+    public string LastMissionAllocationMissionId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Son görev atama başarılı mı?
+    /// 
+    /// Hiç görev ataması yapılmadıysa null kalır.
+    /// </summary>
+    public bool? LastMissionAllocationSuccess { get; init; }
+
+    /// <summary>
+    /// Son görev atamada seçilen node id.
+    /// 
+    /// Atama başarısızsa veya hiç atama yapılmadıysa boş kalır.
+    /// </summary>
+    public string LastMissionAllocationSelectedNodeId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Son görev atamada seçilen node display name.
+    /// 
+    /// Atama başarısızsa veya hiç atama yapılmadıysa boş kalır.
+    /// </summary>
+    public string LastMissionAllocationSelectedDisplayName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Son görev atama açıklaması.
+    /// 
+    /// Hydronom Ops Mission Allocation panelinde gösterilebilir.
+    /// </summary>
+    public string LastMissionAllocationReason { get; init; } = "No mission allocation.";
+
+    /// <summary>
+    /// Son görev atamada seçilen adayın final skoru.
+    /// 
+    /// Atama yapılmadıysa null kalır.
+    /// </summary>
+    public double? LastMissionAllocationScore { get; init; }
+
+    /// <summary>
+    /// Son görev atamadaki aday node id listesi.
+    /// </summary>
+    public IReadOnlyList<string> LastMissionAllocationCandidateNodeIds { get; init; } =
+        Array.Empty<string>();
+
+    /// <summary>
+    /// Son görev atamada reddedilen node id → sebep eşleşmeleri.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> LastMissionAllocationRejectedNodeReasons { get; init; } =
+        new Dictionary<string, string>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.

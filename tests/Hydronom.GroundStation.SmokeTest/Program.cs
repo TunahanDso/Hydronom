@@ -3023,6 +3023,11 @@ var surfaceAllocation = ground.AllocateMission(surfaceMissionRequest);
 PrintMissionAllocation(
     "Surface patrol allocation",
     surfaceAllocation);
+var surfaceAllocationSnapshot = ground.CreateOperationSnapshot();
+
+PrintMissionAllocationDiagnostics(
+    "Surface allocation snapshot diagnostics",
+    surfaceAllocationSnapshot);
 
 Console.WriteLine();
 
@@ -3052,7 +3057,11 @@ var underwaterAllocation = ground.AllocateMission(underwaterMissionRequest);
 PrintMissionAllocation(
     "Underwater mission allocation",
     underwaterAllocation);
+var underwaterAllocationSnapshot = ground.CreateOperationSnapshot();
 
+PrintMissionAllocationDiagnostics(
+    "Underwater allocation snapshot diagnostics",
+    underwaterAllocationSnapshot);
 Console.WriteLine();
 Console.WriteLine("=== Latest Features Smoke Test completed ===");
 
@@ -3126,6 +3135,24 @@ static void PrintMissionAllocation(
     Console.WriteLine($"      Candidates       : {string.Join(", ", result.CandidateNodeIds)}");
 
     foreach (var rejected in result.RejectedNodeReasons)
+    {
+        Console.WriteLine($"      Rejected {rejected.Key}: {rejected.Value}");
+    }
+}
+static void PrintMissionAllocationDiagnostics(
+    string title,
+    GroundOperationSnapshot snapshot)
+{
+    Console.WriteLine($"    {title}:");
+    Console.WriteLine($"      MissionId        : {snapshot.LastMissionAllocationMissionId}");
+    Console.WriteLine($"      Success          : {snapshot.LastMissionAllocationSuccess}");
+    Console.WriteLine($"      Selected node    : {snapshot.LastMissionAllocationSelectedNodeId}");
+    Console.WriteLine($"      Selected name    : {snapshot.LastMissionAllocationSelectedDisplayName}");
+    Console.WriteLine($"      Score            : {snapshot.LastMissionAllocationScore}");
+    Console.WriteLine($"      Reason           : {snapshot.LastMissionAllocationReason}");
+    Console.WriteLine($"      Candidates       : {string.Join(", ", snapshot.LastMissionAllocationCandidateNodeIds)}");
+
+    foreach (var rejected in snapshot.LastMissionAllocationRejectedNodeReasons)
     {
         Console.WriteLine($"      Rejected {rejected.Key}: {rejected.Value}");
     }
