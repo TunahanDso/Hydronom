@@ -7,6 +7,7 @@ using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
+using Hydronom.GroundStation.Transports;
 using Hydronom.Runtime.Fleet;
 
 Console.WriteLine("=== Hydronom Ground Station Smoke Test ===");
@@ -1225,8 +1226,230 @@ Console.WriteLine($"    Worst route latency ms    : {routeAwareOperationSnapshot
 Console.WriteLine($"    Has warnings              : {routeAwareOperationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues       : {routeAwareOperationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
+Console.WriteLine("[22] TransportManager mock send success test:");
 
-Console.WriteLine("[22] Mark stale nodes offline test:");
+var mockTcpTransport = new MockGroundTransport(
+    name: "mock-tcp-main",
+    kind: TransportKind.Tcp,
+    isConnected: true)
+{
+    SimulatedSendDelay = TimeSpan.FromMilliseconds(12)
+};
+
+var mockWebSocketTransport = new MockGroundTransport(
+    name: "mock-websocket-ops",
+    kind: TransportKind.WebSocket,
+    isConnected: true)
+{
+    SimulatedSendDelay = TimeSpan.FromMilliseconds(18)
+};
+
+var mockFailTransport = new MockGroundTransport(
+    name: "mock-fail-link",
+    kind: TransportKind.Mock,
+    isConnected: true)
+{
+    SimulatedSendDelay = TimeSpan.FromMilliseconds(5),
+    FailOnSend = true
+};
+
+var tcpRegistered = ground.RegisterTransport(mockTcpTransport);
+var wsRegistered = ground.RegisterTransport(mockWebSocketTransport);
+var failRegistered = ground.RegisterTransport(mockFailTransport);
+
+Console.WriteLine($"    TCP registered       : {tcpRegistered}");
+Console.WriteLine($"    WebSocket registered : {wsRegistered}");
+Console.WriteLine($"    Fail registered      : {failRegistered}");
+Console.WriteLine($"    Registry count       : {ground.TransportRegistry.Count}");
+
+var managerCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "90"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var managerExecution = await ground.SendTrackedCommandAsync(
+    managerCommand,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: true,
+    sendTimeout: TimeSpan.FromSeconds(1),
+    tryFallbacks: true);
+
+Console.WriteLine("    SendTrackedCommandAsync result:");
+Console.WriteLine($"    Execution exists     : {managerExecution is not null}");
+Console.WriteLine($"    ExecutionId          : {managerExecution?.ExecutionId}");
+Console.WriteLine($"    CanRoute             : {managerExecution?.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted          : {managerExecution?.IsCompleted}");
+Console.WriteLine($"    HasSuccess           : {managerExecution?.HasSuccess}");
+Console.WriteLine($"    HasAck               : {managerExecution?.HasAck}");
+Console.WriteLine($"    LastStatus           : {managerExecution?.LastStatus}");
+Console.WriteLine($"    BestLatencyMs        : {managerExecution?.BestLatencyMs}");
+Console.WriteLine($"    Mock TCP sent count  : {mockTcpTransport.SentCount}");
+Console.WriteLine();
+
+Console.WriteLine("[23] TransportManager mock broadcast send test:");
+
+var broadcastExecution = await ground.SendEnvelopeAsync(
+    emergencyEnvelope,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: true,
+    sendTimeout: TimeSpan.FromSeconds(1),
+    tryFallbacks: true,
+    sendToAllForBroadcast: true);
+
+Console.WriteLine("    Broadcast SendEnvelopeAsync result:");
+Console.WriteLine($"    ExecutionId          : {broadcastExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute             : {broadcastExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted          : {broadcastExecution.IsCompleted}");
+Console.WriteLine($"    HasSuccess           : {broadcastExecution.HasSuccess}");
+Console.WriteLine($"    HasAck               : {broadcastExecution.HasAck}");
+Console.WriteLine($"    LastStatus           : {broadcastExecution.LastStatus}");
+Console.WriteLine($"    Send result count    : {broadcastExecution.SendResults.Count}");
+Console.WriteLine($"    Mock TCP sent count  : {mockTcpTransport.SentCount}");
+Console.WriteLine($"    Mock WS sent count   : {mockWebSocketTransport.SentCount}");
+Console.WriteLine();
+
+Console.WriteLine("[24] TransportManager mock timeout / failure / unavailable test:");
+
+var slowMockTransport = new MockGroundTransport(
+    name: "mock-slow-tcp",
+    kind: TransportKind.Tcp,
+    isConnected: true)
+{
+    SimulatedSendDelay = TimeSpan.FromMilliseconds(250)
+};
+
+var slowGround = new GroundStationEngine();
+slowGround.HandleEnvelope(heartbeatEnvelope);
+slowGround.RegisterTransport(slowMockTransport);
+
+var slowCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SlowCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "timeout_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var slowExecution = await slowGround.SendTrackedCommandAsync(
+    slowCommand,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: true,
+    sendTimeout: TimeSpan.FromMilliseconds(10),
+    tryFallbacks: false);
+
+Console.WriteLine("    Timeout through TransportManager:");
+Console.WriteLine($"    Execution exists     : {slowExecution is not null}");
+Console.WriteLine($"    ExecutionId          : {slowExecution?.ExecutionId}");
+Console.WriteLine($"    CanRoute             : {slowExecution?.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted          : {slowExecution?.IsCompleted}");
+Console.WriteLine($"    HasTimeout           : {slowExecution?.HasTimeout}");
+Console.WriteLine($"    HasFailure           : {slowExecution?.HasFailure}");
+Console.WriteLine($"    LastStatus           : {slowExecution?.LastStatus}");
+Console.WriteLine();
+
+var failEnvelope = HydronomEnvelopeFactory.CreateCommand(new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "MockFailCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.Normal,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "failure_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = false
+});
+
+var failRoute = ground.CommunicationRouter.Route(
+    failEnvelope,
+    ground.GetFleetSnapshot(),
+    linkAvailabilityFilter: (_, transportKind) => transportKind == TransportKind.Mock);
+
+var failRequest = new GroundTransportSendRequest
+{
+    Envelope = failEnvelope,
+    UseLinkHealthRouting = false,
+    TreatSuccessfulSendAsAckWhenRequired = false,
+    SendTimeout = TimeSpan.FromSeconds(1),
+    TryFallbacks = false,
+    SendToAllForBroadcast = false,
+    Reason = "Smoke test failure through Mock transport."
+};
+
+var failManagerExecution = await ground.TransportManager.SendAsync(
+    failRequest,
+    failRoute);
+
+Console.WriteLine("    Failure through TransportManager:");
+Console.WriteLine($"    ExecutionId          : {failManagerExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute             : {failManagerExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted          : {failManagerExecution.IsCompleted}");
+Console.WriteLine($"    HasFailure           : {failManagerExecution.HasFailure}");
+Console.WriteLine($"    LastStatus           : {failManagerExecution.LastStatus}");
+Console.WriteLine($"    Send result count    : {failManagerExecution.SendResults.Count}");
+Console.WriteLine();
+
+var noTransportGround = new GroundStationEngine();
+noTransportGround.HandleEnvelope(heartbeatEnvelope);
+
+var noTransportExecution = await noTransportGround.SendEnvelopeAsync(
+    commandEnvelope!,
+    useLinkHealthRouting: false,
+    treatSuccessfulSendAsAckWhenRequired: true,
+    sendTimeout: TimeSpan.FromMilliseconds(50),
+    tryFallbacks: true);
+
+Console.WriteLine("    Link unavailable through TransportManager:");
+Console.WriteLine($"    ExecutionId          : {noTransportExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute             : {noTransportExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted          : {noTransportExecution.IsCompleted}");
+Console.WriteLine($"    HasFailure           : {noTransportExecution.HasFailure}");
+Console.WriteLine($"    LastStatus           : {noTransportExecution.LastStatus}");
+Console.WriteLine($"    Send result count    : {noTransportExecution.SendResults.Count}");
+Console.WriteLine();
+
+Console.WriteLine("[25] Transport registry / manager diagnostics test:");
+
+var transportManagerSnapshot = ground.GetRouteExecutionSnapshot();
+var transportManagerOperationSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine($"    Registry count              : {ground.TransportRegistry.Count}");
+Console.WriteLine($"    Route execution count       : {transportManagerSnapshot.Count}");
+Console.WriteLine($"    Total route executions      : {transportManagerOperationSnapshot.TotalRouteExecutionCount}");
+Console.WriteLine($"    Successful route executions : {transportManagerOperationSnapshot.SuccessfulRouteExecutionCount}");
+Console.WriteLine($"    Acked route executions      : {transportManagerOperationSnapshot.AckedRouteExecutionCount}");
+Console.WriteLine($"    Timeout route executions    : {transportManagerOperationSnapshot.TimeoutRouteExecutionCount}");
+Console.WriteLine($"    Failed route executions     : {transportManagerOperationSnapshot.FailedRouteExecutionCount}");
+Console.WriteLine($"    Total send results          : {transportManagerOperationSnapshot.TotalTransportSendResultCount}");
+Console.WriteLine($"    Successful send results     : {transportManagerOperationSnapshot.SuccessfulTransportSendResultCount}");
+Console.WriteLine($"    ACK send results            : {transportManagerOperationSnapshot.AckedTransportSendResultCount}");
+Console.WriteLine($"    Timeout send results        : {transportManagerOperationSnapshot.TimeoutTransportSendResultCount}");
+Console.WriteLine($"    Failed send results         : {transportManagerOperationSnapshot.FailedTransportSendResultCount}");
+Console.WriteLine($"    Route summary               : {transportManagerOperationSnapshot.RouteExecutionSummary}");
+Console.WriteLine($"    Link summary                : {transportManagerOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Has warnings                : {transportManagerOperationSnapshot.HasWarnings}");
+Console.WriteLine($"    Has critical issues         : {transportManagerOperationSnapshot.HasCriticalIssues}");
+Console.WriteLine();
+Console.WriteLine("[26] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
