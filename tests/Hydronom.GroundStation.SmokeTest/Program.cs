@@ -114,7 +114,7 @@ foreach (var node in snapshot)
     Console.WriteLine();
 }
 
-Console.WriteLine("[4] FleetCommandResult dispatch test:");
+Console.WriteLine("[4] Tracked FleetCommand + multi-stage FleetCommandResult test:");
 
 var command = new FleetCommand
 {
@@ -137,16 +137,18 @@ var command = new FleetCommand
     }
 };
 
-var commandEnvelope = HydronomEnvelopeFactory.CreateCommand(command);
+var commandEnvelope = ground.CreateTrackedCommandEnvelope(command);
 
-Console.WriteLine("    Ground produced command envelope:");
+Console.WriteLine("    Ground produced tracked command envelope:");
 Console.WriteLine($"    CommandId   : {command.CommandId}");
-Console.WriteLine($"    MessageType : {commandEnvelope.MessageType}");
-Console.WriteLine($"    Source      : {commandEnvelope.SourceNodeId}");
-Console.WriteLine($"    Target      : {commandEnvelope.TargetNodeId}");
-Console.WriteLine($"    Priority    : {commandEnvelope.Priority}");
+Console.WriteLine($"    Tracked     : {commandEnvelope is not null}");
+Console.WriteLine($"    MessageType : {commandEnvelope?.MessageType}");
+Console.WriteLine($"    Source      : {commandEnvelope?.SourceNodeId}");
+Console.WriteLine($"    Target      : {commandEnvelope?.TargetNodeId}");
+Console.WriteLine($"    Priority    : {commandEnvelope?.Priority}");
+Console.WriteLine($"    TrackerCount: {ground.CommandTracker.Count}");
 
-var commandResult = new FleetCommandResult
+var acceptedResult = new FleetCommandResult
 {
     CommandId = command.CommandId,
     SourceNodeId = "VEHICLE-ALPHA-001",
@@ -163,21 +165,124 @@ var commandResult = new FleetCommandResult
     }
 };
 
-var commandResultEnvelope = HydronomEnvelopeFactory.CreateCommandResult(commandResult);
-var commandResultHandled = ground.HandleEnvelope(commandResultEnvelope);
+var acceptedEnvelope = HydronomEnvelopeFactory.CreateCommandResult(acceptedResult);
+var acceptedHandled = ground.HandleEnvelope(acceptedEnvelope);
 
 Console.WriteLine();
-Console.WriteLine("    Vehicle returned command result envelope:");
-Console.WriteLine($"    ResultId    : {commandResult.ResultId}");
-Console.WriteLine($"    MessageType : {commandResultEnvelope.MessageType}");
-Console.WriteLine($"    Source      : {commandResultEnvelope.SourceNodeId}");
-Console.WriteLine($"    Target      : {commandResultEnvelope.TargetNodeId}");
-Console.WriteLine($"    Status      : {commandResult.Status}");
-Console.WriteLine($"    Success     : {commandResult.Success}");
-Console.WriteLine($"    Handled     : {commandResultHandled}");
+Console.WriteLine("    Vehicle returned first command result envelope:");
+Console.WriteLine($"    ResultId    : {acceptedResult.ResultId}");
+Console.WriteLine($"    MessageType : {acceptedEnvelope.MessageType}");
+Console.WriteLine($"    Source      : {acceptedEnvelope.SourceNodeId}");
+Console.WriteLine($"    Target      : {acceptedEnvelope.TargetNodeId}");
+Console.WriteLine($"    Status      : {acceptedResult.Status}");
+Console.WriteLine($"    Success     : {acceptedResult.Success}");
+Console.WriteLine($"    Handled     : {acceptedHandled}");
+
+var historyAfterAccepted = ground.GetCommandHistorySnapshot();
+
+Console.WriteLine();
+Console.WriteLine("    Command history after Accepted:");
+foreach (var record in historyAfterAccepted)
+{
+    Console.WriteLine($"    CommandId   : {record.Command.CommandId}");
+    Console.WriteLine($"    Type        : {record.Command.CommandType}");
+    Console.WriteLine($"    HasResult   : {record.HasResult}");
+    Console.WriteLine($"    IsPending   : {record.IsPending}");
+    Console.WriteLine($"    IsCompleted : {record.IsCompleted}");
+    Console.WriteLine($"    IsSuccessful: {record.IsSuccessful}");
+    Console.WriteLine($"    LastStatus  : {record.LastResult?.Status}");
+    Console.WriteLine($"    LastStage   : {record.LastResult?.ProcessingStage}");
+}
+
+var appliedResult = new FleetCommandResult
+{
+    CommandId = command.CommandId,
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    TargetNodeId = "GROUND-001",
+    Status = "Applied",
+    Success = true,
+    Message = "Mission command applied by simulated vehicle.",
+    ProcessingStage = "ActuationApplied",
+    Metadata = new Dictionary<string, string>
+    {
+        ["latencyMs"] = "42",
+        ["safetyGate"] = "passed",
+        ["runtimeMode"] = "Autonomous",
+        ["actuation"] = "simulated"
+    }
+};
+
+var appliedEnvelope = HydronomEnvelopeFactory.CreateCommandResult(appliedResult);
+var appliedHandled = ground.HandleEnvelope(appliedEnvelope);
+
+Console.WriteLine();
+Console.WriteLine("    Vehicle returned final command result envelope:");
+Console.WriteLine($"    ResultId    : {appliedResult.ResultId}");
+Console.WriteLine($"    MessageType : {appliedEnvelope.MessageType}");
+Console.WriteLine($"    Source      : {appliedEnvelope.SourceNodeId}");
+Console.WriteLine($"    Target      : {appliedEnvelope.TargetNodeId}");
+Console.WriteLine($"    Status      : {appliedResult.Status}");
+Console.WriteLine($"    Success     : {appliedResult.Success}");
+Console.WriteLine($"    Handled     : {appliedHandled}");
 Console.WriteLine();
 
-Console.WriteLine("[5] Mark stale nodes offline test:");
+var commandHistory = ground.GetCommandHistorySnapshot();
+
+Console.WriteLine("    Command history after Applied:");
+Console.WriteLine($"    Count       : {commandHistory.Count}");
+
+foreach (var record in commandHistory)
+{
+    Console.WriteLine($"    CommandId   : {record.Command.CommandId}");
+    Console.WriteLine($"    Type        : {record.Command.CommandType}");
+    Console.WriteLine($"    Target      : {record.Command.TargetNodeId}");
+    Console.WriteLine($"    HasResult   : {record.HasResult}");
+    Console.WriteLine($"    IsPending   : {record.IsPending}");
+    Console.WriteLine($"    IsCompleted : {record.IsCompleted}");
+    Console.WriteLine($"    IsSuccessful: {record.IsSuccessful}");
+    Console.WriteLine($"    LastStatus  : {record.LastResult?.Status}");
+    Console.WriteLine($"    LastStage   : {record.LastResult?.ProcessingStage}");
+}
+
+Console.WriteLine();
+
+Console.WriteLine("[5] Command timeout test:");
+
+var timeoutCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetTarget",
+    AuthorityLevel = "MissionCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["lat"] = "41.030",
+        ["lon"] = "29.020"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var timeoutEnvelope = ground.CreateTrackedCommandEnvelope(timeoutCommand);
+
+Console.WriteLine($"    Timeout command tracked: {timeoutEnvelope is not null}");
+Console.WriteLine($"    Pending before timeout : {ground.GetPendingCommandSnapshot().Count}");
+
+var expiredCommands = ground.MarkExpiredCommands(
+    timeout: TimeSpan.FromMilliseconds(1),
+    nowUtc: DateTimeOffset.UtcNow.AddSeconds(10));
+
+Console.WriteLine($"    Expired changed        : {expiredCommands}");
+Console.WriteLine($"    Pending after timeout  : {ground.GetPendingCommandSnapshot().Count}");
+
+var failedCommands = ground.CommandTracker.GetFailedCommands();
+
+Console.WriteLine($"    Failed command count   : {failedCommands.Count}");
+
+Console.WriteLine();
+
+Console.WriteLine("[6] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),

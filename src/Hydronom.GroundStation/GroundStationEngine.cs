@@ -2,6 +2,7 @@ namespace Hydronom.GroundStation;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
+using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Routing;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
@@ -11,9 +12,10 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// Bu sınıf, yer istasyonunun ana koordinasyon kabuğudur.
 /// Amacı:
 /// - FleetRegistry'yi tek merkezden yönetmek,
+/// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
-/// - Komut sonuçlarını ileride izlenebilir hale getirmek,
+/// - Komut sonuçlarını izlenebilir hale getirmek,
 /// - Yer istasyonu tarafında büyüyecek modüller için ana koordinasyon noktası olmaktır.
 /// 
 /// İleride bu sınıfın altına şunlar bağlanabilir:
@@ -35,6 +37,18 @@ public sealed class GroundStationEngine
     /// Hydronom Ops veya Gateway tarafı güncel filo görünümünü buradan alabilir.
     /// </summary>
     public FleetRegistryStore FleetRegistry { get; } = new();
+
+    /// <summary>
+    /// Yer istasyonu tarafından gönderilen komutları ve araçlardan dönen sonuçları takip eder.
+    /// 
+    /// Bu yapı ileride Hydronom Ops tarafındaki:
+    /// - Command History
+    /// - Operator Timeline
+    /// - Safety Rejection Log
+    /// - Mission Command Audit
+    /// ekranlarının temel veri kaynağı olacaktır.
+    /// </summary>
+    public CommandTracker CommandTracker { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -62,8 +76,10 @@ public sealed class GroundStationEngine
     /// <summary>
     /// GroundStationEngine oluşturur.
     /// 
-    /// Dispatcher burada FleetRegistry.ApplyHeartbeat metoduna bağlanır.
-    /// Böylece gelen FleetHeartbeat mesajları doğrudan registry'yi günceller.
+    /// Dispatcher burada:
+    /// - FleetHeartbeat mesajlarını FleetRegistry.ApplyHeartbeat metoduna,
+    /// - FleetCommandResult mesajlarını CommandTracker.ApplyResult metoduna
+    /// bağlar.
     /// </summary>
     public GroundStationEngine()
     {
@@ -84,20 +100,46 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Yer istasyonu tarafından üretilecek/gönderilecek bir komutu kayıt altına alır
+    /// ve aynı komutu HydronomEnvelope içine sararak döndürür.
+    /// 
+    /// Bu metot komutu henüz fiziksel olarak göndermez.
+    /// Sadece:
+    /// - CommandTracker içine kaydeder,
+    /// - HydronomEnvelopeFactory ile envelope üretir.
+    /// 
+    /// Gerçek gönderim ileride CommunicationRouter / TransportManager üzerinden yapılacaktır.
+    /// </summary>
+    public HydronomEnvelope? CreateTrackedCommandEnvelope(FleetCommand command)
+    {
+        if (command is null || !command.IsValid)
+            return null;
+
+        var tracked = CommandTracker.TrackCommand(command);
+
+        if (!tracked)
+            return null;
+
+        return HydronomEnvelopeFactory.CreateCommand(command);
+    }
+
+    /// <summary>
     /// FleetCommandResult mesajlarını işler.
     /// 
-    /// Şu an ilk fazda sadece geçerli sonucu başarıyla alınmış kabul ediyoruz.
-    /// İleride burada:
-    /// - Komut geçmişi,
-    /// - Operatör event timeline,
-    /// - Command ACK tracking,
-    /// - Safety rejection kayıtları,
-    /// - UI bildirimleri
-    /// tutulacak.
+    /// Gelen result, CommandTracker içinde daha önce kaydedilmiş komutla eşleştirilir.
+    /// Böylece Ground Station:
+    /// - Komut kabul edildi mi?
+    /// - SafetyGate engelledi mi?
+    /// - Komut uygulandı mı?
+    /// - Komut başarısız mı oldu?
+    /// sorularını takip edebilir.
     /// </summary>
     private bool HandleCommandResult(FleetCommandResult result)
     {
-        return result is not null && result.IsValid;
+        if (result is null || !result.IsValid)
+            return false;
+
+        return CommandTracker.ApplyResult(result);
     }
 
     /// <summary>
@@ -122,6 +164,24 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Kayıtlı tüm komut geçmişinin snapshot listesini döndürür.
+    /// 
+    /// Hydronom Ops ileride bu metotla komut geçmişi ekranını besleyebilir.
+    /// </summary>
+    public IReadOnlyList<CommandRecord> GetCommandHistorySnapshot()
+    {
+        return CommandTracker.GetSnapshot();
+    }
+
+    /// <summary>
+    /// Henüz sonuç bekleyen komutların snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<CommandRecord> GetPendingCommandSnapshot()
+    {
+        return CommandTracker.GetPendingCommands();
+    }
+
+    /// <summary>
     /// Belirli süre heartbeat göndermeyen araçları offline olarak işaretler.
     /// 
     /// Bu metot GroundStation ana döngüsü veya timer tarafından çağrılabilir.
@@ -129,5 +189,15 @@ public sealed class GroundStationEngine
     public int MarkStaleNodesOffline(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
         return FleetRegistry.MarkStaleNodesOffline(timeout, nowUtc);
+    }
+
+    /// <summary>
+    /// Belirli süre boyunca sonuç dönmeyen pending komutları expired olarak işaretler.
+    /// 
+    /// Bu metot ileride GroundStation watchdog veya timer tarafından çağrılabilir.
+    /// </summary>
+    public int MarkExpiredCommands(TimeSpan timeout, DateTimeOffset? nowUtc = null)
+    {
+        return CommandTracker.MarkExpiredCommands(timeout, nowUtc);
     }
 }
