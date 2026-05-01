@@ -750,7 +750,8 @@ public sealed class GroundStationEngine
             LinkHealthTracker.GetSnapshot(DateTime.UtcNow),
             TransportExecutionTracker.GetSnapshot(),
             CommandAckCorrelator.GetSnapshot(),
-            TransportReceiver.GetSnapshot());
+            TransportReceiver.GetSnapshot(),
+            LastCommandSafetyResult);
     }
 
     /// <summary>

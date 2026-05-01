@@ -2581,13 +2581,18 @@ var offlineCommand = new FleetCommand
     }
 };
 
-var offlineTargetResult = new GroundCommandSafetyGate().Evaluate(
-    offlineCommand,
-    offlineGround.GetFleetSnapshot());
+var offlineTargetResult = offlineGround.EvaluateCommandSafety(offlineCommand);
 
 PrintCommandValidation(
     "Offline target command",
     offlineTargetResult);
+
+Console.WriteLine();
+Console.WriteLine("    Operation snapshot command safety diagnostics:");
+
+var safetyOperationSnapshot = offlineGround.CreateOperationSnapshot();
+
+PrintCommandSafetyDiagnostics(safetyOperationSnapshot);
 
 Console.WriteLine();
 Console.WriteLine("=== Receive Diagnostics + Security Smoke Test completed ===");
@@ -2712,6 +2717,22 @@ static void PrintCommandValidation(
     Console.WriteLine($"      Warnings      : {result.HasWarnings}");
 
     foreach (var issue in result.Issues)
+    {
+        Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
+    }
+}
+
+static void PrintCommandSafetyDiagnostics(GroundOperationSnapshot snapshot)
+{
+    Console.WriteLine($"    Last safety allowed       : {snapshot.LastCommandSafetyAllowed}");
+    Console.WriteLine($"    Last safety rejected      : {snapshot.LastCommandSafetyRejected}");
+    Console.WriteLine($"    Last safety reason        : {snapshot.LastCommandSafetyReason}");
+    Console.WriteLine($"    Last safety issue count   : {snapshot.LastCommandSafetyIssueCount}");
+    Console.WriteLine($"    Last safety blocking count: {snapshot.LastCommandSafetyBlockingIssueCount}");
+    Console.WriteLine($"    Last safety warning count : {snapshot.LastCommandSafetyWarningIssueCount}");
+    Console.WriteLine($"    Last safety issue codes   : {string.Join(", ", snapshot.LastCommandSafetyIssueCodes)}");
+
+    foreach (var issue in snapshot.LastCommandSafetyIssues)
     {
         Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
     }

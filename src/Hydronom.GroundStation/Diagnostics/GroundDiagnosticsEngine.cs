@@ -4,6 +4,7 @@ using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.LinkHealth;
+using Hydronom.GroundStation.Security;
 using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.WorldModel;
@@ -20,6 +21,7 @@ using Hydronom.GroundStation.WorldModel;
 /// - GroundTransportExecutionTracker route/gönderim durumunu yorumlamak,
 /// - CommandAckCorrelator gerçek ACK/result korelasyon durumunu yorumlamak,
 /// - GroundTransportReceiver inbound/gelen mesaj durumunu yorumlamak,
+/// - GroundCommandSafetyGate son command safety/security sonucunu yorumlamak,
 /// - genel health ve kısa açıklama üretmektir.
 /// 
 /// Böylece Hydronom Ops veya ilerideki Gateway katmanı tek çağrıyla
@@ -28,10 +30,11 @@ using Hydronom.GroundStation.WorldModel;
 public sealed class GroundDiagnosticsEngine
 {
     /// <summary>
-    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution, ACK correlation
-    /// ve receive event verilerinden operasyon snapshot'ı üretir.
+    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution, ACK correlation,
+    /// receive event ve command safety verilerinden operasyon snapshot'ı üretir.
     /// 
-    /// linkHealthSnapshot, routeExecutionSnapshot, ackCorrelationSnapshot ve receiveEventSnapshot opsiyoneldir.
+    /// linkHealthSnapshot, routeExecutionSnapshot, ackCorrelationSnapshot,
+    /// receiveEventSnapshot ve lastCommandSafetyResult opsiyoneldir.
     /// Böylece eski çağrılar bozulmadan çalışmaya devam eder.
     /// </summary>
     public GroundOperationSnapshot CreateSnapshot(
@@ -41,7 +44,8 @@ public sealed class GroundDiagnosticsEngine
         IReadOnlyList<VehicleLinkHealthSnapshot>? linkHealthSnapshot = null,
         IReadOnlyList<RouteExecutionSnapshot>? routeExecutionSnapshot = null,
         IReadOnlyList<CommandAckCorrelationSnapshot>? ackCorrelationSnapshot = null,
-        IReadOnlyList<GroundTransportReceiveEvent>? receiveEventSnapshot = null)
+        IReadOnlyList<GroundTransportReceiveEvent>? receiveEventSnapshot = null,
+        CommandValidationResult? lastCommandSafetyResult = null)
     {
         fleetSnapshot ??= Array.Empty<VehicleNodeStatus>();
         commandSnapshot ??= Array.Empty<CommandRecord>();
@@ -261,6 +265,24 @@ public sealed class GroundDiagnosticsEngine
             inboundUnknownMessageCount,
             lastReceiveUtc);
 
+        var commandSafetyIssues = lastCommandSafetyResult?.Issues?.ToArray()
+            ?? Array.Empty<CommandValidationIssue>();
+
+        var lastCommandSafetyAllowed = lastCommandSafetyResult?.IsAllowed;
+        var lastCommandSafetyRejected = lastCommandSafetyResult?.IsRejected;
+        var lastCommandSafetyReason = lastCommandSafetyResult?.Reason
+            ?? "No command safety evaluation.";
+
+        var lastCommandSafetyIssueCount = commandSafetyIssues.Length;
+        var lastCommandSafetyBlockingIssueCount = commandSafetyIssues.Count(x => x.IsBlocking);
+        var lastCommandSafetyWarningIssueCount = commandSafetyIssues.Count(x => !x.IsBlocking);
+
+        var lastCommandSafetyIssueCodes = commandSafetyIssues
+            .Select(x => x.Code)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
         var overallHealth = EvaluateOverallHealth(
             totalNodes,
             onlineNodes,
@@ -284,7 +306,15 @@ public sealed class GroundDiagnosticsEngine
             expiredPendingAckCorrelations,
             totalReceiveEvents,
             failedReceiveEvents,
-            unhandledReceiveEvents);
+            unhandledReceiveEvents,
+            lastCommandSafetyResult);
+
+        var commandSafetySummary = BuildCommandSafetySummary(
+            lastCommandSafetyResult,
+            lastCommandSafetyIssueCount,
+            lastCommandSafetyBlockingIssueCount,
+            lastCommandSafetyWarningIssueCount,
+            lastCommandSafetyIssueCodes);
 
         var summary = BuildSummary(
             overallHealth,
@@ -297,7 +327,8 @@ public sealed class GroundDiagnosticsEngine
             linkHealthSummary,
             routeExecutionSummary,
             ackCorrelationSummary,
-            receiveHealthSummary);
+            receiveHealthSummary,
+            commandSafetySummary);
 
         return new GroundOperationSnapshot
         {
@@ -380,6 +411,15 @@ public sealed class GroundDiagnosticsEngine
             InboundUnknownMessageCount = inboundUnknownMessageCount,
             ReceiveEvents = receiveEvents,
 
+            LastCommandSafetyAllowed = lastCommandSafetyAllowed,
+            LastCommandSafetyRejected = lastCommandSafetyRejected,
+            LastCommandSafetyReason = lastCommandSafetyReason,
+            LastCommandSafetyIssueCount = lastCommandSafetyIssueCount,
+            LastCommandSafetyBlockingIssueCount = lastCommandSafetyBlockingIssueCount,
+            LastCommandSafetyWarningIssueCount = lastCommandSafetyWarningIssueCount,
+            LastCommandSafetyIssueCodes = lastCommandSafetyIssueCodes,
+            LastCommandSafetyIssues = commandSafetyIssues,
+
             OverallHealth = overallHealth,
             Summary = summary
         };
@@ -427,8 +467,8 @@ public sealed class GroundDiagnosticsEngine
     /// Ground Station genel sağlık durumunu değerlendirir.
     /// 
     /// İlk fazda basit kural tabanlı değerlendirme kullanıyoruz.
-    /// Link health, route execution, gerçek ACK correlation ve receive diagnostics verisi varsa
-    /// bunlar da genel değerlendirmeye katılır.
+    /// Link health, route execution, gerçek ACK correlation, receive diagnostics
+    /// ve command safety/security verisi varsa bunlar da genel değerlendirmeye katılır.
     /// </summary>
     private static string EvaluateOverallHealth(
         int totalNodes,
@@ -453,7 +493,8 @@ public sealed class GroundDiagnosticsEngine
         int expiredPendingAckCorrelations,
         int totalReceiveEvents,
         int failedReceiveEvents,
-        int unhandledReceiveEvents)
+        int unhandledReceiveEvents,
+        CommandValidationResult? lastCommandSafetyResult)
     {
         if (totalNodes == 0)
             return "Critical";
@@ -496,6 +537,15 @@ public sealed class GroundDiagnosticsEngine
             return "Critical";
         }
 
+        // Son safety değerlendirmesinde blocking issue varsa operasyonel dikkat gerektirir.
+        // Tek bir reddedilen komut tüm Ground Station'ı Critical yapmaz; Warning seviyesine taşır.
+        if (lastCommandSafetyResult is not null &&
+            lastCommandSafetyResult.IsRejected &&
+            lastCommandSafetyResult.HasBlockingIssues)
+        {
+            return "Warning";
+        }
+
         if (warningNodes > 0)
             return "Warning";
 
@@ -521,6 +571,9 @@ public sealed class GroundDiagnosticsEngine
             return "Warning";
 
         if (failedReceiveEvents > 0 || unhandledReceiveEvents > 0)
+            return "Warning";
+
+        if (lastCommandSafetyResult is not null && lastCommandSafetyResult.HasWarnings)
             return "Warning";
 
         return "OK";
@@ -671,6 +724,36 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
+    /// Son command safety/security değerlendirmesi için kısa özet cümlesi üretir.
+    /// </summary>
+    private static string BuildCommandSafetySummary(
+        CommandValidationResult? lastCommandSafetyResult,
+        int issueCount,
+        int blockingIssueCount,
+        int warningIssueCount,
+        IReadOnlyList<string> issueCodes)
+    {
+        if (lastCommandSafetyResult is null)
+            return "No command safety evaluation.";
+
+        var codesText = issueCodes.Count == 0
+            ? "none"
+            : string.Join(", ", issueCodes);
+
+        if (lastCommandSafetyResult.IsRejected)
+        {
+            return $"Command safety rejected: {issueCount} issues, {blockingIssueCount} blocking, {warningIssueCount} warnings, codes={codesText}. Reason: {lastCommandSafetyResult.Reason}";
+        }
+
+        if (lastCommandSafetyResult.HasWarnings)
+        {
+            return $"Command safety allowed with warnings: {issueCount} issues, {blockingIssueCount} blocking, {warningIssueCount} warnings, codes={codesText}. Reason: {lastCommandSafetyResult.Reason}";
+        }
+
+        return $"Command safety OK: command allowed, codes={codesText}. Reason: {lastCommandSafetyResult.Reason}";
+    }
+
+    /// <summary>
     /// Snapshot için kısa özet cümlesi üretir.
     /// </summary>
     private static string BuildSummary(
@@ -684,18 +767,19 @@ public sealed class GroundDiagnosticsEngine
         string linkHealthSummary,
         string routeExecutionSummary,
         string ackCorrelationSummary,
-        string receiveHealthSummary)
+        string receiveHealthSummary,
+        string commandSafetySummary)
     {
         if (string.Equals(overallHealth, "Critical", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
+            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary} {commandSafetySummary}";
         }
 
         if (string.Equals(overallHealth, "Warning", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
+            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary} {commandSafetySummary}";
         }
 
-        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary}";
+        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary} {ackCorrelationSummary} {receiveHealthSummary} {commandSafetySummary}";
     }
 }

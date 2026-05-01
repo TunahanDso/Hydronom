@@ -1,10 +1,10 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.GroundStation.Ack;
-using Hydronom.GroundStation.Communication;
-using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.LinkHealth;
+using Hydronom.GroundStation.Security;
 using Hydronom.GroundStation.TransportExecution;
+using Hydronom.GroundStation.Transports.Receive;
 
 /// <summary>
 /// Ground Station tarafının tek bakışta okunabilir operasyon özetini temsil eder.
@@ -20,6 +20,7 @@ using Hydronom.GroundStation.TransportExecution;
 /// - Route execution / transport gönderim durumu,
 /// - Gerçek command ACK/result korelasyon durumu,
 /// - Inbound receive / gelen mesaj trafiği durumu,
+/// - Command safety/security değerlendirme durumu,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -485,6 +486,62 @@ public sealed record GroundOperationSnapshot
     /// </summary>
     public IReadOnlyList<GroundTransportReceiveEvent> ReceiveEvents { get; init; } =
         Array.Empty<GroundTransportReceiveEvent>();
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde komut izinli miydi?
+    /// 
+    /// Hiç komut safety değerlendirmesi yapılmadıysa null kalır.
+    /// </summary>
+    public bool? LastCommandSafetyAllowed { get; init; }
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde komut reddedildi mi?
+    /// 
+    /// Hiç komut safety değerlendirmesi yapılmadıysa null kalır.
+    /// </summary>
+    public bool? LastCommandSafetyRejected { get; init; }
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinin kısa açıklaması.
+    /// 
+    /// Hydronom Ops Command Safety panelinde gösterilebilir.
+    /// </summary>
+    public string LastCommandSafetyReason { get; init; } = "No command safety evaluation.";
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde tespit edilen toplam issue sayısı.
+    /// </summary>
+    public int LastCommandSafetyIssueCount { get; init; }
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde tespit edilen blocking issue sayısı.
+    /// </summary>
+    public int LastCommandSafetyBlockingIssueCount { get; init; }
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde tespit edilen warning issue sayısı.
+    /// </summary>
+    public int LastCommandSafetyWarningIssueCount { get; init; }
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde üretilen issue kodları.
+    /// 
+    /// Örnek:
+    /// - TARGET_UNKNOWN
+    /// - TARGET_OFFLINE
+    /// - DUPLICATE_COMMAND_ID
+    /// - EMERGENCY_PRIORITY_REQUIRED
+    /// </summary>
+    public IReadOnlyList<string> LastCommandSafetyIssueCodes { get; init; } =
+        Array.Empty<string>();
+
+    /// <summary>
+    /// Son command safety/security değerlendirmesinde üretilen issue detayları.
+    /// 
+    /// Bu alan Hydronom Ops tarafında command safety detay ekranını besleyebilir.
+    /// </summary>
+    public IReadOnlyList<CommandValidationIssue> LastCommandSafetyIssues { get; init; } =
+        Array.Empty<CommandValidationIssue>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.
