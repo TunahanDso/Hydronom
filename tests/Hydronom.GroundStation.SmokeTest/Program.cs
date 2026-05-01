@@ -2052,8 +2052,8 @@ Console.WriteLine($"    Has critical issues  : {offlineOperationSnapshot.HasCrit
 
 Console.WriteLine();
 Console.WriteLine("=== Smoke test completed ==="); */
-
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
 using Hydronom.GroundStation.Diagnostics;
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
@@ -2733,6 +2733,320 @@ static void PrintCommandSafetyDiagnostics(GroundOperationSnapshot snapshot)
     Console.WriteLine($"    Last safety issue codes   : {string.Join(", ", snapshot.LastCommandSafetyIssueCodes)}");
 
     foreach (var issue in snapshot.LastCommandSafetyIssues)
+    {
+        Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
+    }
+}
+*/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+using Hydronom.Core.Communication;
+using Hydronom.Core.Fleet;
+using Hydronom.GroundStation;
+using Hydronom.GroundStation.Diagnostics;
+using Hydronom.GroundStation.MissionCompatibility;
+using Hydronom.GroundStation.Security;
+using Hydronom.GroundStation.Transports;
+using Hydronom.Runtime.Fleet;
+
+Console.WriteLine("=== Hydronom Ground Station Latest Features Smoke Test ===");
+Console.WriteLine();
+
+var alphaIdentity = new NodeIdentity
+{
+    NodeId = "VEHICLE-ALPHA-001",
+    DisplayName = "Alpha",
+    NodeType = "Vehicle",
+    VehicleType = "SurfaceVessel",
+    Role = "Leader",
+    SoftwareVersion = "fleet-v1-dev",
+    HardwareProfile = "Simulation",
+    IsSimulation = true
+};
+
+var alphaAgent = new VehicleFleetAgent(alphaIdentity);
+
+var heartbeatEnvelope = alphaAgent.CreateHeartbeatEnvelope(
+    mode: "Autonomous",
+    health: "OK",
+    batteryPercent: 82,
+    activeMissionId: "MISSION-LATEST-FEATURES-001",
+    missionState: "Ready",
+    latitude: 41.040,
+    longitude: 29.030,
+    headingDeg: 90.0,
+    speedMps: 1.25,
+    availableTransports: new[]
+    {
+        TransportKind.Mock
+    },
+    capabilities: new[]
+    {
+        new VehicleCapability
+        {
+            Name = "navigation",
+            Description = "Can navigate on mission route",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Mock
+            }
+        },
+        new VehicleCapability
+        {
+            Name = "fleet_heartbeat",
+            Description = "Can announce itself to Ground Station",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Mock
+            }
+        }
+    },
+    metadata: new Dictionary<string, string>
+    {
+        ["source"] = "latest_features_smoke_test"
+    });
+
+var ground = new GroundStationEngine();
+
+Console.WriteLine("[1] Fleet heartbeat baseline");
+
+var handled = ground.HandleEnvelope(heartbeatEnvelope);
+var fleetSnapshot = ground.GetFleetSnapshot();
+var operationSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine($"    Heartbeat handled       : {handled}");
+Console.WriteLine($"    Fleet node count        : {fleetSnapshot.Count}");
+Console.WriteLine($"    Online node count       : {operationSnapshot.OnlineNodeCount}");
+Console.WriteLine($"    First node id           : {fleetSnapshot.FirstOrDefault()?.Identity.NodeId}");
+Console.WriteLine($"    First vehicle type      : {fleetSnapshot.FirstOrDefault()?.Identity.VehicleType}");
+Console.WriteLine();
+
+Console.WriteLine("[2] GroundStationEngine command safety integration");
+
+var validCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "90"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "latest_features_smoke_test"
+    }
+};
+
+var validEnvelope = ground.CreateTrackedCommandEnvelope(validCommand);
+var validSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine($"    Valid envelope created  : {validEnvelope is not null}");
+Console.WriteLine($"    Command history count   : {ground.GetCommandHistorySnapshot().Count}");
+PrintCommandSafetyDiagnostics(validSnapshot);
+
+Console.WriteLine();
+
+Console.WriteLine("[3] Duplicate command rejection through engine");
+
+var duplicateResult = ground.EvaluateCommandSafety(validCommand);
+var duplicateSnapshot = ground.CreateOperationSnapshot();
+
+PrintCommandValidation("Duplicate command", duplicateResult);
+PrintCommandSafetyDiagnostics(duplicateSnapshot);
+
+Console.WriteLine();
+
+Console.WriteLine("[4] Offline target rejection through operation snapshot");
+
+var offlineGround = new GroundStationEngine();
+offlineGround.HandleEnvelope(heartbeatEnvelope);
+
+offlineGround.MarkStaleNodesOffline(
+    timeout: TimeSpan.FromMilliseconds(1),
+    nowUtc: DateTimeOffset.UtcNow.AddSeconds(10));
+
+var offlineCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "180"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "latest_features_smoke_test"
+    }
+};
+
+var offlineResult = offlineGround.EvaluateCommandSafety(offlineCommand);
+var offlineSnapshot = offlineGround.CreateOperationSnapshot();
+
+PrintCommandValidation("Offline target command", offlineResult);
+PrintCommandSafetyDiagnostics(offlineSnapshot);
+
+Console.WriteLine();
+
+Console.WriteLine("[5] Mission compatibility evaluator");
+
+var compatibilityEvaluator = new MissionCompatibilityEvaluator();
+
+var requirements = new[]
+{
+    new MissionCapabilityRequirement
+    {
+        Name = "navigation",
+        Required = true,
+        RequireEnabled = true,
+        RequireHealthy = true,
+        Weight = 2.0
+    },
+    new MissionCapabilityRequirement
+    {
+        Name = "fleet_heartbeat",
+        Required = true,
+        RequireEnabled = true,
+        RequireHealthy = true,
+        Weight = 1.0
+    },
+    new MissionCapabilityRequirement
+    {
+        Name = "lidar",
+        Required = false,
+        RequireEnabled = true,
+        RequireHealthy = true,
+        Weight = 0.5
+    }
+};
+
+var surfaceResults = compatibilityEvaluator.RankVehicles(
+    ground.GetFleetSnapshot(),
+    missionType: "SurfacePatrol",
+    allowedVehicleTypes: new[]
+    {
+        "SurfaceVessel"
+    },
+    capabilityRequirements: requirements,
+    requireOnline: true,
+    allowSimulation: true);
+
+Console.WriteLine("    Surface patrol compatibility:");
+foreach (var result in surfaceResults)
+{
+    PrintMissionCompatibility(result);
+}
+
+Console.WriteLine();
+
+var underwaterResults = compatibilityEvaluator.RankVehicles(
+    ground.GetFleetSnapshot(),
+    missionType: "UnderwaterInspection",
+    allowedVehicleTypes: new[]
+    {
+        "Submarine",
+        "UnderwaterDrone"
+    },
+    capabilityRequirements: requirements,
+    requireOnline: true,
+    allowSimulation: true);
+
+Console.WriteLine("    Wrong vehicle type compatibility:");
+foreach (var result in underwaterResults)
+{
+    PrintMissionCompatibility(result);
+}
+
+Console.WriteLine();
+
+var realHardwareOnlyResults = compatibilityEvaluator.RankVehicles(
+    ground.GetFleetSnapshot(),
+    missionType: "RealHardwareSurfacePatrol",
+    allowedVehicleTypes: new[]
+    {
+        "SurfaceVessel"
+    },
+    capabilityRequirements: requirements,
+    requireOnline: true,
+    allowSimulation: false);
+
+Console.WriteLine("    Real hardware only compatibility:");
+foreach (var result in realHardwareOnlyResults)
+{
+    PrintMissionCompatibility(result);
+}
+
+Console.WriteLine();
+Console.WriteLine("=== Latest Features Smoke Test completed ===");
+
+static void PrintCommandValidation(
+    string title,
+    CommandValidationResult result)
+{
+    Console.WriteLine($"    {title}:");
+    Console.WriteLine($"      Allowed       : {result.IsAllowed}");
+    Console.WriteLine($"      Rejected      : {result.IsRejected}");
+    Console.WriteLine($"      Reason        : {result.Reason}");
+    Console.WriteLine($"      Issue count   : {result.Issues.Count}");
+    Console.WriteLine($"      Blocking      : {result.HasBlockingIssues}");
+    Console.WriteLine($"      Warnings      : {result.HasWarnings}");
+
+    foreach (var issue in result.Issues)
+    {
+        Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
+    }
+}
+
+static void PrintCommandSafetyDiagnostics(GroundOperationSnapshot snapshot)
+{
+    Console.WriteLine("    Command safety diagnostics:");
+    Console.WriteLine($"      Last allowed       : {snapshot.LastCommandSafetyAllowed}");
+    Console.WriteLine($"      Last rejected      : {snapshot.LastCommandSafetyRejected}");
+    Console.WriteLine($"      Last reason        : {snapshot.LastCommandSafetyReason}");
+    Console.WriteLine($"      Issue count        : {snapshot.LastCommandSafetyIssueCount}");
+    Console.WriteLine($"      Blocking count     : {snapshot.LastCommandSafetyBlockingIssueCount}");
+    Console.WriteLine($"      Warning count      : {snapshot.LastCommandSafetyWarningIssueCount}");
+    Console.WriteLine($"      Issue codes        : {string.Join(", ", snapshot.LastCommandSafetyIssueCodes)}");
+
+    foreach (var issue in snapshot.LastCommandSafetyIssues)
+    {
+        Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
+    }
+}
+
+static void PrintMissionCompatibility(MissionCompatibilityResult result)
+{
+    Console.WriteLine($"    Vehicle              : {result.VehicleId}");
+    Console.WriteLine($"      Vehicle type        : {result.VehicleType}");
+    Console.WriteLine($"      Mission type        : {result.MissionType}");
+    Console.WriteLine($"      Compatible          : {result.IsCompatible}");
+    Console.WriteLine($"      Rejected            : {result.IsRejected}");
+    Console.WriteLine($"      Score               : {result.Score}");
+    Console.WriteLine($"      Reason              : {result.Reason}");
+    Console.WriteLine($"      Matched capabilities: {string.Join(", ", result.MatchedCapabilities)}");
+    Console.WriteLine($"      Missing required    : {string.Join(", ", result.MissingRequiredCapabilities)}");
+    Console.WriteLine($"      Issue count         : {result.Issues.Count}");
+    Console.WriteLine($"      Blocking            : {result.HasBlockingIssues}");
+    Console.WriteLine($"      Warnings            : {result.HasWarnings}");
+
+    foreach (var issue in result.Issues)
     {
         Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
     }
