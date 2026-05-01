@@ -2,6 +2,7 @@
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
 using Hydronom.GroundStation.Routing;
+using Hydronom.GroundStation.Telemetry;
 using Hydronom.Runtime.Fleet;
 
 Console.WriteLine("=== Hydronom Ground Station Smoke Test ===");
@@ -371,7 +372,45 @@ Console.WriteLine($"    Broadcast   : {filteredEmergencyRoute.BroadcastAllAvaila
 Console.WriteLine($"    Applicable  : {transportFilter.IsApplicable(filteredEmergencyRoute)}");
 Console.WriteLine();
 
-Console.WriteLine("[7] Mark stale nodes offline test:");
+Console.WriteLine("[7] Adaptive telemetry profile test:");
+
+var telemetrySelector = new AdaptiveTelemetryProfileSelector();
+
+var alphaTelemetryProfile = telemetrySelector.Select(alphaAvailableTransports);
+
+Console.WriteLine("    Alpha telemetry profile:");
+Console.WriteLine($"    Available   : {string.Join(", ", alphaAvailableTransports)}");
+Console.WriteLine($"    Profile     : {alphaTelemetryProfile}");
+Console.WriteLine($"    Explanation : {telemetrySelector.Explain(alphaTelemetryProfile)}");
+Console.WriteLine();
+
+var loraOnlyTransports = new[]
+{
+    TransportKind.LoRa
+};
+
+var loraTelemetryProfile = telemetrySelector.Select(loraOnlyTransports);
+
+Console.WriteLine("    LoRa-only telemetry profile:");
+Console.WriteLine($"    Available   : {string.Join(", ", loraOnlyTransports)}");
+Console.WriteLine($"    Profile     : {loraTelemetryProfile}");
+Console.WriteLine($"    Explanation : {telemetrySelector.Explain(loraTelemetryProfile)}");
+Console.WriteLine();
+
+var rfOnlyTransports = new[]
+{
+    TransportKind.RfModem
+};
+
+var rfTelemetryProfile = telemetrySelector.Select(rfOnlyTransports);
+
+Console.WriteLine("    RF-only telemetry profile:");
+Console.WriteLine($"    Available   : {string.Join(", ", rfOnlyTransports)}");
+Console.WriteLine($"    Profile     : {rfTelemetryProfile}");
+Console.WriteLine($"    Explanation : {telemetrySelector.Explain(rfTelemetryProfile)}");
+Console.WriteLine();
+
+Console.WriteLine("[8] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
