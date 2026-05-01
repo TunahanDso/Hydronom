@@ -17,7 +17,7 @@ Bu repo, o yapının yaşayan çekirdeğini temsil eder. ⚓
 
 | Language | Files | Code | Comment | Blank | Total |
 |---|---:|---:|---:|---:|---:|
-| C# | 151 | 15,546 | 6,730 | 3,468 | 25,744 |
+| C# | 190 | 18,994 | 11,139 | 4,387 | 34,520 |
 | Python | 89 | 10,068 | 1,168 | 2,057 | 13,293 |
 | JSON | 26 | 5,075 | 0 | 14 | 5,089 |
 | TSX | 25 | 4,342 | 30 | 599 | 4,971 |
@@ -30,9 +30,9 @@ Bu repo, o yapının yaşayan çekirdeğini temsil eder. ⚓
 | Visual Studio Solution | 2 | 139 | 0 | 2 | 141 |
 | MSBuild | 7 | 88 | 7 | 22 | 117 |
 | YAML | 1 | 54 | 21 | 10 | 85 |
-| Markdown | 5 | 0 | 1,202 | 537 | 1,739 |
+| Markdown | 5 | 0 | 1,203 | 536 | 1,739 |
 
-> Toplamda Hydronom; **344 dosya**, **41,202 kod satırı**, **9,612 yorum satırı** ve **58,389 toplam satırdan** oluşan; **C#**, **Python**, **JSON**, **TypeScript/TSX** ve yardımcı teknolojiler üzerine kurulu çok katmanlı bir mühendislik ekosistemidir. Bu dağılım, projenin yalnızca tek bir uygulama değil; runtime, AI, gateway, frontend, config, dokümantasyon ve düşük seviye deneysel bileşenleri kapsayan geniş bir sistem olduğunu gösterir.
+> Toplamda Hydronom; **383 dosya**, **44,650 kod satırı**, **14,022 yorum satırı** ve **67,165 toplam satırdan** oluşan; **C#**, **Python**, **JSON**, **TypeScript/TSX** ve yardımcı teknolojiler üzerine kurulu çok katmanlı bir mühendislik ekosistemidir. Bu dağılım, projenin yalnızca tek bir uygulama değil; runtime, AI, gateway, ground station, frontend, config, dokümantasyon ve düşük seviye deneysel bileşenleri kapsayan geniş bir sistem olduğunu gösterir.
 
 ---
 
