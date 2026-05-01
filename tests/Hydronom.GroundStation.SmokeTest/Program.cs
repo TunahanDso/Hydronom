@@ -340,6 +340,37 @@ Console.WriteLine($"    MaxLatency  : {emergencyRoute.MaxLatency}");
 Console.WriteLine($"    Valid       : {emergencyRoute.IsValid}");
 Console.WriteLine();
 
+Console.WriteLine("    Available transport filter test:");
+
+var transportFilter = new AvailableTransportFilter();
+
+var alphaAvailableTransports = snapshot
+    .First(x => x.Identity.NodeId == "VEHICLE-ALPHA-001")
+    .AvailableTransports;
+
+var filteredCommandRoute = transportFilter.Filter(
+    normalCommandRoute,
+    alphaAvailableTransports);
+
+Console.WriteLine("    Filtered FleetCommand route for Alpha:");
+Console.WriteLine($"    Available   : {string.Join(", ", alphaAvailableTransports)}");
+Console.WriteLine($"    Primary     : {string.Join(", ", filteredCommandRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback    : {string.Join(", ", filteredCommandRoute.FallbackTransports)}");
+Console.WriteLine($"    Applicable  : {transportFilter.IsApplicable(filteredCommandRoute)}");
+Console.WriteLine();
+
+var filteredEmergencyRoute = transportFilter.Filter(
+    emergencyRoute,
+    alphaAvailableTransports);
+
+Console.WriteLine("    Filtered EmergencyStop route for Alpha:");
+Console.WriteLine($"    Available   : {string.Join(", ", alphaAvailableTransports)}");
+Console.WriteLine($"    Primary     : {string.Join(", ", filteredEmergencyRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback    : {string.Join(", ", filteredEmergencyRoute.FallbackTransports)}");
+Console.WriteLine($"    Broadcast   : {filteredEmergencyRoute.BroadcastAllAvailableLinks}");
+Console.WriteLine($"    Applicable  : {transportFilter.IsApplicable(filteredEmergencyRoute)}");
+Console.WriteLine();
+
 Console.WriteLine("[7] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
