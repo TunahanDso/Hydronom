@@ -3,6 +3,7 @@ namespace Hydronom.GroundStation;
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Commanding;
+using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
@@ -15,6 +16,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - FleetRegistry'yi tek merkezden yönetmek,
 /// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
 /// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
+/// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -66,6 +68,18 @@ public sealed class GroundStationEngine
     /// için temel veri kaynağı olacaktır.
     /// </summary>
     public GroundWorldModel WorldModel { get; } = new();
+
+    /// <summary>
+    /// Görev isteklerini filo içindeki uygun araca atamaya çalışan ilk görev dağıtım modülüdür.
+    /// 
+    /// Bu yapı şu an:
+    /// - Online araçları,
+    /// - Araç tipini,
+    /// - Zorunlu/tercih edilen kabiliyetleri,
+    /// - Batarya ve health durumunu
+    /// dikkate alarak basit bir skor üretir.
+    /// </summary>
+    public MissionAllocator MissionAllocator { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -138,6 +152,26 @@ public sealed class GroundStationEngine
             return null;
 
         return HydronomEnvelopeFactory.CreateCommand(command);
+    }
+
+    /// <summary>
+    /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
+    /// 
+    /// Bu metot görevi fiziksel olarak araca göndermez.
+    /// Sadece MissionAllocator üzerinden görev atama kararı üretir.
+    /// 
+    /// İleride bu karar:
+    /// - FleetCommand üretimine,
+    /// - Operatör onayına,
+    /// - AI öneri katmanına,
+    /// - MissionPlanner akışına
+    /// bağlanabilir.
+    /// </summary>
+    public MissionAllocationResult AllocateMission(MissionRequest request)
+    {
+        return MissionAllocator.Allocate(
+            request,
+            FleetRegistry.GetSnapshot());
     }
 
     /// <summary>

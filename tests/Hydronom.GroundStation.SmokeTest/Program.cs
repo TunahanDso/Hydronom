@@ -1,6 +1,7 @@
 ﻿using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
+using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.WorldModel;
@@ -500,7 +501,87 @@ Console.WriteLine($"    Stale world deactivated: {deactivatedWorldObjects}");
 Console.WriteLine($"    Active world count now : {ground.WorldModel.ActiveCount}");
 Console.WriteLine();
 
-Console.WriteLine("[9] Mark stale nodes offline test:");
+Console.WriteLine("[9] Mission allocator test:");
+
+var mappingMission = new MissionRequest
+{
+    MissionId = "MISSION-ALLOC-MAP-001",
+    Name = "Map test area",
+    MissionType = "Mapping",
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "mapping"
+    },
+    PreferredCapabilities = new[]
+    {
+        "fleet_heartbeat"
+    },
+    AllowedVehicleTypes = new[]
+    {
+        "SurfaceVessel"
+    },
+    Priority = 3,
+    TargetLatitude = 41.028,
+    TargetLongitude = 29.018,
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "smoke_test",
+        ["areaId"] = "TEST-AREA-A"
+    }
+};
+
+var allocation = ground.AllocateMission(mappingMission);
+
+Console.WriteLine("    Mapping mission allocation:");
+Console.WriteLine($"    MissionId       : {allocation.MissionId}");
+Console.WriteLine($"    Success         : {allocation.Success}");
+Console.WriteLine($"    SelectedNodeId  : {allocation.SelectedNodeId}");
+Console.WriteLine($"    SelectedName    : {allocation.SelectedDisplayName}");
+Console.WriteLine($"    Score           : {allocation.Score}");
+Console.WriteLine($"    Reason          : {allocation.Reason}");
+Console.WriteLine($"    Candidates      : {string.Join(", ", allocation.CandidateNodeIds)}");
+
+var impossibleMission = new MissionRequest
+{
+    MissionId = "MISSION-ALLOC-SUB-001",
+    Name = "Submarine inspection",
+    MissionType = "InspectTarget",
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "sonar"
+    },
+    AllowedVehicleTypes = new[]
+    {
+        "Submarine"
+    },
+    Priority = 5,
+    RelatedWorldObjectId = "TARGET-SMOKE-001",
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "smoke_test",
+        ["reason"] = "intentional_rejection_case"
+    }
+};
+
+var failedAllocation = ground.AllocateMission(impossibleMission);
+
+Console.WriteLine();
+Console.WriteLine("    Impossible mission allocation:");
+Console.WriteLine($"    MissionId       : {failedAllocation.MissionId}");
+Console.WriteLine($"    Success         : {failedAllocation.Success}");
+Console.WriteLine($"    Reason          : {failedAllocation.Reason}");
+Console.WriteLine($"    Rejected count  : {failedAllocation.RejectedNodeReasons.Count}");
+
+foreach (var pair in failedAllocation.RejectedNodeReasons)
+{
+    Console.WriteLine($"    Rejected         : {pair.Key} -> {pair.Value}");
+}
+
+Console.WriteLine();
+
+Console.WriteLine("[10] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
