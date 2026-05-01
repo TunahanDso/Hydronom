@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using Hydronom.Core.Fleet;
 using Hydronom.Core.Communication;
 
 /// <summary>
@@ -426,12 +427,56 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(line))
             return null;
 
-        return JsonSerializer.Deserialize<HydronomEnvelope>(
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        using var document = JsonDocument.Parse(line);
+        var root = document.RootElement;
+
+        var envelope = JsonSerializer.Deserialize<HydronomEnvelope>(
             line,
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            options);
+
+        if (envelope is null)
+            return null;
+
+        if (!root.TryGetProperty("payload", out var payloadElement) &&
+            !root.TryGetProperty("Payload", out payloadElement))
+        {
+            return envelope;
+        }
+
+        var typedPayload = DeserializePayload(
+            envelope.MessageType,
+            payloadElement,
+            options);
+
+        return envelope with
+        {
+            Payload = typedPayload ?? envelope.Payload
+        };
+    }
+    private static object? DeserializePayload(
+        string messageType,
+        JsonElement payloadElement,
+        JsonSerializerOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(messageType))
+            return null;
+
+        if (payloadElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return null;
+
+        return messageType switch
+        {
+            "FleetHeartbeat" => payloadElement.Deserialize<FleetHeartbeat>(options),
+            "FleetCommand" => payloadElement.Deserialize<FleetCommand>(options),
+            "FleetCommandResult" => payloadElement.Deserialize<FleetCommandResult>(options),
+            "VehicleNodeStatus" => payloadElement.Deserialize<VehicleNodeStatus>(options),
+            _ => null
+        };
     }
 
     /// <summary>
