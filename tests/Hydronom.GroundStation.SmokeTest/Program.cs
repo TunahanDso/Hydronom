@@ -2058,6 +2058,7 @@ using Hydronom.GroundStation.Diagnostics;
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
+using Hydronom.GroundStation.Security;
 using Hydronom.GroundStation.Transports;
 using Hydronom.GroundStation.Transports.Tcp;
 using Hydronom.Runtime.Fleet;
@@ -2065,7 +2066,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-Console.WriteLine("=== Hydronom Ground Station Receive Diagnostics Smoke Test ===");
+Console.WriteLine("=== Hydronom Ground Station Receive Diagnostics + Security Smoke Test ===");
 Console.WriteLine();
 
 var alphaIdentity = new NodeIdentity
@@ -2369,7 +2370,227 @@ Console.WriteLine();
 PrintReceiveDiagnostics(tcpReceiveOperationSnapshot);
 
 Console.WriteLine();
-Console.WriteLine("=== Receive Diagnostics Smoke Test completed ===");
+
+Console.WriteLine("[6] Ground command safety gate test");
+
+var securityGround = new GroundStationEngine();
+securityGround.HandleEnvelope(heartbeatEnvelope);
+
+var safetyGate = new GroundCommandSafetyGate();
+
+var validCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "90"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var validResult = safetyGate.Evaluate(
+    validCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Valid command",
+    validResult);
+
+var duplicateResult = safetyGate.Evaluate(
+    validCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Duplicate command id",
+    duplicateResult);
+
+var unknownTargetCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-UNKNOWN-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "120"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var unknownTargetResult = safetyGate.Evaluate(
+    unknownTargetCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Unknown target command",
+    unknownTargetResult);
+
+var wrongEmergencyPriorityCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "EmergencyStop",
+    AuthorityLevel = "EmergencyCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["reason"] = "wrong_priority_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var wrongEmergencyPriorityResult = safetyGate.Evaluate(
+    wrongEmergencyPriorityCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Emergency command with wrong priority",
+    wrongEmergencyPriorityResult);
+
+var nonOperatorEmergencyCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "EmergencyStop",
+    AuthorityLevel = "EmergencyCommand",
+    Priority = MessagePriority.Emergency,
+    Args = new Dictionary<string, string>
+    {
+        ["reason"] = "non_operator_emergency_test"
+    },
+    IsOperatorIssued = false,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var nonOperatorEmergencyResult = safetyGate.Evaluate(
+    nonOperatorEmergencyCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Non-operator emergency command",
+    nonOperatorEmergencyResult);
+
+var staleCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetSpeed",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["speedMps"] = "0.5"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.AddMinutes(-5).ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var staleResult = safetyGate.Evaluate(
+    staleCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Stale command metadata",
+    staleResult);
+
+var broadcastEmergencyCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "BROADCAST",
+    CommandType = "EmergencyStop",
+    AuthorityLevel = "EmergencyCommand",
+    Priority = MessagePriority.Emergency,
+    Args = new Dictionary<string, string>
+    {
+        ["reason"] = "broadcast_emergency_allowed_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var broadcastEmergencyResult = safetyGate.Evaluate(
+    broadcastEmergencyCommand,
+    securityGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Broadcast emergency command",
+    broadcastEmergencyResult);
+
+var offlineGround = new GroundStationEngine();
+offlineGround.HandleEnvelope(heartbeatEnvelope);
+
+offlineGround.MarkStaleNodesOffline(
+    timeout: TimeSpan.FromMilliseconds(1),
+    nowUtc: DateTimeOffset.UtcNow.AddSeconds(10));
+
+var offlineCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetHeading",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["headingDeg"] = "180"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true,
+    Metadata = new Dictionary<string, string>
+    {
+        ["createdUtc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["source"] = "security_smoke_test"
+    }
+};
+
+var offlineTargetResult = new GroundCommandSafetyGate().Evaluate(
+    offlineCommand,
+    offlineGround.GetFleetSnapshot());
+
+PrintCommandValidation(
+    "Offline target command",
+    offlineTargetResult);
+
+Console.WriteLine();
+Console.WriteLine("=== Receive Diagnostics + Security Smoke Test completed ===");
 
 static async Task RunReceiverForShortTimeAsync(
     GroundStationEngine ground,
@@ -2419,7 +2640,8 @@ static async Task SendEnvelopeToTcpListenerAsync(
     var bytes = Encoding.UTF8.GetBytes(line);
 
     await stream.WriteAsync(
-        bytes, cancellationToken);
+        bytes,
+        cancellationToken);
 
     await stream.FlushAsync(cancellationToken);
 }
@@ -2474,5 +2696,23 @@ static void PrintReceiveDiagnostics(GroundOperationSnapshot snapshot)
         Console.WriteLine($"      HasError      : {receiveEvent.HasError}");
         Console.WriteLine($"      Error         : {receiveEvent.ErrorMessage}");
         Console.WriteLine($"      Reason        : {receiveEvent.Reason}");
+    }
+}
+
+static void PrintCommandValidation(
+    string title,
+    CommandValidationResult result)
+{
+    Console.WriteLine($"    {title}:");
+    Console.WriteLine($"      Allowed       : {result.IsAllowed}");
+    Console.WriteLine($"      Rejected      : {result.IsRejected}");
+    Console.WriteLine($"      Reason        : {result.Reason}");
+    Console.WriteLine($"      Issue count   : {result.Issues.Count}");
+    Console.WriteLine($"      Blocking      : {result.HasBlockingIssues}");
+    Console.WriteLine($"      Warnings      : {result.HasWarnings}");
+
+    foreach (var issue in result.Issues)
+    {
+        Console.WriteLine($"      - {issue.Code} | blocking={issue.IsBlocking} | {issue.Message}");
     }
 }

@@ -9,6 +9,7 @@ using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Diagnostics;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.Routing;
+using Hydronom.GroundStation.Security;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.Transports;
@@ -27,6 +28,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
 /// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
+/// - GroundCommandSafetyGate ile gönderilecek komutları security/authority/safety ön filtresinden geçirmek,
 /// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
 /// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
 /// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
@@ -71,6 +73,21 @@ public sealed class GroundStationEngine
     /// Görev isteğini alıp uygun aracı seçen ve araca gönderilecek FleetCommand envelope üreten koordinasyon modülüdür.
     /// </summary>
     public FleetCoordinator FleetCoordinator { get; }
+
+    /// <summary>
+    /// Ground Station seviyesinde komutun yapısal, yetki ve hedef araç bağlamına göre gönderilebilirliğini kontrol eder.
+    /// 
+    /// Bu gate araç üzerindeki local SafetyGate'in yerine geçmez.
+    /// Sadece yer istasyonu tarafında ön güvenlik filtresi sağlar.
+    /// </summary>
+    public GroundCommandSafetyGate CommandSafetyGate { get; }
+
+    /// <summary>
+    /// En son değerlendirilen komutun safety/security sonucu.
+    /// 
+    /// Smoke test, diagnostics veya ileride Hydronom Ops tarafında son reddetme sebebini göstermek için kullanılabilir.
+    /// </summary>
+    public CommandValidationResult? LastCommandSafetyResult { get; private set; }
 
     /// <summary>
     /// Gönderilecek HydronomEnvelope mesajları için route sonucu üreten iletişim yönlendiricisidir.
@@ -134,6 +151,7 @@ public sealed class GroundStationEngine
     public GroundStationEngine()
     {
         FleetCoordinator = new FleetCoordinator(MissionAllocator);
+        CommandSafetyGate = new GroundCommandSafetyGate();
 
         TransportExecutionTracker = new GroundTransportExecutionTracker(LinkHealthTracker);
         TransportManager = new GroundTransportManager(TransportRegistry, TransportExecutionTracker);
@@ -157,12 +175,35 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Yer istasyonu tarafından üretilecek/gönderilecek bir komutu kayıt altına alır
-    /// ve aynı komutu HydronomEnvelope içine sararak döndürür.
+    /// Komutu Ground Station seviyesinde security/authority/safety ön filtresinden geçirir.
+    /// 
+    /// Bu kontrol araç üzerindeki local SafetyGate'in yerine geçmez.
+    /// Araç runtime tarafı yine kendi local safety kararını vermeye devam etmelidir.
+    /// </summary>
+    public CommandValidationResult EvaluateCommandSafety(
+        FleetCommand? command,
+        DateTimeOffset? nowUtc = null)
+    {
+        LastCommandSafetyResult = CommandSafetyGate.Evaluate(
+            command,
+            FleetRegistry.GetSnapshot(),
+            nowUtc);
+
+        return LastCommandSafetyResult;
+    }
+
+    /// <summary>
+    /// Yer istasyonu tarafından üretilecek/gönderilecek bir komutu safety/security kontrolünden geçirir,
+    /// kayıt altına alır ve aynı komutu HydronomEnvelope içine sararak döndürür.
     /// </summary>
     public HydronomEnvelope? CreateTrackedCommandEnvelope(FleetCommand command)
     {
         if (command is null || !command.IsValid)
+            return null;
+
+        var safetyResult = EvaluateCommandSafety(command);
+
+        if (!safetyResult.IsAllowed)
             return null;
 
         var tracked = CommandTracker.TrackCommand(command);
@@ -201,16 +242,20 @@ public sealed class GroundStationEngine
 
         if (trackedEnvelope is null)
         {
+            var safetyReason = LastCommandSafetyResult is not null && LastCommandSafetyResult.IsRejected
+                ? LastCommandSafetyResult.Reason
+                : "Mission command was generated but could not be tracked by CommandTracker.";
+
             return FleetCoordinationResult.Failed(
                 request,
                 coordination.Allocation,
-                "Mission command was generated but could not be tracked by CommandTracker.");
+                safetyReason);
         }
 
         return coordination with
         {
             Envelope = trackedEnvelope,
-            Reason = $"{coordination.Reason} Command tracked by GroundStationEngine."
+            Reason = $"{coordination.Reason} Command accepted by GroundCommandSafetyGate and tracked by GroundStationEngine."
         };
     }
 
@@ -340,8 +385,8 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// FleetCommand üretir, CommandTracker'a kaydeder, envelope'a sarar,
-    /// transport manager üzerinden gönderir ve ACK correlation kaydı açar.
+    /// FleetCommand üretir, GroundCommandSafetyGate kontrolünden geçirir, CommandTracker'a kaydeder,
+    /// envelope'a sarar, transport manager üzerinden gönderir ve ACK correlation kaydı açar.
     /// 
     /// treatSuccessfulSendAsAckWhenRequired false verilirse gerçek ACK/result gelene kadar
     /// execution yalnızca Sent olarak kalabilir. FleetCommandResult geldiğinde HandleCommandResult
@@ -378,8 +423,8 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Görev isteğini koordine eder, command envelope üretir, command'ı takip eder,
-    /// transport manager ile gönderir ve ACK correlation kaydı açar.
+    /// Görev isteğini koordine eder, command envelope üretir, command'ı safety/security filtresinden geçirir,
+    /// command'ı takip eder, transport manager ile gönderir ve ACK correlation kaydı açar.
     /// </summary>
     public async Task<RouteExecutionRecord?> CoordinateMissionAndSendAsync(
         MissionRequest request,
