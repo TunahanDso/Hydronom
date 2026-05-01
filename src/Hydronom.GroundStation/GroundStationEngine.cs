@@ -6,6 +6,7 @@ using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
+using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
@@ -20,6 +21,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
 /// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
+/// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -108,6 +110,19 @@ public sealed class GroundStationEngine
     /// bu yapının üzerine bağlanacaktır.
     /// </summary>
     public CommunicationRouter CommunicationRouter { get; } = new();
+
+    /// <summary>
+    /// CommunicationRouter tarafından üretilen route sonucuna göre telemetry profil planı üretir.
+    /// 
+    /// Bu yapı:
+    /// - Route edilebilen transport listesini inceler,
+    /// - AdaptiveTelemetryProfileSelector ile Light/Normal/Full profil seçer,
+    /// - Diagnostics ve Hydronom Ops tarafı için açıklamalı telemetry planı üretir.
+    /// 
+    /// İlk fazda gerçek telemetry payload üretmez.
+    /// Sadece route + telemetry yoğunluğu kararını birleştirir.
+    /// </summary>
+    public TelemetryRoutePlanner TelemetryRoutePlanner { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -265,6 +280,31 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Verilen route sonucuna göre telemetry profil planı üretir.
+    /// 
+    /// Bu metot:
+    /// - Route sonucu uygulanabilir mi bakar,
+    /// - route içindeki Primary/Fallback transport listesini inceler,
+    /// - uygun Light/Normal/Full telemetry profilini seçer.
+    /// </summary>
+    public TelemetryRoutePlan PlanTelemetryForRoute(CommunicationRouteResult route)
+    {
+        return TelemetryRoutePlanner.Plan(route);
+    }
+
+    /// <summary>
+    /// Verilen envelope için önce route sonucu, sonra telemetry route planı üretir.
+    /// 
+    /// Bu yardımcı metot test ve diagnostics amaçlıdır.
+    /// Gerçek sistemde route sonucu ve telemetry planı ayrı aşamalarda da üretilebilir.
+    /// </summary>
+    public TelemetryRoutePlan PlanTelemetryForEnvelope(HydronomEnvelope envelope)
+    {
+        var route = RouteEnvelope(envelope);
+        return TelemetryRoutePlanner.Plan(route);
+    }
+
+    /// <summary>
     /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için route sonucu üretir.
     /// 
     /// Bu metot görevi fiziksel olarak göndermez.
@@ -282,6 +322,25 @@ public sealed class GroundStationEngine
             return null;
 
         return RouteEnvelope(coordination.Envelope);
+    }
+
+    /// <summary>
+    /// Verilen görev isteğini koordine eder, route eder ve telemetry planını üretir.
+    /// 
+    /// Bu metot:
+    /// - MissionRequest → FleetCommand envelope,
+    /// - envelope → route kararı,
+    /// - route kararı → telemetry profil planı
+    /// zincirini tek çağrıda test etmeyi sağlar.
+    /// </summary>
+    public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetry(MissionRequest request)
+    {
+        var route = CoordinateMissionAndRoute(request);
+
+        if (route is null)
+            return null;
+
+        return TelemetryRoutePlanner.Plan(route);
     }
 
     /// <summary>

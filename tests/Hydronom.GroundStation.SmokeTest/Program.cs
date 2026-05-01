@@ -1,6 +1,7 @@
 ﻿using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
+using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
@@ -648,22 +649,24 @@ Console.WriteLine();
 
 Console.WriteLine("[11] Communication router test:");
 
+CommunicationRouteResult? coordinatedRoute = null;
+
 if (coordination.Envelope is not null)
 {
-    var route = ground.RouteEnvelope(coordination.Envelope);
+    coordinatedRoute = ground.RouteEnvelope(coordination.Envelope);
 
     Console.WriteLine("    Coordinated mission envelope route:");
-    Console.WriteLine($"    CanRoute        : {route.CanRoute}");
-    Console.WriteLine($"    Reason          : {route.Reason}");
-    Console.WriteLine($"    MessageType     : {route.MessageType}");
-    Console.WriteLine($"    Source          : {route.SourceNodeId}");
-    Console.WriteLine($"    Target          : {route.TargetNodeId}");
-    Console.WriteLine($"    TargetKnown     : {route.TargetKnown}");
-    Console.WriteLine($"    TargetAvailable : {string.Join(", ", route.TargetAvailableTransports)}");
-    Console.WriteLine($"    Primary         : {string.Join(", ", route.PrimaryTransports)}");
-    Console.WriteLine($"    Fallback        : {string.Join(", ", route.FallbackTransports)}");
-    Console.WriteLine($"    Ack             : {route.RequiresAck}");
-    Console.WriteLine($"    Broadcast       : {route.BroadcastAllAvailableLinks}");
+    Console.WriteLine($"    CanRoute        : {coordinatedRoute.CanRoute}");
+    Console.WriteLine($"    Reason          : {coordinatedRoute.Reason}");
+    Console.WriteLine($"    MessageType     : {coordinatedRoute.MessageType}");
+    Console.WriteLine($"    Source          : {coordinatedRoute.SourceNodeId}");
+    Console.WriteLine($"    Target          : {coordinatedRoute.TargetNodeId}");
+    Console.WriteLine($"    TargetKnown     : {coordinatedRoute.TargetKnown}");
+    Console.WriteLine($"    TargetAvailable : {string.Join(", ", coordinatedRoute.TargetAvailableTransports)}");
+    Console.WriteLine($"    Primary         : {string.Join(", ", coordinatedRoute.PrimaryTransports)}");
+    Console.WriteLine($"    Fallback        : {string.Join(", ", coordinatedRoute.FallbackTransports)}");
+    Console.WriteLine($"    Ack             : {coordinatedRoute.RequiresAck}");
+    Console.WriteLine($"    Broadcast       : {coordinatedRoute.BroadcastAllAvailableLinks}");
 }
 
 var emergencyRouteResult = ground.RouteEnvelope(emergencyEnvelope);
@@ -710,7 +713,87 @@ Console.WriteLine($"    Primary         : {string.Join(", ", unknownTargetRoute.
 Console.WriteLine($"    Fallback        : {string.Join(", ", unknownTargetRoute.FallbackTransports)}");
 Console.WriteLine();
 
-Console.WriteLine("[12] Mark stale nodes offline test:");
+Console.WriteLine("[12] Telemetry route planner test:");
+
+if (coordinatedRoute is not null)
+{
+    var coordinatedTelemetryPlan = ground.PlanTelemetryForRoute(coordinatedRoute);
+
+    Console.WriteLine("    Coordinated mission telemetry plan:");
+    Console.WriteLine($"    CanRoute        : {coordinatedTelemetryPlan.CanRoute}");
+    Console.WriteLine($"    MessageType     : {coordinatedTelemetryPlan.MessageType}");
+    Console.WriteLine($"    Target          : {coordinatedTelemetryPlan.TargetNodeId}");
+    Console.WriteLine($"    Profile         : {coordinatedTelemetryPlan.Profile}");
+    Console.WriteLine($"    RouteReason     : {coordinatedTelemetryPlan.RouteReason}");
+    Console.WriteLine($"    ProfileReason   : {coordinatedTelemetryPlan.ProfileReason}");
+    Console.WriteLine($"    Primary         : {string.Join(", ", coordinatedTelemetryPlan.PrimaryTransports)}");
+    Console.WriteLine($"    Fallback        : {string.Join(", ", coordinatedTelemetryPlan.FallbackTransports)}");
+}
+
+var emergencyTelemetryPlan = ground.PlanTelemetryForRoute(emergencyRouteResult);
+
+Console.WriteLine();
+Console.WriteLine("    Emergency telemetry plan:");
+Console.WriteLine($"    CanRoute        : {emergencyTelemetryPlan.CanRoute}");
+Console.WriteLine($"    MessageType     : {emergencyTelemetryPlan.MessageType}");
+Console.WriteLine($"    Target          : {emergencyTelemetryPlan.TargetNodeId}");
+Console.WriteLine($"    Profile         : {emergencyTelemetryPlan.Profile}");
+Console.WriteLine($"    RouteReason     : {emergencyTelemetryPlan.RouteReason}");
+Console.WriteLine($"    ProfileReason   : {emergencyTelemetryPlan.ProfileReason}");
+Console.WriteLine($"    Primary         : {string.Join(", ", emergencyTelemetryPlan.PrimaryTransports)}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", emergencyTelemetryPlan.FallbackTransports)}");
+
+var unknownTargetTelemetryPlan = ground.PlanTelemetryForRoute(unknownTargetRoute);
+
+Console.WriteLine();
+Console.WriteLine("    Unknown target telemetry plan:");
+Console.WriteLine($"    CanRoute        : {unknownTargetTelemetryPlan.CanRoute}");
+Console.WriteLine($"    MessageType     : {unknownTargetTelemetryPlan.MessageType}");
+Console.WriteLine($"    Target          : {unknownTargetTelemetryPlan.TargetNodeId}");
+Console.WriteLine($"    Profile         : {unknownTargetTelemetryPlan.Profile}");
+Console.WriteLine($"    RouteReason     : {unknownTargetTelemetryPlan.RouteReason}");
+Console.WriteLine($"    ProfileReason   : {unknownTargetTelemetryPlan.ProfileReason}");
+Console.WriteLine($"    Primary         : {string.Join(", ", unknownTargetTelemetryPlan.PrimaryTransports)}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", unknownTargetTelemetryPlan.FallbackTransports)}");
+
+var oneShotTelemetryPlan = ground.CoordinateMissionRouteAndPlanTelemetry(new MissionRequest
+{
+    MissionId = "MISSION-ONE-SHOT-TELEMETRY-001",
+    Name = "One shot telemetry planning mission",
+    MissionType = "Mapping",
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "mapping"
+    },
+    PreferredCapabilities = new[]
+    {
+        "fleet_heartbeat"
+    },
+    AllowedVehicleTypes = new[]
+    {
+        "SurfaceVessel"
+    },
+    Priority = 2,
+    TargetLatitude = 41.031,
+    TargetLongitude = 29.021,
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "smoke_test",
+        ["mode"] = "one_shot"
+    }
+});
+
+Console.WriteLine();
+Console.WriteLine("    One-shot mission route telemetry plan:");
+Console.WriteLine($"    Plan exists      : {oneShotTelemetryPlan is not null}");
+Console.WriteLine($"    CanRoute        : {oneShotTelemetryPlan?.CanRoute}");
+Console.WriteLine($"    Profile         : {oneShotTelemetryPlan?.Profile}");
+Console.WriteLine($"    Primary         : {string.Join(", ", oneShotTelemetryPlan?.PrimaryTransports ?? Array.Empty<TransportKind>())}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", oneShotTelemetryPlan?.FallbackTransports ?? Array.Empty<TransportKind>())}");
+Console.WriteLine();
+
+Console.WriteLine("[13] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
