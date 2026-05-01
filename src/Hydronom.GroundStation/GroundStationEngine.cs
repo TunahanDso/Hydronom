@@ -11,6 +11,7 @@ using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.Transports;
+using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
@@ -29,6 +30,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
 /// - GroundTransportExecutionTracker ile route/gönderim sonuçlarını takip etmek,
 /// - GroundTransportManager ile route kararını gerçek ITransport.SendAsync zincirine bağlamak,
+/// /// - GroundTransportReceiver ile transportlardan gelen envelope'ları otomatik dinlemek,
 /// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Yer istasyonu tarafında büyüyecek modüller için ana koordinasyon noktası olmaktır.
@@ -104,6 +106,20 @@ public sealed class GroundStationEngine
     /// - dolaylı olarak LinkHealthTracker'ı günceller.
     /// </summary>
     public GroundTransportManager TransportManager { get; }
+    /// <summary>
+    /// Transportlardan gelen HydronomEnvelope mesajlarını dinleyen receive pipeline'dır.
+    /// 
+    /// Bu yapı:
+    /// - ITransport.ReceiveAsync akışlarını dinler,
+    /// - gelen envelope'ları GroundStationEngine.HandleEnvelope metoduna aktarır,
+    /// - receive event geçmişi tutar,
+    /// - LinkHealthTracker üzerinde gelen mesajın linkini görüldü olarak işler.
+    /// 
+    /// Böylece Ground Station yalnızca mesaj gönderen değil,
+    /// transportlardan gelen heartbeat/command result gibi mesajları otomatik işleyen
+    /// aktif bir merkez haline gelir.
+    /// </summary>
+    public GroundTransportReceiver TransportReceiver { get; }
 
     /// <summary>
     /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
@@ -139,6 +155,11 @@ public sealed class GroundStationEngine
         Dispatcher = new GroundMessageDispatcher(
             onHeartbeat: FleetRegistry.ApplyHeartbeat,
             onCommandResult: HandleCommandResult);
+
+        TransportReceiver = new GroundTransportReceiver(
+            TransportRegistry,
+            LinkHealthTracker,
+            HandleEnvelope);
     }
 
     /// <summary>
@@ -264,6 +285,51 @@ public sealed class GroundStationEngine
     {
         return TransportRegistry.DisconnectAllAsync(cancellationToken);
     }
+    /// <summary>
+    /// Kayıtlı ve bağlı tüm transport'lar için receive pipeline çalıştırır.
+    /// 
+    /// Bu metot cancellationToken iptal edilene kadar bağlı transport'ların
+    /// ReceiveAsync akışlarını dinler.
+    /// Gelen her HydronomEnvelope, GroundStationEngine.HandleEnvelope metoduna aktarılır.
+    /// </summary>
+    public Task RunTransportReceiversAsync(CancellationToken cancellationToken = default)
+    {
+        return TransportReceiver.RunAllAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Belirli bir transport için receive pipeline çalıştırır.
+    /// 
+    /// Testlerde veya tekil transport dinleme senaryolarında kullanılabilir.
+    /// </summary>
+    public Task RunTransportReceiverAsync(
+        ITransport transport,
+        CancellationToken cancellationToken = default)
+    {
+        return TransportReceiver.RunTransportAsync(
+            transport,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Transport receive event geçmişinin snapshot listesini döndürür.
+    /// 
+    /// Hydronom Ops tarafında:
+    /// - inbound message history,
+    /// - heartbeat receive log,
+    /// - command result receive log,
+    /// - transport receive diagnostics
+    /// ekranları için kullanılabilir.
+    /// </summary>
+    public IReadOnlyList<GroundTransportReceiveEvent> GetTransportReceiveSnapshot()
+    {
+        return TransportReceiver.GetSnapshot();
+    }
+
+    /// <summary>
+    /// Kayıtlı receive event sayısını döndürür.
+    /// </summary>
+    public int TransportReceiveEventCount => TransportReceiver.EventCount;
 
     /// <summary>
     /// Verilen envelope için route üretir ve transport manager üzerinden gerçek/mock SendAsync zincirini çalıştırır.

@@ -8,6 +8,7 @@ using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
 using Hydronom.GroundStation.Transports;
+using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.Runtime.Fleet;
 using Hydronom.GroundStation.Transports.Tcp;
 using System.Net;
@@ -1532,7 +1533,164 @@ Console.WriteLine($"    Received has schema   : {receivedTcpLine.Contains("hydro
 Console.WriteLine($"    Received has command  : {receivedTcpLine.Contains("TcpSmokeCommand")}");
 Console.WriteLine($"    Received length       : {receivedTcpLine.Length}");
 Console.WriteLine();
-Console.WriteLine("[27] Mark stale nodes offline test:");
+Console.WriteLine("[27] Transport receive pipeline mock heartbeat test:");
+
+var receiveGround = new GroundStationEngine();
+
+var receiveMockTransport = new MockGroundTransport(
+    name: "mock-receive-link",
+    kind: TransportKind.Mock,
+    isConnected: true);
+
+var receiveRegistered = receiveGround.RegisterTransport(receiveMockTransport);
+
+var receiveHeartbeatEnvelope = alphaAgent.CreateHeartbeatEnvelope(
+    mode: "Autonomous",
+    health: "OK",
+    batteryPercent: 76,
+    activeMissionId: "MISSION-RECEIVE-001",
+    missionState: "Running",
+    latitude: 41.040,
+    longitude: 29.030,
+    headingDeg: 105.0,
+    speedMps: 1.75,
+    availableTransports: new[]
+    {
+        TransportKind.Mock
+    },
+    capabilities: new[]
+    {
+        new VehicleCapability
+        {
+            Name = "navigation",
+            Description = "Navigation capability received through mock transport",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true
+        }
+    },
+    metadata: new Dictionary<string, string>
+    {
+        ["source"] = "receive_pipeline_smoke_test",
+        ["transport"] = "mock"
+    });
+
+receiveMockTransport.EnqueueReceived(receiveHeartbeatEnvelope);
+
+using var receiveCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+
+try
+{
+    await receiveGround.RunTransportReceiverAsync(
+        receiveMockTransport,
+        receiveCts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Testte receive loop'u kısa süre sonra bilinçli olarak durduruyoruz.
+}
+
+var receiveFleetSnapshot = receiveGround.GetFleetSnapshot();
+var receiveEvents = receiveGround.GetTransportReceiveSnapshot();
+var receiveLinks = receiveGround.GetLinkHealthSnapshot();
+
+Console.WriteLine($"    Receive transport registered : {receiveRegistered}");
+Console.WriteLine($"    Receive event count          : {receiveEvents.Count}");
+Console.WriteLine($"    Fleet node count             : {receiveFleetSnapshot.Count}");
+Console.WriteLine($"    First node id                : {receiveFleetSnapshot.FirstOrDefault()?.Identity.NodeId}");
+Console.WriteLine($"    First node mission           : {receiveFleetSnapshot.FirstOrDefault()?.ActiveMissionId}");
+Console.WriteLine($"    First node battery           : {receiveFleetSnapshot.FirstOrDefault()?.BatteryPercent}");
+Console.WriteLine($"    First event handled          : {receiveEvents.FirstOrDefault()?.Handled}");
+Console.WriteLine($"    First event transport        : {receiveEvents.FirstOrDefault()?.TransportName}");
+Console.WriteLine($"    Link vehicle count           : {receiveLinks.Count}");
+Console.WriteLine();
+
+Console.WriteLine("[28] Transport receive pipeline command result test:");
+
+var receiveCommand = new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "ReceivePipelineCommand",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["mode"] = "receive_command_result_test"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+};
+
+var receiveCommandEnvelope = receiveGround.CreateTrackedCommandEnvelope(receiveCommand);
+
+var receiveCommandResult = new FleetCommandResult
+{
+    CommandId = receiveCommand.CommandId,
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    TargetNodeId = "GROUND-001",
+    Status = "Applied",
+    Success = true,
+    Message = "Command result received through transport receive pipeline.",
+    ProcessingStage = "ReceivePipelineApplied",
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "receive_pipeline_smoke_test",
+        ["latencyMs"] = "37"
+    }
+};
+
+var receiveCommandResultEnvelope = HydronomEnvelopeFactory.CreateCommandResult(receiveCommandResult);
+
+receiveMockTransport.EnqueueReceived(receiveCommandResultEnvelope);
+
+using var commandResultReceiveCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+
+try
+{
+    await receiveGround.RunTransportReceiverAsync(
+        receiveMockTransport,
+        commandResultReceiveCts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Testte receive loop'u kısa süre sonra bilinçli olarak durduruyoruz.
+}
+
+var receiveCommandHistory = receiveGround.GetCommandHistorySnapshot();
+var receiveCommandRecord = receiveCommandHistory.FirstOrDefault(x =>
+    x.Command.CommandId == receiveCommand.CommandId);
+
+var receiveEventsAfterCommand = receiveGround.GetTransportReceiveSnapshot();
+
+Console.WriteLine($"    Command envelope exists      : {receiveCommandEnvelope is not null}");
+Console.WriteLine($"    Command history count        : {receiveCommandHistory.Count}");
+Console.WriteLine($"    Command result applied       : {receiveCommandRecord?.LastResult?.Status}");
+Console.WriteLine($"    Command is completed         : {receiveCommandRecord?.IsCompleted}");
+Console.WriteLine($"    Command is successful        : {receiveCommandRecord?.IsSuccessful}");
+Console.WriteLine($"    Receive event count          : {receiveEventsAfterCommand.Count}");
+Console.WriteLine($"    Last event handled           : {receiveEventsAfterCommand.FirstOrDefault()?.Handled}");
+Console.WriteLine($"    Last event message type      : {receiveEventsAfterCommand.FirstOrDefault()?.Envelope?.MessageType}");
+Console.WriteLine();
+
+Console.WriteLine("[29] Transport receive pipeline diagnostics test:");
+
+var receiveOperationSnapshot = receiveGround.CreateOperationSnapshot();
+var receiveEventSnapshot = receiveGround.GetTransportReceiveSnapshot();
+
+Console.WriteLine($"    Receive event count          : {receiveEventSnapshot.Count}");
+Console.WriteLine($"    Transport receiver event prop: {receiveGround.TransportReceiveEventCount}");
+Console.WriteLine($"    Operation health             : {receiveOperationSnapshot.OverallHealth}");
+Console.WriteLine($"    Operation summary            : {receiveOperationSnapshot.Summary}");
+Console.WriteLine($"    Fleet nodes                  : {receiveOperationSnapshot.TotalNodeCount}");
+Console.WriteLine($"    Online nodes                 : {receiveOperationSnapshot.OnlineNodeCount}");
+Console.WriteLine($"    Total commands               : {receiveOperationSnapshot.TotalCommandCount}");
+Console.WriteLine($"    Completed commands           : {receiveOperationSnapshot.CompletedCommandCount}");
+Console.WriteLine($"    Successful commands          : {receiveOperationSnapshot.SuccessfulCommandCount}");
+Console.WriteLine($"    Link vehicles                : {receiveOperationSnapshot.LinkVehicleCount}");
+Console.WriteLine($"    Link summary                 : {receiveOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine();
+Console.WriteLine("[30] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
