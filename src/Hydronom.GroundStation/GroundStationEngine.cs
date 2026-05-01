@@ -5,6 +5,7 @@ using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
+using Hydronom.GroundStation.Diagnostics;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.WorldModel;
@@ -22,6 +23,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
 /// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
 /// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
+/// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -123,6 +125,21 @@ public sealed class GroundStationEngine
     /// Sadece route + telemetry yoğunluğu kararını birleştirir.
     /// </summary>
     public TelemetryRoutePlanner TelemetryRoutePlanner { get; } = new();
+
+    /// <summary>
+    /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
+    /// 
+    /// Bu yapı:
+    /// - Filo durumunu,
+    /// - Komut geçmişini,
+    /// - Dünya modeli durumunu,
+    /// - Genel health sonucunu,
+    /// - Kısa özet açıklamasını
+    /// üretir.
+    /// 
+    /// Hydronom Ops ve Gateway tarafında üst panel / diagnostics ekranı için kullanılabilir.
+    /// </summary>
+    public GroundDiagnosticsEngine DiagnosticsEngine { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -341,6 +358,26 @@ public sealed class GroundStationEngine
             return null;
 
         return TelemetryRoutePlanner.Plan(route);
+    }
+
+    /// <summary>
+    /// Ground Station'ın mevcut operasyon durumundan tek bakışlık snapshot üretir.
+    /// 
+    /// Bu metot:
+    /// - FleetRegistry snapshot,
+    /// - CommandTracker snapshot,
+    /// - GroundWorldModel durumunu
+    /// okuyarak GroundOperationSnapshot döndürür.
+    /// 
+    /// Hydronom Ops üst paneli, Gateway diagnostics endpoint'i veya smoke test
+    /// bu metot üzerinden genel yer istasyonu sağlığını okuyabilir.
+    /// </summary>
+    public GroundOperationSnapshot CreateOperationSnapshot()
+    {
+        return DiagnosticsEngine.CreateSnapshot(
+            FleetRegistry.GetSnapshot(),
+            CommandTracker.GetSnapshot(),
+            WorldModel);
     }
 
     /// <summary>

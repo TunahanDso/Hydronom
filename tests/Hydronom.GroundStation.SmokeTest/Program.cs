@@ -793,7 +793,35 @@ Console.WriteLine($"    Primary         : {string.Join(", ", oneShotTelemetryPla
 Console.WriteLine($"    Fallback        : {string.Join(", ", oneShotTelemetryPlan?.FallbackTransports ?? Array.Empty<TransportKind>())}");
 Console.WriteLine();
 
-Console.WriteLine("[13] Mark stale nodes offline test:");
+Console.WriteLine("[13] Ground diagnostics snapshot test:");
+
+var operationSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine("    Operation snapshot:");
+Console.WriteLine($"    Overall health       : {operationSnapshot.OverallHealth}");
+Console.WriteLine($"    Summary              : {operationSnapshot.Summary}");
+Console.WriteLine($"    Total nodes          : {operationSnapshot.TotalNodeCount}");
+Console.WriteLine($"    Online nodes         : {operationSnapshot.OnlineNodeCount}");
+Console.WriteLine($"    Offline nodes        : {operationSnapshot.OfflineNodeCount}");
+Console.WriteLine($"    Healthy nodes        : {operationSnapshot.HealthyNodeCount}");
+Console.WriteLine($"    Warning nodes        : {operationSnapshot.WarningNodeCount}");
+Console.WriteLine($"    Critical nodes       : {operationSnapshot.CriticalNodeCount}");
+Console.WriteLine($"    Average battery      : {operationSnapshot.AverageBatteryPercent}%");
+Console.WriteLine($"    Total commands       : {operationSnapshot.TotalCommandCount}");
+Console.WriteLine($"    Pending commands     : {operationSnapshot.PendingCommandCount}");
+Console.WriteLine($"    Completed commands   : {operationSnapshot.CompletedCommandCount}");
+Console.WriteLine($"    Successful commands  : {operationSnapshot.SuccessfulCommandCount}");
+Console.WriteLine($"    Failed commands      : {operationSnapshot.FailedCommandCount}");
+Console.WriteLine($"    Total world objects  : {operationSnapshot.TotalWorldObjectCount}");
+Console.WriteLine($"    Active world objects : {operationSnapshot.ActiveWorldObjectCount}");
+Console.WriteLine($"    Active obstacles     : {operationSnapshot.ActiveObstacleCount}");
+Console.WriteLine($"    Active targets       : {operationSnapshot.ActiveTargetCount}");
+Console.WriteLine($"    Active no-go zones   : {operationSnapshot.ActiveNoGoZoneCount}");
+Console.WriteLine($"    Has warnings         : {operationSnapshot.HasWarnings}");
+Console.WriteLine($"    Has critical issues  : {operationSnapshot.HasCriticalIssues}");
+Console.WriteLine();
+
+Console.WriteLine("[14] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
@@ -807,6 +835,17 @@ foreach (var node in afterOffline)
 {
     Console.WriteLine($"    {node.Identity.NodeId} online: {node.IsOnline}");
 }
+
+var offlineOperationSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine();
+Console.WriteLine("    Operation snapshot after stale node check:");
+Console.WriteLine($"    Overall health       : {offlineOperationSnapshot.OverallHealth}");
+Console.WriteLine($"    Summary              : {offlineOperationSnapshot.Summary}");
+Console.WriteLine($"    Online nodes         : {offlineOperationSnapshot.OnlineNodeCount}");
+Console.WriteLine($"    Offline nodes        : {offlineOperationSnapshot.OfflineNodeCount}");
+Console.WriteLine($"    Has warnings         : {offlineOperationSnapshot.HasWarnings}");
+Console.WriteLine($"    Has critical issues  : {offlineOperationSnapshot.HasCriticalIssues}");
 
 Console.WriteLine();
 Console.WriteLine("=== Smoke test completed ===");
