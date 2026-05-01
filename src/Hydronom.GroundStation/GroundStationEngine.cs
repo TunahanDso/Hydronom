@@ -4,6 +4,7 @@ using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Routing;
+using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
 /// <summary>
@@ -13,6 +14,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// Amacı:
 /// - FleetRegistry'yi tek merkezden yönetmek,
 /// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
+/// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -49,6 +51,21 @@ public sealed class GroundStationEngine
     /// ekranlarının temel veri kaynağı olacaktır.
     /// </summary>
     public CommandTracker CommandTracker { get; } = new();
+
+    /// <summary>
+    /// Yer istasyonunun ortak dünya modelidir.
+    /// 
+    /// Farklı araçlardan gelen obstacle, target, no-go zone, mission area,
+    /// link quality ve event bilgileri burada tutulabilir.
+    /// 
+    /// Bu yapı ileride:
+    /// - TelemetryFusionEngine,
+    /// - GroundAnalysisEngine,
+    /// - MissionPlanner,
+    /// - Hydronom Ops map paneli
+    /// için temel veri kaynağı olacaktır.
+    /// </summary>
+    public GroundWorldModel WorldModel { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
@@ -121,6 +138,57 @@ public sealed class GroundStationEngine
             return null;
 
         return HydronomEnvelopeFactory.CreateCommand(command);
+    }
+
+    /// <summary>
+    /// GroundWorldModel içine yeni bir dünya nesnesi ekler veya mevcut nesneyi günceller.
+    /// 
+    /// Bu metot şu an doğrudan WorldModel.Upsert çağırır.
+    /// İleride burada:
+    /// - TelemetryFusionEngine ile nesne birleştirme,
+    /// - confidence güncelleme,
+    /// - kaynak doğrulama,
+    /// - duplicate obstacle merge
+    /// gibi işlemler eklenebilir.
+    /// </summary>
+    public bool UpsertWorldObject(GroundWorldObject worldObject)
+    {
+        return WorldModel.Upsert(worldObject);
+    }
+
+    /// <summary>
+    /// GroundWorldModel içindeki tüm dünya nesnelerinin snapshot listesini döndürür.
+    /// 
+    /// Hydronom Ops map paneli, diagnostics ekranı veya test kodu
+    /// bu metotla ortak dünya modelini okuyabilir.
+    /// </summary>
+    public IReadOnlyList<GroundWorldObject> GetWorldSnapshot()
+    {
+        return WorldModel.GetSnapshot();
+    }
+
+    /// <summary>
+    /// GroundWorldModel içindeki aktif dünya nesnelerinin snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<GroundWorldObject> GetActiveWorldSnapshot()
+    {
+        return WorldModel.GetActiveSnapshot();
+    }
+
+    /// <summary>
+    /// Aktif engellerin snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<GroundWorldObject> GetActiveObstacles()
+    {
+        return WorldModel.GetActiveObstacles();
+    }
+
+    /// <summary>
+    /// Aktif hedeflerin snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<GroundWorldObject> GetActiveTargets()
+    {
+        return WorldModel.GetActiveTargets();
     }
 
     /// <summary>
@@ -199,5 +267,15 @@ public sealed class GroundStationEngine
     public int MarkExpiredCommands(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
         return CommandTracker.MarkExpiredCommands(timeout, nowUtc);
+    }
+
+    /// <summary>
+    /// Belirli süreden uzun süredir güncellenmeyen aktif dünya nesnelerini pasif hale getirir.
+    /// 
+    /// Özellikle geçici obstacle/target bilgileri için kullanılabilir.
+    /// </summary>
+    public int DeactivateStaleWorldObjects(TimeSpan maxAge, DateTimeOffset? nowUtc = null)
+    {
+        return WorldModel.DeactivateStaleObjects(maxAge, nowUtc);
     }
 }

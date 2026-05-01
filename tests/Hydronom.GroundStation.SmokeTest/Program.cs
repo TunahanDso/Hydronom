@@ -3,6 +3,7 @@ using Hydronom.Core.Fleet;
 using Hydronom.GroundStation;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
+using Hydronom.GroundStation.WorldModel;
 using Hydronom.Runtime.Fleet;
 
 Console.WriteLine("=== Hydronom Ground Station Smoke Test ===");
@@ -410,7 +411,96 @@ Console.WriteLine($"    Profile     : {rfTelemetryProfile}");
 Console.WriteLine($"    Explanation : {telemetrySelector.Explain(rfTelemetryProfile)}");
 Console.WriteLine();
 
-Console.WriteLine("[8] Mark stale nodes offline test:");
+Console.WriteLine("[8] Ground world model test:");
+
+var obstacle = new GroundWorldObject
+{
+    ObjectId = "OBS-SMOKE-001",
+    Kind = WorldObjectKind.Obstacle,
+    Name = "Simulated obstacle",
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    ContributorNodeIds = new[]
+    {
+        "VEHICLE-ALPHA-001"
+    },
+    Latitude = 41.026,
+    Longitude = 29.016,
+    X = 12.5,
+    Y = 4.2,
+    RadiusMeters = 1.8,
+    Confidence = 0.72,
+    Metadata = new Dictionary<string, string>
+    {
+        ["sensor"] = "sim_lidar",
+        ["sourceFrame"] = "smoke_test",
+        ["severity"] = "medium"
+    }
+};
+
+var target = new GroundWorldObject
+{
+    ObjectId = "TARGET-SMOKE-001",
+    Kind = WorldObjectKind.Target,
+    Name = "Simulated target buoy",
+    SourceNodeId = "VEHICLE-ALPHA-001",
+    ContributorNodeIds = new[]
+    {
+        "VEHICLE-ALPHA-001"
+    },
+    Latitude = 41.027,
+    Longitude = 29.017,
+    X = 18.0,
+    Y = 7.5,
+    RadiusMeters = 0.8,
+    Confidence = 0.84,
+    Metadata = new Dictionary<string, string>
+    {
+        ["sensor"] = "sim_camera",
+        ["class"] = "buoy",
+        ["sourceFrame"] = "smoke_test"
+    }
+};
+
+var obstacleAdded = ground.UpsertWorldObject(obstacle);
+var targetAdded = ground.UpsertWorldObject(target);
+
+Console.WriteLine($"    Obstacle added        : {obstacleAdded}");
+Console.WriteLine($"    Target added          : {targetAdded}");
+Console.WriteLine($"    World count           : {ground.WorldModel.Count}");
+Console.WriteLine($"    Active world count    : {ground.WorldModel.ActiveCount}");
+Console.WriteLine($"    Active obstacles      : {ground.GetActiveObstacles().Count}");
+Console.WriteLine($"    Active targets        : {ground.GetActiveTargets().Count}");
+
+var contributionAdded = ground.WorldModel.AddContribution(
+    objectId: "OBS-SMOKE-001",
+    nodeId: "VEHICLE-BETA-001");
+
+Console.WriteLine($"    Beta contribution     : {contributionAdded}");
+
+var worldSnapshot = ground.GetWorldSnapshot();
+
+foreach (var worldObject in worldSnapshot)
+{
+    Console.WriteLine($"    ObjectId              : {worldObject.ObjectId}");
+    Console.WriteLine($"    Kind                  : {worldObject.Kind}");
+    Console.WriteLine($"    Name                  : {worldObject.Name}");
+    Console.WriteLine($"    Source                : {worldObject.SourceNodeId}");
+    Console.WriteLine($"    Contributors          : {string.Join(", ", worldObject.ContributorNodeIds)}");
+    Console.WriteLine($"    Position              : {worldObject.Latitude}, {worldObject.Longitude}");
+    Console.WriteLine($"    Local XY              : {worldObject.X}, {worldObject.Y}");
+    Console.WriteLine($"    Confidence            : {worldObject.Confidence}");
+    Console.WriteLine($"    Active                : {worldObject.IsActive}");
+}
+
+var deactivatedWorldObjects = ground.DeactivateStaleWorldObjects(
+    maxAge: TimeSpan.FromMilliseconds(1),
+    nowUtc: DateTimeOffset.UtcNow.AddSeconds(10));
+
+Console.WriteLine($"    Stale world deactivated: {deactivatedWorldObjects}");
+Console.WriteLine($"    Active world count now : {ground.WorldModel.ActiveCount}");
+Console.WriteLine();
+
+Console.WriteLine("[9] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
