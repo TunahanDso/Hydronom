@@ -581,7 +581,72 @@ foreach (var pair in failedAllocation.RejectedNodeReasons)
 
 Console.WriteLine();
 
-Console.WriteLine("[10] Mark stale nodes offline test:");
+Console.WriteLine("[10] Fleet coordinator test:");
+
+var coordinationMission = new MissionRequest
+{
+    MissionId = "MISSION-COORD-MAP-001",
+    Name = "Coordinate mapping mission",
+    MissionType = "Mapping",
+    RequiredCapabilities = new[]
+    {
+        "navigation",
+        "mapping"
+    },
+    PreferredCapabilities = new[]
+    {
+        "fleet_heartbeat"
+    },
+    AllowedVehicleTypes = new[]
+    {
+        "SurfaceVessel"
+    },
+    Priority = 4,
+    TargetLatitude = 41.029,
+    TargetLongitude = 29.019,
+    RelatedWorldObjectId = "TARGET-SMOKE-001",
+    Metadata = new Dictionary<string, string>
+    {
+        ["source"] = "smoke_test",
+        ["areaId"] = "TEST-AREA-B",
+        ["operator"] = "Tunahan"
+    }
+};
+
+var coordination = ground.CoordinateMission(coordinationMission);
+
+Console.WriteLine("    Fleet coordination result:");
+Console.WriteLine($"    Success         : {coordination.Success}");
+Console.WriteLine($"    Reason          : {coordination.Reason}");
+Console.WriteLine($"    SelectedNodeId  : {coordination.Allocation?.SelectedNodeId}");
+Console.WriteLine($"    CommandType     : {coordination.Command?.CommandType}");
+Console.WriteLine($"    CommandId       : {coordination.Command?.CommandId}");
+Console.WriteLine($"    TargetNodeId    : {coordination.Command?.TargetNodeId}");
+Console.WriteLine($"    EnvelopeType    : {coordination.Envelope?.MessageType}");
+Console.WriteLine($"    EnvelopeSource  : {coordination.Envelope?.SourceNodeId}");
+Console.WriteLine($"    EnvelopeTarget  : {coordination.Envelope?.TargetNodeId}");
+Console.WriteLine($"    TrackerCount    : {ground.CommandTracker.Count}");
+
+if (coordination.Command is not null)
+{
+    Console.WriteLine("    Command args:");
+    foreach (var pair in coordination.Command.Args)
+    {
+        Console.WriteLine($"    - {pair.Key}: {pair.Value}");
+    }
+}
+
+var coordinatorFailed = ground.CoordinateMission(impossibleMission);
+
+Console.WriteLine();
+Console.WriteLine("    Failed fleet coordination result:");
+Console.WriteLine($"    Success         : {coordinatorFailed.Success}");
+Console.WriteLine($"    Reason          : {coordinatorFailed.Reason}");
+Console.WriteLine($"    HasCommand      : {coordinatorFailed.Command is not null}");
+Console.WriteLine($"    HasEnvelope     : {coordinatorFailed.Envelope is not null}");
+Console.WriteLine();
+
+Console.WriteLine("[11] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),

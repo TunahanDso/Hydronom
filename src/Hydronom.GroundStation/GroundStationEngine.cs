@@ -17,6 +17,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
 /// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
 /// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
+/// - FleetCoordinator ile görev isteğinden komut üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
 /// - Komut sonuçlarını izlenebilir hale getirmek,
@@ -82,6 +83,16 @@ public sealed class GroundStationEngine
     public MissionAllocator MissionAllocator { get; } = new();
 
     /// <summary>
+    /// Görev isteğini alıp uygun aracı seçen ve araca gönderilecek FleetCommand envelope üreten
+    /// koordinasyon modülüdür.
+    /// 
+    /// Bu yapı MissionAllocator'ın bir üst katmanıdır:
+    /// - MissionAllocator hangi aracın uygun olduğunu seçer.
+    /// - FleetCoordinator bu kararı FleetCommand'a dönüştürür.
+    /// </summary>
+    public FleetCoordinator FleetCoordinator { get; }
+
+    /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
     /// ilgili handler'a yönlendiren dispatcher.
     /// 
@@ -111,9 +122,14 @@ public sealed class GroundStationEngine
     /// - FleetHeartbeat mesajlarını FleetRegistry.ApplyHeartbeat metoduna,
     /// - FleetCommandResult mesajlarını CommandTracker.ApplyResult metoduna
     /// bağlar.
+    /// 
+    /// FleetCoordinator ise aynı MissionAllocator örneğiyle oluşturulur.
+    /// Böylece görev atama skorlama mantığı tek yerde kalır.
     /// </summary>
     public GroundStationEngine()
     {
+        FleetCoordinator = new FleetCoordinator(MissionAllocator);
+
         Dispatcher = new GroundMessageDispatcher(
             onHeartbeat: FleetRegistry.ApplyHeartbeat,
             onCommandResult: HandleCommandResult);
@@ -172,6 +188,45 @@ public sealed class GroundStationEngine
         return MissionAllocator.Allocate(
             request,
             FleetRegistry.GetSnapshot());
+    }
+
+    /// <summary>
+    /// Verilen görev isteğini filo koordinasyon sonucuna çevirir.
+    /// 
+    /// Bu metot:
+    /// - FleetCoordinator ile uygun aracı seçer,
+    /// - AssignMission FleetCommand üretir,
+    /// - Üretilen komutu CommandTracker'a kaydeder,
+    /// - Tracked HydronomEnvelope döndürür.
+    /// 
+    /// Eğer koordinasyon başarılı fakat tracking başarısız olursa sonuç başarısız kabul edilir.
+    /// </summary>
+    public FleetCoordinationResult CoordinateMission(MissionRequest request)
+    {
+        var coordination = FleetCoordinator.CoordinateMission(
+            request,
+            FleetRegistry.GetSnapshot(),
+            Identity.NodeId,
+            isOperatorIssued: true);
+
+        if (!coordination.Success || coordination.Command is null)
+            return coordination;
+
+        var trackedEnvelope = CreateTrackedCommandEnvelope(coordination.Command);
+
+        if (trackedEnvelope is null)
+        {
+            return FleetCoordinationResult.Failed(
+                request,
+                coordination.Allocation,
+                "Mission command was generated but could not be tracked by CommandTracker.");
+        }
+
+        return coordination with
+        {
+            Envelope = trackedEnvelope,
+            Reason = $"{coordination.Reason} Command tracked by GroundStationEngine."
+        };
     }
 
     /// <summary>
