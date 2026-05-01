@@ -17,22 +17,22 @@ Bu repo, o yapının yaşayan çekirdeğini temsil eder. ⚓
 
 | Language | Files | Code | Comment | Blank | Total |
 |---|---:|---:|---:|---:|---:|
-| C# | 117 | 13,172 | 3,201 | 2,994 | 19,367 |
-| Python | 89 | 8,541 | 2,499 | 2,120 | 13,160 |
-| JSON | 29 | 5,970 | 0 | 31 | 6,001 |
-| TypeScript JSX | 25 | 4,335 | 37 | 599 | 4,971 |
-| TypeScript | 29 | 3,258 | 77 | 397 | 3,732 |
-| JavaScript | 3 | 1,594 | 213 | 298 | 2,105 |
-| HTML | 3 | 513 | 27 | 48 | 588 |
-| PostCSS | 2 | 306 | 15 | 47 | 368 |
-| C | 1 | 168 | 57 | 49 | 274 |
-| C++ | 1 | 130 | 65 | 44 | 239 |
-| XML | 6 | 67 | 7 | 22 | 96 |
-| YAML | 1 | 54 | 21 | 11 | 86 |
-| JSON with Comments | 1 | 23 | 0 | 0 | 23 |
+| C# | 151 | 15,546 | 6,730 | 3,468 | 25,744 |
+| Python | 89 | 10,068 | 1,168 | 2,057 | 13,293 |
+| JSON | 26 | 5,075 | 0 | 14 | 5,089 |
+| TSX | 25 | 4,342 | 30 | 599 | 4,971 |
+| TypeScript | 29 | 3,258 | 77 | 393 | 3,728 |
+| JavaScript | 2 | 1,588 | 213 | 297 | 2,098 |
+| HTML | 3 | 440 | 27 | 39 | 506 |
+| CSS | 2 | 306 | 15 | 46 | 367 |
+| C | 1 | 168 | 57 | 48 | 273 |
+| C Header | 1 | 130 | 65 | 43 | 238 |
+| Visual Studio Solution | 2 | 139 | 0 | 2 | 141 |
+| MSBuild | 7 | 88 | 7 | 22 | 117 |
+| YAML | 1 | 54 | 21 | 10 | 85 |
+| Markdown | 5 | 0 | 1,202 | 537 | 1,739 |
 
-> Toplamda Hydronom; **C#**, **Python**, **JSON**, **TypeScript** ve yardımcı teknolojilerden oluşan çok katmanlı bir mühendislik ekosistemidir. Bu dağılım, projenin yalnızca tek bir uygulama değil; runtime, AI, gateway, frontend, config ve düşük seviye deneysel bileşenleri kapsayan geniş bir sistem olduğunu gösterir.
-
+> Toplamda Hydronom; **344 dosya**, **41,202 kod satırı**, **9,612 yorum satırı** ve **58,389 toplam satırdan** oluşan; **C#**, **Python**, **JSON**, **TypeScript/TSX** ve yardımcı teknolojiler üzerine kurulu çok katmanlı bir mühendislik ekosistemidir. Bu dağılım, projenin yalnızca tek bir uygulama değil; runtime, AI, gateway, frontend, config, dokümantasyon ve düşük seviye deneysel bileşenleri kapsayan geniş bir sistem olduğunu gösterir.
 
 ---
 
