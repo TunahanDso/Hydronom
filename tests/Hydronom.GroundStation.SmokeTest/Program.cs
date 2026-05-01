@@ -1690,7 +1690,153 @@ Console.WriteLine($"    Successful commands          : {receiveOperationSnapshot
 Console.WriteLine($"    Link vehicles                : {receiveOperationSnapshot.LinkVehicleCount}");
 Console.WriteLine($"    Link summary                 : {receiveOperationSnapshot.LinkHealthSummary}");
 Console.WriteLine();
-Console.WriteLine("[30] Mark stale nodes offline test:");
+Console.WriteLine("[30] TcpGroundTransport real receive listener test:");
+
+var tcpReceiveGround = new GroundStationEngine();
+
+var tcpReceiveOptions = new TcpGroundTransportOptions
+{
+    Name = "tcp-receive-smoke",
+    Host = "127.0.0.1",
+    Port = 5060,
+    EnableReceiveListener = true,
+    ListenHost = "127.0.0.1",
+    ListenPort = 0,
+    UseNdjsonFraming = true,
+    IgnoreEmptyReceiveLines = true,
+    ContinueOnInvalidReceiveJson = true
+};
+
+var tcpReceiveTransport = new TcpGroundTransport(tcpReceiveOptions);
+var tcpReceiveRegistered = tcpReceiveGround.RegisterTransport(tcpReceiveTransport);
+
+using var tcpReceiveCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+var tcpReceiveTask = Task.Run(async () =>
+{
+    try
+    {
+        await tcpReceiveGround.RunTransportReceiverAsync(
+            tcpReceiveTransport,
+            tcpReceiveCts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        // Testte receive loop'u kısa süre sonra bilinçli olarak durduruyoruz.
+    }
+}, tcpReceiveCts.Token);
+
+// Listener'ın portu bağlaması için kısa süre bekliyoruz.
+var waitStartedUtc = DateTimeOffset.UtcNow;
+
+while (tcpReceiveTransport.BoundListenPort is null &&
+       DateTimeOffset.UtcNow - waitStartedUtc < TimeSpan.FromSeconds(1))
+{
+    await Task.Delay(20, tcpReceiveCts.Token);
+}
+
+var boundReceivePort = tcpReceiveTransport.BoundListenPort;
+
+if (boundReceivePort is null)
+    throw new InvalidOperationException("TCP receive listener port alamadı.");
+
+var tcpReceiveHeartbeatEnvelope = alphaAgent.CreateHeartbeatEnvelope(
+    mode: "Autonomous",
+    health: "OK",
+    batteryPercent: 69,
+    activeMissionId: "MISSION-TCP-RECEIVE-001",
+    missionState: "Running",
+    latitude: 41.050,
+    longitude: 29.040,
+    headingDeg: 135.0,
+    speedMps: 2.10,
+    availableTransports: new[]
+    {
+        TransportKind.Tcp
+    },
+    capabilities: new[]
+    {
+        new VehicleCapability
+        {
+            Name = "tcp_receive",
+            Description = "Heartbeat received through real TCP NDJSON listener",
+            IsEnabled = true,
+            Health = "OK",
+            IsSimulated = true,
+            RelatedTransports = new[]
+            {
+                TransportKind.Tcp
+            }
+        }
+    },
+    metadata: new Dictionary<string, string>
+    {
+        ["source"] = "tcp_receive_listener_smoke_test",
+        ["transport"] = "tcp"
+    });
+
+var tcpReceiveJson = System.Text.Json.JsonSerializer.Serialize(
+    tcpReceiveHeartbeatEnvelope,
+    new System.Text.Json.JsonSerializerOptions
+    {
+        WriteIndented = false
+    });
+
+tcpReceiveJson = tcpReceiveJson
+    .Replace("\r", string.Empty)
+    .Replace("\n", string.Empty);
+
+using (var tcpClient = new TcpClient())
+{
+    await tcpClient.ConnectAsync(
+        IPAddress.Loopback,
+        boundReceivePort.Value,
+        tcpReceiveCts.Token);
+
+    await using var stream = tcpClient.GetStream();
+
+    var bytes = System.Text.Encoding.UTF8.GetBytes(tcpReceiveJson + "\n");
+
+    await stream.WriteAsync(
+        bytes.AsMemory(0, bytes.Length),
+        tcpReceiveCts.Token);
+
+    await stream.FlushAsync(tcpReceiveCts.Token);
+}
+
+// Receive pipeline'ın envelope'u işlemesi için kısa süre tanıyoruz.
+await Task.Delay(150, tcpReceiveCts.Token);
+
+tcpReceiveCts.Cancel();
+
+try
+{
+    await tcpReceiveTask;
+}
+catch (OperationCanceledException)
+{
+    // Test bitişinde cancellation normaldir.
+}
+
+await tcpReceiveGround.DisconnectAllTransportsAsync();
+
+var tcpReceiveFleetSnapshot = tcpReceiveGround.GetFleetSnapshot();
+var tcpReceiveEvents = tcpReceiveGround.GetTransportReceiveSnapshot();
+var tcpReceiveLinks = tcpReceiveGround.GetLinkHealthSnapshot();
+
+Console.WriteLine($"    TCP receive registered : {tcpReceiveRegistered}");
+Console.WriteLine($"    TCP listen port        : {boundReceivePort}");
+Console.WriteLine($"    TCP receive events     : {tcpReceiveEvents.Count}");
+Console.WriteLine($"    Fleet node count       : {tcpReceiveFleetSnapshot.Count}");
+Console.WriteLine($"    First node id          : {tcpReceiveFleetSnapshot.FirstOrDefault()?.Identity.NodeId}");
+Console.WriteLine($"    First node mission     : {tcpReceiveFleetSnapshot.FirstOrDefault()?.ActiveMissionId}");
+Console.WriteLine($"    First node battery     : {tcpReceiveFleetSnapshot.FirstOrDefault()?.BatteryPercent}");
+Console.WriteLine($"    First event handled    : {tcpReceiveEvents.FirstOrDefault()?.Handled}");
+Console.WriteLine($"    First event transport  : {tcpReceiveEvents.FirstOrDefault()?.TransportName}");
+Console.WriteLine($"    First event type       : {tcpReceiveEvents.FirstOrDefault()?.Envelope?.MessageType}");
+Console.WriteLine($"    Link vehicle count     : {tcpReceiveLinks.Count}");
+Console.WriteLine();
+Console.WriteLine("[31] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),

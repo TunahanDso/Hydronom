@@ -1,5 +1,6 @@
 namespace Hydronom.GroundStation.Transports.Tcp;
 
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -7,17 +8,20 @@ using System.Text.Json;
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Ground Station tarafından TCP üzerinden HydronomEnvelope gönderen gerçek transport implementasyonudur.
+/// Ground Station tarafından TCP üzerinden HydronomEnvelope gönderen ve alabilen gerçek transport implementasyonudur.
 /// 
-/// İlk faz kapsamı:
+/// Send tarafı:
 /// - TcpClient ile hedefe bağlanır.
 /// - HydronomEnvelope JSON olarak serialize edilir.
 /// - Varsayılan olarak NDJSON framing ile tek satır JSON + newline gönderilir.
-/// - SendAsync başarılı olursa üst katman bunu Sent/Acked olarak yorumlayabilir.
-/// - Timeout/exception durumları GroundTransportManager tarafından yakalanır.
 /// 
-/// Bu sınıf şu anda ReceiveAsync tarafında gerçek dinleme yapmaz.
-/// Receive/listener pipeline sonraki pakette ayrı geliştirilecektir.
+/// Receive tarafı:
+/// - EnableReceiveListener true ise TcpListener açar.
+/// - Gelen TCP client bağlantılarından satır satır NDJSON okur.
+/// - Her satırı HydronomEnvelope olarak deserialize eder.
+/// - ReceiveAsync üzerinden envelope üretir.
+/// 
+/// Timeout/exception durumları üst katmanda GroundTransportManager ve GroundTransportReceiver tarafından işlenir.
 /// </summary>
 public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
 {
@@ -26,6 +30,7 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
 
     private TcpClient? _client;
     private NetworkStream? _stream;
+    private TcpListener? _listener;
 
     public TcpGroundTransport(TcpGroundTransportOptions options)
     {
@@ -39,6 +44,12 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
 
         if (_options.Port <= 0 || _options.Port > 65535)
             throw new ArgumentOutOfRangeException(nameof(options), "TCP port 1-65535 aralığında olmalıdır.");
+
+        if (string.IsNullOrWhiteSpace(_options.ListenHost))
+            throw new ArgumentException("TCP listener host boş olamaz.", nameof(options));
+
+        if (_options.ListenPort < 0 || _options.ListenPort > 65535)
+            throw new ArgumentOutOfRangeException(nameof(options), "TCP listener port 0-65535 aralığında olmalıdır.");
     }
 
     /// <summary>
@@ -52,10 +63,11 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
     public TransportKind Kind => TransportKind.Tcp;
 
     /// <summary>
-    /// TCP client bağlantı durumu.
+    /// TCP outbound client bağlantı durumu.
     /// 
-    /// TcpClient.Connected tek başına her zaman mutlak gerçekliği göstermeyebilir;
-    /// ancak ilk faz için pratik bağlantı göstergesi olarak yeterlidir.
+    /// Not:
+    /// Receive listener açık olsa bile outbound client bağlı değilse bu değer false dönebilir.
+    /// Bu normaldir; listener durumu ayrı olarak IsListening ile okunabilir.
     /// </summary>
     public bool IsConnected
     {
@@ -71,14 +83,33 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
     }
 
     /// <summary>
-    /// TCP bağlantısını başlatır.
+    /// TCP inbound listener açık mı?
+    /// </summary>
+    public bool IsListening
+    {
+        get
+        {
+            lock (_sync)
+                return _listener is not null;
+        }
+    }
+
+    /// <summary>
+    /// Listener'ın bağlandığı gerçek port.
+    /// 
+    /// ListenPort = 0 ise sistemin seçtiği port buradan okunabilir.
+    /// </summary>
+    public int? BoundListenPort => _options.BoundListenPort;
+
+    /// <summary>
+    /// TCP outbound bağlantısını başlatır.
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (IsConnected)
             return;
 
-        await DisconnectAsync(cancellationToken);
+        await DisconnectOutboundAsync(cancellationToken);
 
         var client = new TcpClient
         {
@@ -115,41 +146,12 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
     }
 
     /// <summary>
-    /// TCP bağlantısını kapatır.
+    /// TCP outbound bağlantısını ve inbound listener'ı kapatır.
     /// </summary>
-    public Task DisconnectAsync(CancellationToken cancellationToken = default)
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
-        TcpClient? client;
-        NetworkStream? stream;
-
-        lock (_sync)
-        {
-            client = _client;
-            stream = _stream;
-            _client = null;
-            _stream = null;
-        }
-
-        try
-        {
-            stream?.Dispose();
-        }
-        catch
-        {
-            // Kapanış sırasında stream dispose hatası operasyonu etkilememeli.
-        }
-
-        try
-        {
-            client?.Close();
-            client?.Dispose();
-        }
-        catch
-        {
-            // Kapanış sırasında socket dispose hatası operasyonu etkilememeli.
-        }
-
-        return Task.CompletedTask;
+        await DisconnectOutboundAsync(cancellationToken);
+        StopListener();
     }
 
     /// <summary>
@@ -197,22 +199,54 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
         catch
         {
             if (_options.ResetClientOnSendFailure)
-                await DisconnectAsync(CancellationToken.None);
+                await DisconnectOutboundAsync(CancellationToken.None);
 
             throw;
         }
     }
 
     /// <summary>
-    /// İlk fazda TCP receive stream aktif değildir.
+    /// TCP listener üzerinden gelen NDJSON HydronomEnvelope mesajlarını üretir.
     /// 
-    /// Receive/listener pipeline ayrı pakette eklenecektir.
+    /// EnableReceiveListener false ise boş akış döner.
+    /// EnableReceiveListener true ise listener açılır ve cancellationToken iptal edilene kadar
+    /// gelen client bağlantılarından satır satır JSON okur.
     /// </summary>
     public async IAsyncEnumerable<HydronomEnvelope> ReceiveAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        yield break;
+        if (!_options.EnableReceiveListener)
+            yield break;
+
+        var listener = EnsureListenerStarted();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            TcpClient? acceptedClient = null;
+
+            try
+            {
+                acceptedClient = await listener.AcceptTcpClientAsync(cancellationToken);
+                acceptedClient.NoDelay = _options.NoDelay;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
+            if (acceptedClient is null)
+            {
+                await Task.Delay(_options.AcceptLoopDelay, cancellationToken);
+                continue;
+            }
+
+            await foreach (var envelope in ReadClientEnvelopesAsync(acceptedClient, cancellationToken))
+                yield return envelope;
+        }
     }
 
     /// <summary>
@@ -245,5 +279,178 @@ public sealed class TcpGroundTransport : ITransport, IAsyncDisposable
             .Replace("\n", string.Empty);
 
         return json + "\n";
+    }
+
+    /// <summary>
+    /// TCP listener'ı başlatır veya mevcut listener'ı döndürür.
+    /// </summary>
+    private TcpListener EnsureListenerStarted()
+    {
+        lock (_sync)
+        {
+            if (_listener is not null)
+                return _listener;
+
+            var ipAddress = ResolveListenAddress(_options.ListenHost);
+
+            var listener = new TcpListener(
+                ipAddress,
+                _options.ListenPort);
+
+            listener.Start();
+
+            _options.BoundListenPort = ((IPEndPoint)listener.LocalEndpoint).Port;
+            _listener = listener;
+
+            return listener;
+        }
+    }
+
+    /// <summary>
+    /// Listener'ı durdurur.
+    /// </summary>
+    private void StopListener()
+    {
+        TcpListener? listener;
+
+        lock (_sync)
+        {
+            listener = _listener;
+            _listener = null;
+            _options.BoundListenPort = null;
+        }
+
+        try
+        {
+            listener?.Stop();
+        }
+        catch
+        {
+            // Listener kapanırken oluşan hata operasyonu etkilememeli.
+        }
+    }
+
+    /// <summary>
+    /// Outbound client bağlantısını kapatır.
+    /// </summary>
+    private Task DisconnectOutboundAsync(CancellationToken cancellationToken = default)
+    {
+        TcpClient? client;
+        NetworkStream? stream;
+
+        lock (_sync)
+        {
+            client = _client;
+            stream = _stream;
+            _client = null;
+            _stream = null;
+        }
+
+        try
+        {
+            stream?.Dispose();
+        }
+        catch
+        {
+            // Kapanış sırasında stream dispose hatası operasyonu etkilememeli.
+        }
+
+        try
+        {
+            client?.Close();
+            client?.Dispose();
+        }
+        catch
+        {
+            // Kapanış sırasında socket dispose hatası operasyonu etkilememeli.
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Tek TCP client bağlantısından NDJSON envelope satırlarını okur.
+    /// </summary>
+    private async IAsyncEnumerable<HydronomEnvelope> ReadClientEnvelopesAsync(
+        TcpClient client,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using (client)
+        await using (var stream = client.GetStream())
+        using (var reader = new StreamReader(stream, Encoding.UTF8))
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                string? line;
+
+                try
+                {
+                    line = await reader.ReadLineAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                if (line is null)
+                    yield break;
+
+                if (_options.IgnoreEmptyReceiveLines && string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                HydronomEnvelope? envelope;
+
+                try
+                {
+                    envelope = DeserializeEnvelope(line);
+                }
+                catch
+                {
+                    if (_options.ContinueOnInvalidReceiveJson)
+                        continue;
+
+                    throw;
+                }
+
+                if (envelope is not null)
+                    yield return envelope;
+            }
+        }
+    }
+
+    /// <summary>
+    /// NDJSON satırını HydronomEnvelope'a dönüştürür.
+    /// </summary>
+    private static HydronomEnvelope? DeserializeEnvelope(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return null;
+
+        return JsonSerializer.Deserialize<HydronomEnvelope>(
+            line,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+    }
+
+    /// <summary>
+    /// Listener host değerini IPAddress'e çevirir.
+    /// </summary>
+    private static IPAddress ResolveListenAddress(string host)
+    {
+        if (string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(host, "*", StringComparison.OrdinalIgnoreCase))
+        {
+            return IPAddress.Any;
+        }
+
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+            return IPAddress.Loopback;
+
+        if (IPAddress.TryParse(host, out var address))
+            return address;
+
+        return IPAddress.Loopback;
     }
 }
