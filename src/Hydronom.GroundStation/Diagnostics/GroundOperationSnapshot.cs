@@ -1,5 +1,7 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
+using Hydronom.GroundStation.LinkHealth;
+
 /// <summary>
 /// Ground Station tarafının tek bakışta okunabilir operasyon özetini temsil eder.
 /// 
@@ -10,6 +12,7 @@ namespace Hydronom.GroundStation.Diagnostics;
 /// - Filo durumu,
 /// - Komut geçmişi,
 /// - Ortak dünya modeli,
+/// - Bağlantı/link sağlığı,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -107,6 +110,93 @@ public sealed record GroundOperationSnapshot
     /// Aktif no-go zone sayısı.
     /// </summary>
     public int ActiveNoGoZoneCount { get; init; }
+
+    /// <summary>
+    /// LinkHealthTracker tarafından takip edilen toplam araç bağlantı grubu sayısı.
+    /// 
+    /// Bu değer araç bazlıdır.
+    /// Örneğin Alpha için WiFi + LoRa takip ediliyorsa bu alan yine 1 olur.
+    /// </summary>
+    public int LinkVehicleCount { get; init; }
+
+    /// <summary>
+    /// Takip edilen toplam transport link sayısı.
+    /// 
+    /// Örneğin Alpha/WiFi, Alpha/LoRa, Beta/RF toplam 3 link sayılır.
+    /// </summary>
+    public int TotalLinkCount { get; init; }
+
+    /// <summary>
+    /// Good durumundaki link sayısı.
+    /// </summary>
+    public int GoodLinkCount { get; init; }
+
+    /// <summary>
+    /// Degraded durumundaki link sayısı.
+    /// </summary>
+    public int DegradedLinkCount { get; init; }
+
+    /// <summary>
+    /// Critical durumundaki link sayısı.
+    /// </summary>
+    public int CriticalLinkCount { get; init; }
+
+    /// <summary>
+    /// Lost durumundaki link sayısı.
+    /// </summary>
+    public int LostLinkCount { get; init; }
+
+    /// <summary>
+    /// Unknown durumundaki link sayısı.
+    /// </summary>
+    public int UnknownLinkCount { get; init; }
+
+    /// <summary>
+    /// Araçlar arasındaki en iyi linklerin ortalama kalite skoru.
+    /// 
+    /// Araç başına OverallQualityScore değerlerinin ortalamasıdır.
+    /// Link verisi yoksa null kalır.
+    /// </summary>
+    public double? AverageVehicleLinkQualityScore { get; init; }
+
+    /// <summary>
+    /// Tüm transport linklerinin ortalama kalite skoru.
+    /// 
+    /// Link verisi yoksa null kalır.
+    /// </summary>
+    public double? AverageTransportLinkQualityScore { get; init; }
+
+    /// <summary>
+    /// En düşük araç bağlantı kalite skoru.
+    /// 
+    /// Filodaki zayıf halkayı hızlı görmek için kullanılır.
+    /// Link verisi yoksa null kalır.
+    /// </summary>
+    public double? WorstVehicleLinkQualityScore { get; init; }
+
+    /// <summary>
+    /// En düşük transport bağlantı kalite skoru.
+    /// 
+    /// Tekil transport seviyesindeki en kötü linki gösterir.
+    /// Link verisi yoksa null kalır.
+    /// </summary>
+    public double? WorstTransportLinkQualityScore { get; init; }
+
+    /// <summary>
+    /// Link health durumunun kısa insan-okunabilir açıklaması.
+    /// 
+    /// Hydronom Ops Communication Links panelinde veya diagnostics özetinde gösterilebilir.
+    /// </summary>
+    public string LinkHealthSummary { get; init; } = "No link health data.";
+
+    /// <summary>
+    /// Araç bazlı link health snapshot listesi.
+    /// 
+    /// Bu alan Hydronom Ops tarafında araç kartları, link health paneli,
+    /// communication diagnostics ekranı ve ileride route karar izleme için kullanılabilir.
+    /// </summary>
+    public IReadOnlyList<VehicleLinkHealthSnapshot> LinkHealth { get; init; } =
+        Array.Empty<VehicleLinkHealthSnapshot>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.

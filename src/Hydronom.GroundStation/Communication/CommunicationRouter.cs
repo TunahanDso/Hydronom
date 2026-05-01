@@ -14,6 +14,12 @@ using Hydronom.GroundStation.Routing;
 /// - Hedef node'un AvailableTransports listesine göre route'u filtrelemek,
 /// - Mesajın gönderilebilir olup olmadığını söylemektir.
 /// 
+/// Yeni LinkHealth hazırlığı:
+/// - Router artık opsiyonel link uygunluk filtresi alabilir.
+/// - Bu filtre sayesinde ileride LinkHealthTracker üzerinden
+///   kötü, critical veya lost linkler route kararından elenebilir.
+/// - Böylece CommunicationRouter ileride kalite skoru tabanlı route kararına geçebilir.
+/// 
 /// İleride bu sınıfın üzerine:
 /// - TransportManager,
 /// - ITransport implementasyonları,
@@ -59,10 +65,36 @@ public sealed class CommunicationRouter
     /// - BroadcastAllAvailableLinks true olabilir.
     /// 
     /// İlk fazda broadcast için tüm filodaki transport'lar birleştirilerek uygulanabilir route çıkarılır.
+    /// 
+    /// Bu overload eski davranışı korur.
+    /// Link health filtresi uygulanmaz.
     /// </summary>
     public CommunicationRouteResult Route(
         HydronomEnvelope envelope,
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot)
+    {
+        return Route(
+            envelope,
+            fleetSnapshot,
+            linkAvailabilityFilter: null);
+    }
+
+    /// <summary>
+    /// Verilen envelope için mevcut fleet snapshot ve opsiyonel link uygunluk filtresi üzerinden route sonucu üretir.
+    /// 
+    /// linkAvailabilityFilter:
+    /// - vehicleId ve transportKind alır,
+    /// - true dönerse link kullanılabilir kabul edilir,
+    /// - false dönerse o transport route adaylarından çıkarılır.
+    /// 
+    /// Bu yapı LinkHealthTracker'a doğrudan bağımlılık kurmadan link-aware routing zemini hazırlar.
+    /// Böylece CommunicationRouter saf route motoru olarak kalır,
+    /// LinkHealthTracker ise GroundStationEngine tarafından dışarıdan bağlanabilir.
+    /// </summary>
+    public CommunicationRouteResult Route(
+        HydronomEnvelope envelope,
+        IReadOnlyList<VehicleNodeStatus> fleetSnapshot,
+        Func<string, TransportKind, bool>? linkAvailabilityFilter)
     {
         if (envelope is null)
             throw new ArgumentNullException(nameof(envelope));
@@ -80,19 +112,32 @@ public sealed class CommunicationRouter
 
         if (IsBroadcastEnvelope(envelope, policyDecision))
         {
-            return RouteBroadcast(envelope, fleetSnapshot, policyDecision);
+            return RouteBroadcast(
+                envelope,
+                fleetSnapshot,
+                policyDecision,
+                linkAvailabilityFilter);
         }
 
-        return RouteSingleTarget(envelope, fleetSnapshot, policyDecision);
+        return RouteSingleTarget(
+            envelope,
+            fleetSnapshot,
+            policyDecision,
+            linkAvailabilityFilter);
     }
 
     /// <summary>
     /// Tek hedefli mesaj için route sonucu üretir.
+    /// 
+    /// Eğer linkAvailabilityFilter verilmişse hedef aracın AvailableTransports listesi
+    /// önce bu filtreye göre daraltılır.
+    /// Ardından mevcut AvailableTransportFilter ile policy kararı uygulanır.
     /// </summary>
     private CommunicationRouteResult RouteSingleTarget(
         HydronomEnvelope envelope,
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot,
-        TransportRouteDecision policyDecision)
+        TransportRouteDecision policyDecision,
+        Func<string, TransportKind, bool>? linkAvailabilityFilter)
     {
         var target = fleetSnapshot.FirstOrDefault(x =>
             string.Equals(
@@ -109,24 +154,39 @@ public sealed class CommunicationRouter
                 policyDecision: policyDecision);
         }
 
-        var availableTransports = target.AvailableTransports;
-        var filteredDecision = _transportFilter.Filter(policyDecision, availableTransports);
+        var availableTransports = ApplyLinkAvailabilityFilter(
+            target.Identity.NodeId,
+            target.AvailableTransports,
+            linkAvailabilityFilter);
+
+        var filteredDecision = _transportFilter.Filter(
+            policyDecision,
+            availableTransports);
+
         var applicable = _transportFilter.IsApplicable(filteredDecision);
 
         if (!applicable)
         {
+            var reason = linkAvailabilityFilter is null
+                ? "Target node is known but no applicable transport remains after filtering."
+                : "Target node is known but no applicable healthy transport remains after link-aware filtering.";
+
             return CommunicationRouteResult.Failed(
                 envelope,
-                "Target node is known but no applicable transport remains after filtering.",
+                reason,
                 targetKnown: true,
                 targetAvailableTransports: availableTransports,
                 policyDecision: policyDecision,
                 filteredDecision: filteredDecision);
         }
 
+        var successReason = linkAvailabilityFilter is null
+            ? "Route resolved for target node."
+            : "Route resolved for target node with link-aware filtering.";
+
         return CommunicationRouteResult.Succeeded(
             envelope,
-            "Route resolved for target node.",
+            successReason,
             targetKnown: true,
             targetAvailableTransports: availableTransports,
             policyDecision: policyDecision,
@@ -139,6 +199,9 @@ public sealed class CommunicationRouter
     /// İlk fazda tüm online araçların AvailableTransports listeleri birleştirilir.
     /// Böylece broadcast için pratikte kullanılabilecek transport türleri bulunur.
     /// 
+    /// Eğer linkAvailabilityFilter verilmişse her online araç için transport listesi
+    /// link sağlığına göre daraltılır ve sonra union alınır.
+    /// 
     /// Not:
     /// Gerçek implementasyonda her node için ayrı route sonucu üretmek daha doğru olacaktır.
     /// Bu ilk çekirdek sadece toplam route uygulanabilirliğini gösterir.
@@ -146,7 +209,8 @@ public sealed class CommunicationRouter
     private CommunicationRouteResult RouteBroadcast(
         HydronomEnvelope envelope,
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot,
-        TransportRouteDecision policyDecision)
+        TransportRouteDecision policyDecision,
+        Func<string, TransportKind, bool>? linkAvailabilityFilter)
     {
         var onlineNodes = fleetSnapshot
             .Where(x => x.IsValid && x.IsOnline)
@@ -162,7 +226,10 @@ public sealed class CommunicationRouter
         }
 
         var unionAvailableTransports = onlineNodes
-            .SelectMany(x => x.AvailableTransports)
+            .SelectMany(x => ApplyLinkAvailabilityFilter(
+                x.Identity.NodeId,
+                x.AvailableTransports,
+                linkAvailabilityFilter))
             .Distinct()
             .ToArray();
 
@@ -174,22 +241,53 @@ public sealed class CommunicationRouter
 
         if (!applicable)
         {
+            var reason = linkAvailabilityFilter is null
+                ? "Broadcast requested but no applicable transport remains after filtering."
+                : "Broadcast requested but no applicable healthy transport remains after link-aware filtering.";
+
             return CommunicationRouteResult.Failed(
                 envelope,
-                "Broadcast requested but no applicable transport remains after filtering.",
+                reason,
                 targetKnown: true,
                 targetAvailableTransports: unionAvailableTransports,
                 policyDecision: policyDecision,
                 filteredDecision: filteredDecision);
         }
 
+        var successReason = linkAvailabilityFilter is null
+            ? "Broadcast route resolved from online fleet transport union."
+            : "Broadcast route resolved from online fleet healthy transport union.";
+
         return CommunicationRouteResult.Succeeded(
             envelope,
-            "Broadcast route resolved from online fleet transport union.",
+            successReason,
             targetKnown: true,
             targetAvailableTransports: unionAvailableTransports,
             policyDecision: policyDecision,
             filteredDecision: filteredDecision);
+    }
+
+    /// <summary>
+    /// Hedef araç ve transport listesi için opsiyonel link uygunluk filtresi uygular.
+    /// 
+    /// Filtre yoksa AvailableTransports olduğu gibi döner.
+    /// Filtre varsa sadece true dönen transport türleri kalır.
+    /// </summary>
+    private static IReadOnlyList<TransportKind> ApplyLinkAvailabilityFilter(
+        string vehicleId,
+        IReadOnlyList<TransportKind> availableTransports,
+        Func<string, TransportKind, bool>? linkAvailabilityFilter)
+    {
+        if (availableTransports is null || availableTransports.Count == 0)
+            return Array.Empty<TransportKind>();
+
+        if (linkAvailabilityFilter is null)
+            return availableTransports;
+
+        return availableTransports
+            .Where(transportKind => linkAvailabilityFilter(vehicleId, transportKind))
+            .Distinct()
+            .ToArray();
     }
 
     /// <summary>

@@ -817,11 +817,218 @@ Console.WriteLine($"    Active world objects : {operationSnapshot.ActiveWorldObj
 Console.WriteLine($"    Active obstacles     : {operationSnapshot.ActiveObstacleCount}");
 Console.WriteLine($"    Active targets       : {operationSnapshot.ActiveTargetCount}");
 Console.WriteLine($"    Active no-go zones   : {operationSnapshot.ActiveNoGoZoneCount}");
+Console.WriteLine($"    Link vehicles        : {operationSnapshot.LinkVehicleCount}");
+Console.WriteLine($"    Total links          : {operationSnapshot.TotalLinkCount}");
+Console.WriteLine($"    Link summary         : {operationSnapshot.LinkHealthSummary}");
 Console.WriteLine($"    Has warnings         : {operationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues  : {operationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
 
-Console.WriteLine("[14] Mark stale nodes offline test:");
+Console.WriteLine("[14] Link health tracker test:");
+
+var linkTestTime = DateTime.UtcNow;
+
+ground.MarkLinkSeen(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Tcp,
+    nowUtc: linkTestTime);
+
+ground.RecordLinkSend(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Tcp,
+    nowUtc: linkTestTime.AddMilliseconds(2));
+
+ground.RecordLinkRouteSuccess(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Tcp,
+    latencyMs: 24,
+    nowUtc: linkTestTime.AddMilliseconds(24));
+
+ground.RecordLinkAck(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Tcp,
+    latencyMs: 26,
+    nowUtc: linkTestTime.AddMilliseconds(26));
+
+ground.MarkLinkSeen(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.WebSocket,
+    nowUtc: linkTestTime);
+
+ground.RecordLinkSend(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.WebSocket,
+    nowUtc: linkTestTime.AddMilliseconds(4));
+
+ground.RecordLinkRouteSuccess(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.WebSocket,
+    latencyMs: 86,
+    nowUtc: linkTestTime.AddMilliseconds(86));
+
+ground.MarkLinkSeen(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Mock,
+    nowUtc: linkTestTime);
+
+ground.RecordLinkSend(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Mock,
+    nowUtc: linkTestTime.AddMilliseconds(1));
+
+ground.RecordLinkTimeout(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Mock,
+    nowUtc: linkTestTime.AddMilliseconds(500));
+
+ground.RecordEstimatedLinkPacketLoss(
+    vehicleId: "VEHICLE-ALPHA-001",
+    transportKind: TransportKind.Mock,
+    lostPacketCount: 2,
+    nowUtc: linkTestTime.AddMilliseconds(600));
+
+var linkHealthSnapshot = ground.GetLinkHealthSnapshot(linkTestTime.AddSeconds(1));
+
+Console.WriteLine($"    Link vehicle count    : {linkHealthSnapshot.Count}");
+
+foreach (var vehicleLink in linkHealthSnapshot)
+{
+    Console.WriteLine($"    Vehicle               : {vehicleLink.VehicleId}");
+    Console.WriteLine($"    Overall status        : {vehicleLink.OverallStatus}");
+    Console.WriteLine($"    Overall quality       : {vehicleLink.OverallQualityScore:0.##}");
+
+    foreach (var link in vehicleLink.Links)
+    {
+        Console.WriteLine($"    - Transport           : {link.TransportKind}");
+        Console.WriteLine($"      Status              : {link.Status}");
+        Console.WriteLine($"      Quality             : {link.QualityScore:0.##}");
+        Console.WriteLine($"      SuccessRate         : {link.SuccessRate:0.##}");
+        Console.WriteLine($"      FailureRate         : {link.FailureRate:0.##}");
+        Console.WriteLine($"      TimeoutRate         : {link.TimeoutRate:0.##}");
+        Console.WriteLine($"      LastLatencyMs       : {link.LastLatencyMs}");
+        Console.WriteLine($"      AvgLatencyMs        : {link.AverageLatencyMs}");
+        Console.WriteLine($"      Sent/Success/Fail   : {link.SentCount}/{link.SuccessCount}/{link.FailureCount}");
+        Console.WriteLine($"      Ack/Timeout/Loss    : {link.AckCount}/{link.TimeoutCount}/{link.LostPacketEstimateCount}");
+    }
+}
+
+var bestLink = ground.GetBestAvailableLink("VEHICLE-ALPHA-001");
+var availableLinks = ground.GetAvailableLinks("VEHICLE-ALPHA-001");
+
+Console.WriteLine();
+Console.WriteLine("    Best available link:");
+Console.WriteLine($"    Exists                : {bestLink is not null}");
+Console.WriteLine($"    Transport             : {bestLink?.TransportKind}");
+Console.WriteLine($"    Status                : {bestLink?.Status}");
+Console.WriteLine($"    Quality               : {bestLink?.QualityScore:0.##}");
+Console.WriteLine($"    Available link count  : {availableLinks.Count}");
+Console.WriteLine();
+
+Console.WriteLine("[15] Link health diagnostics snapshot test:");
+
+var linkAwareOperationSnapshot = ground.DiagnosticsEngine.CreateSnapshot(
+    ground.GetFleetSnapshot(),
+    ground.GetCommandHistorySnapshot(),
+    ground.WorldModel,
+    linkHealthSnapshot);
+
+Console.WriteLine("    Link-aware operation snapshot:");
+Console.WriteLine($"    Overall health            : {linkAwareOperationSnapshot.OverallHealth}");
+Console.WriteLine($"    Summary                   : {linkAwareOperationSnapshot.Summary}");
+Console.WriteLine($"    Link health summary       : {linkAwareOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Link vehicle count        : {linkAwareOperationSnapshot.LinkVehicleCount}");
+Console.WriteLine($"    Total link count          : {linkAwareOperationSnapshot.TotalLinkCount}");
+Console.WriteLine($"    Good links                : {linkAwareOperationSnapshot.GoodLinkCount}");
+Console.WriteLine($"    Degraded links            : {linkAwareOperationSnapshot.DegradedLinkCount}");
+Console.WriteLine($"    Critical links            : {linkAwareOperationSnapshot.CriticalLinkCount}");
+Console.WriteLine($"    Lost links                : {linkAwareOperationSnapshot.LostLinkCount}");
+Console.WriteLine($"    Unknown links             : {linkAwareOperationSnapshot.UnknownLinkCount}");
+Console.WriteLine($"    Avg vehicle link quality  : {linkAwareOperationSnapshot.AverageVehicleLinkQualityScore}");
+Console.WriteLine($"    Avg transport quality     : {linkAwareOperationSnapshot.AverageTransportLinkQualityScore}");
+Console.WriteLine($"    Worst vehicle quality     : {linkAwareOperationSnapshot.WorstVehicleLinkQualityScore}");
+Console.WriteLine($"    Worst transport quality   : {linkAwareOperationSnapshot.WorstTransportLinkQualityScore}");
+Console.WriteLine();
+
+Console.WriteLine("[16] Link-aware routing preparation test:");
+
+if (coordination.Envelope is not null)
+{
+    var linkAwareRoute = ground.CommunicationRouter.Route(
+        coordination.Envelope,
+        ground.GetFleetSnapshot(),
+        linkAvailabilityFilter: (vehicleId, transportKind) =>
+            ground.GetAvailableLinks(vehicleId)
+                .Any(link => link.TransportKind == transportKind));
+
+    Console.WriteLine("    Link-aware coordinated route:");
+    Console.WriteLine($"    CanRoute        : {linkAwareRoute.CanRoute}");
+    Console.WriteLine($"    Reason          : {linkAwareRoute.Reason}");
+    Console.WriteLine($"    Target          : {linkAwareRoute.TargetNodeId}");
+    Console.WriteLine($"    TargetKnown     : {linkAwareRoute.TargetKnown}");
+    Console.WriteLine($"    TargetAvailable : {string.Join(", ", linkAwareRoute.TargetAvailableTransports)}");
+    Console.WriteLine($"    Primary         : {string.Join(", ", linkAwareRoute.PrimaryTransports)}");
+    Console.WriteLine($"    Fallback        : {string.Join(", ", linkAwareRoute.FallbackTransports)}");
+    Console.WriteLine($"    Ack             : {linkAwareRoute.RequiresAck}");
+}
+
+var linkAwareEmergencyRoute = ground.CommunicationRouter.Route(
+    emergencyEnvelope,
+    ground.GetFleetSnapshot(),
+    linkAvailabilityFilter: (vehicleId, transportKind) =>
+        ground.GetAvailableLinks(vehicleId)
+            .Any(link => link.TransportKind == transportKind));
+
+Console.WriteLine();
+Console.WriteLine("    Link-aware emergency broadcast route:");
+Console.WriteLine($"    CanRoute        : {linkAwareEmergencyRoute.CanRoute}");
+Console.WriteLine($"    Reason          : {linkAwareEmergencyRoute.Reason}");
+Console.WriteLine($"    Target          : {linkAwareEmergencyRoute.TargetNodeId}");
+Console.WriteLine($"    TargetKnown     : {linkAwareEmergencyRoute.TargetKnown}");
+Console.WriteLine($"    TargetAvailable : {string.Join(", ", linkAwareEmergencyRoute.TargetAvailableTransports)}");
+Console.WriteLine($"    Primary         : {string.Join(", ", linkAwareEmergencyRoute.PrimaryTransports)}");
+Console.WriteLine($"    Fallback        : {string.Join(", ", linkAwareEmergencyRoute.FallbackTransports)}");
+Console.WriteLine($"    Broadcast       : {linkAwareEmergencyRoute.BroadcastAllAvailableLinks}");
+Console.WriteLine();
+
+Console.WriteLine("[17] Link loss simulation test:");
+
+var linkLossTime = linkTestTime.AddSeconds(90);
+var lostSnapshot = ground.GetLinkHealthSnapshot(linkLossTime);
+
+Console.WriteLine($"    Snapshot time offset : +90s");
+
+foreach (var vehicleLink in lostSnapshot)
+{
+    Console.WriteLine($"    Vehicle             : {vehicleLink.VehicleId}");
+    Console.WriteLine($"    Overall status      : {vehicleLink.OverallStatus}");
+    Console.WriteLine($"    Overall quality     : {vehicleLink.OverallQualityScore:0.##}");
+
+    foreach (var link in vehicleLink.Links)
+    {
+        Console.WriteLine($"    - {link.TransportKind}: {link.Status}, quality={link.QualityScore:0.##}");
+    }
+}
+
+var lostLinkOperationSnapshot = ground.DiagnosticsEngine.CreateSnapshot(
+    ground.GetFleetSnapshot(),
+    ground.GetCommandHistorySnapshot(),
+    ground.WorldModel,
+    lostSnapshot);
+
+Console.WriteLine();
+Console.WriteLine("    Operation snapshot after link loss simulation:");
+Console.WriteLine($"    Overall health       : {lostLinkOperationSnapshot.OverallHealth}");
+Console.WriteLine($"    Summary              : {lostLinkOperationSnapshot.Summary}");
+Console.WriteLine($"    Link health summary  : {lostLinkOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Good links           : {lostLinkOperationSnapshot.GoodLinkCount}");
+Console.WriteLine($"    Degraded links       : {lostLinkOperationSnapshot.DegradedLinkCount}");
+Console.WriteLine($"    Critical links       : {lostLinkOperationSnapshot.CriticalLinkCount}");
+Console.WriteLine($"    Lost links           : {lostLinkOperationSnapshot.LostLinkCount}");
+Console.WriteLine($"    Has warnings         : {lostLinkOperationSnapshot.HasWarnings}");
+Console.WriteLine($"    Has critical issues  : {lostLinkOperationSnapshot.HasCriticalIssues}");
+Console.WriteLine();
+
+Console.WriteLine("[18] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
@@ -844,6 +1051,9 @@ Console.WriteLine($"    Overall health       : {offlineOperationSnapshot.Overall
 Console.WriteLine($"    Summary              : {offlineOperationSnapshot.Summary}");
 Console.WriteLine($"    Online nodes         : {offlineOperationSnapshot.OnlineNodeCount}");
 Console.WriteLine($"    Offline nodes        : {offlineOperationSnapshot.OfflineNodeCount}");
+Console.WriteLine($"    Link vehicles        : {offlineOperationSnapshot.LinkVehicleCount}");
+Console.WriteLine($"    Total links          : {offlineOperationSnapshot.TotalLinkCount}");
+Console.WriteLine($"    Link summary         : {offlineOperationSnapshot.LinkHealthSummary}");
 Console.WriteLine($"    Has warnings         : {offlineOperationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues  : {offlineOperationSnapshot.HasCriticalIssues}");
 

@@ -6,6 +6,7 @@ using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Diagnostics;
+using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
 using Hydronom.GroundStation.WorldModel;
@@ -23,6 +24,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - FleetCoordinator ile görev isteğinden komut üretmek,
 /// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
 /// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
+/// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
 /// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
@@ -38,6 +40,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - GroundAnalysisEngine
 /// - ReplayRecorder
 /// - GroundWorldModel
+/// - LinkHealthTracker / LinkQualityMap
 /// </summary>
 public sealed class GroundStationEngine
 {
@@ -108,8 +111,8 @@ public sealed class GroundStationEngine
     /// - route kararını uygulanabilir transport'lara göre filtreler,
     /// - mesaj gönderilebilir mi sorusuna cevap verir.
     /// 
-    /// İleride TransportManager, ITransport implementasyonları, retry/ACK ve send queue
-    /// bu yapının üzerine bağlanacaktır.
+    /// İleride TransportManager, ITransport implementasyonları, retry/ACK, send queue
+    /// ve LinkHealthTracker destekli link-aware routing bu yapının üzerine bağlanacaktır.
     /// </summary>
     public CommunicationRouter CommunicationRouter { get; } = new();
 
@@ -127,12 +130,32 @@ public sealed class GroundStationEngine
     public TelemetryRoutePlanner TelemetryRoutePlanner { get; } = new();
 
     /// <summary>
+    /// Yer istasyonu seviyesinde araçların haberleşme bağlantı kalitesini takip eder.
+    /// 
+    /// Bu yapı:
+    /// - Araç başına bağlantı kalite skoru,
+    /// - Transport bazlı health durumu,
+    /// - ACK / timeout / latency / packet loss benzeri metrikler,
+    /// - Son route başarı/başarısızlık bilgisi
+    /// için temel veri kaynağıdır.
+    /// 
+    /// İleride:
+    /// - GroundDiagnosticsEngine,
+    /// - CommunicationRouter,
+    /// - TelemetryRoutePlanner,
+    /// - Hydronom Ops link health paneli
+    /// bu tracker üzerinden beslenecektir.
+    /// </summary>
+    public LinkHealthTracker LinkHealthTracker { get; } = new();
+
+    /// <summary>
     /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
     /// 
     /// Bu yapı:
     /// - Filo durumunu,
     /// - Komut geçmişini,
     /// - Dünya modeli durumunu,
+    /// - Link health durumunu,
     /// - Genel health sonucunu,
     /// - Kısa özet açıklamasını
     /// üretir.
@@ -297,6 +320,27 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Verilen envelope için mevcut fleet snapshot ve LinkHealthTracker üzerinden link-aware route sonucu üretir.
+    /// 
+    /// Bu metot:
+    /// - FleetRegistry'deki AvailableTransports listesini,
+    /// - LinkHealthTracker içindeki kullanılabilir bağlantıları
+    /// birlikte değerlendirir.
+    /// 
+    /// İlk fazda sadece Good/Degraded linkleri kullanılabilir kabul eden hazırlık katmanıdır.
+    /// </summary>
+    public CommunicationRouteResult RouteEnvelopeWithLinkHealth(HydronomEnvelope envelope)
+    {
+        return CommunicationRouter.Route(
+            envelope,
+            FleetRegistry.GetSnapshot(),
+            linkAvailabilityFilter: (vehicleId, transportKind) =>
+                LinkHealthTracker
+                    .GetAvailableLinks(vehicleId)
+                    .Any(link => link.TransportKind == transportKind));
+    }
+
+    /// <summary>
     /// Verilen route sonucuna göre telemetry profil planı üretir.
     /// 
     /// Bu metot:
@@ -322,6 +366,18 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Verilen envelope için link health destekli route sonucu, sonra telemetry route planı üretir.
+    /// 
+    /// Bu metot ileride bağlantı kalitesine göre telemetry profil düşürme/yükseltme
+    /// akışına zemin hazırlar.
+    /// </summary>
+    public TelemetryRoutePlan PlanTelemetryForEnvelopeWithLinkHealth(HydronomEnvelope envelope)
+    {
+        var route = RouteEnvelopeWithLinkHealth(envelope);
+        return TelemetryRoutePlanner.Plan(route);
+    }
+
+    /// <summary>
     /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için route sonucu üretir.
     /// 
     /// Bu metot görevi fiziksel olarak göndermez.
@@ -339,6 +395,19 @@ public sealed class GroundStationEngine
             return null;
 
         return RouteEnvelope(coordination.Envelope);
+    }
+
+    /// <summary>
+    /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için link health destekli route sonucu üretir.
+    /// </summary>
+    public CommunicationRouteResult? CoordinateMissionAndRouteWithLinkHealth(MissionRequest request)
+    {
+        var coordination = CoordinateMission(request);
+
+        if (!coordination.Success || coordination.Envelope is null)
+            return null;
+
+        return RouteEnvelopeWithLinkHealth(coordination.Envelope);
     }
 
     /// <summary>
@@ -361,12 +430,29 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
+    /// Verilen görev isteğini koordine eder, link health destekli route eder ve telemetry planını üretir.
+    /// 
+    /// Bu helper ileride görev atama sonrası bağlantı kalitesine duyarlı telemetry
+    /// profil kararını tek çağrıda almak için kullanılabilir.
+    /// </summary>
+    public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetryWithLinkHealth(MissionRequest request)
+    {
+        var route = CoordinateMissionAndRouteWithLinkHealth(request);
+
+        if (route is null)
+            return null;
+
+        return TelemetryRoutePlanner.Plan(route);
+    }
+
+    /// <summary>
     /// Ground Station'ın mevcut operasyon durumundan tek bakışlık snapshot üretir.
     /// 
     /// Bu metot:
     /// - FleetRegistry snapshot,
     /// - CommandTracker snapshot,
-    /// - GroundWorldModel durumunu
+    /// - GroundWorldModel durumu,
+    /// - LinkHealthTracker bağlantı sağlık durumu
     /// okuyarak GroundOperationSnapshot döndürür.
     /// 
     /// Hydronom Ops üst paneli, Gateway diagnostics endpoint'i veya smoke test
@@ -377,7 +463,160 @@ public sealed class GroundStationEngine
         return DiagnosticsEngine.CreateSnapshot(
             FleetRegistry.GetSnapshot(),
             CommandTracker.GetSnapshot(),
-            WorldModel);
+            WorldModel,
+            LinkHealthTracker.GetSnapshot(DateTime.UtcNow));
+    }
+
+    /// <summary>
+    /// Belirli bir aracın belirli bir transport üzerinden görüldüğünü LinkHealthTracker'a bildirir.
+    /// 
+    /// Bu metot heartbeat, telemetry, command result veya başka bir inbound mesaj alındığında
+    /// çağrılabilir.
+    /// 
+    /// İlk fazda otomatik transport algılama henüz yapılmadığı için transportKind dışarıdan verilir.
+    /// İleride envelope metadata / transport context üzerinden otomatik doldurulabilir.
+    /// </summary>
+    public void MarkLinkSeen(
+        string vehicleId,
+        TransportKind transportKind,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.MarkSeen(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Bir araca belirli transport üzerinden mesaj gönderme denemesini kayıt altına alır.
+    /// 
+    /// Bu metot gerçek gönderim yapmaz.
+    /// Sadece bağlantı sağlık metriği için send sayacını artırır.
+    /// </summary>
+    public void RecordLinkSend(
+        string vehicleId,
+        TransportKind transportKind,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordSend(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Bir route/gönderim denemesinin başarılı olduğunu bağlantı sağlık metriğine işler.
+    /// 
+    /// latencyMs verilirse bağlantının gecikme metriği de güncellenir.
+    /// </summary>
+    public void RecordLinkRouteSuccess(
+        string vehicleId,
+        TransportKind transportKind,
+        double? latencyMs = null,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordRouteSuccess(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow,
+            latencyMs);
+    }
+
+    /// <summary>
+    /// Bir route/gönderim denemesinin başarısız olduğunu bağlantı sağlık metriğine işler.
+    /// </summary>
+    public void RecordLinkRouteFailure(
+        string vehicleId,
+        TransportKind transportKind,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordRouteFailure(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Belirli bir transport üzerinden ACK alındığını bağlantı sağlık metriğine işler.
+    /// 
+    /// latencyMs verilirse round-trip latency gibi kullanılabilir.
+    /// </summary>
+    public void RecordLinkAck(
+        string vehicleId,
+        TransportKind transportKind,
+        double? latencyMs = null,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordAck(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow,
+            latencyMs);
+    }
+
+    /// <summary>
+    /// Belirli bir transport üzerinden timeout yaşandığını bağlantı sağlık metriğine işler.
+    /// 
+    /// Bu metot FailureCount ve TimeoutCount değerlerini etkiler.
+    /// </summary>
+    public void RecordLinkTimeout(
+        string vehicleId,
+        TransportKind transportKind,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordTimeout(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Tahmini paket kaybı bilgisini bağlantı sağlık metriğine işler.
+    /// 
+    /// İlk fazda bu değer manuel/test amaçlı girilir.
+    /// İleride sequence number veya ACK takip sistemiyle otomatik hesaplanabilir.
+    /// </summary>
+    public void RecordEstimatedLinkPacketLoss(
+        string vehicleId,
+        TransportKind transportKind,
+        int lostPacketCount = 1,
+        DateTime? nowUtc = null)
+    {
+        LinkHealthTracker.RecordEstimatedPacketLoss(
+            vehicleId,
+            transportKind,
+            nowUtc ?? DateTime.UtcNow,
+            lostPacketCount);
+    }
+
+    /// <summary>
+    /// Tüm araçların bağlantı sağlık snapshot listesini döndürür.
+    /// 
+    /// Hydronom Ops link health paneli, diagnostics ekranı veya smoke test
+    /// bu metotla güncel bağlantı durumunu okuyabilir.
+    /// </summary>
+    public IReadOnlyList<VehicleLinkHealthSnapshot> GetLinkHealthSnapshot(DateTime? nowUtc = null)
+    {
+        return LinkHealthTracker.GetSnapshot(nowUtc ?? DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Belirli bir araç için en iyi kullanılabilir bağlantıyı döndürür.
+    /// 
+    /// Bu metot ileride CommunicationRouter'ın link-aware routing kararına
+    /// doğrudan girdi sağlayacaktır.
+    /// </summary>
+    public TransportLinkMetrics? GetBestAvailableLink(string vehicleId)
+    {
+        return LinkHealthTracker.GetBestAvailableLink(vehicleId);
+    }
+
+    /// <summary>
+    /// Belirli bir araç için kullanılabilir bağlantı listesini kalite skoruna göre döndürür.
+    /// </summary>
+    public IReadOnlyList<TransportLinkMetrics> GetAvailableLinks(string vehicleId)
+    {
+        return LinkHealthTracker.GetAvailableLinks(vehicleId);
     }
 
     /// <summary>
