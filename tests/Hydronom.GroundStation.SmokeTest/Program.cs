@@ -5,6 +5,7 @@ using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.Coordination;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
+using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
 using Hydronom.Runtime.Fleet;
 
@@ -820,6 +821,8 @@ Console.WriteLine($"    Active no-go zones   : {operationSnapshot.ActiveNoGoZone
 Console.WriteLine($"    Link vehicles        : {operationSnapshot.LinkVehicleCount}");
 Console.WriteLine($"    Total links          : {operationSnapshot.TotalLinkCount}");
 Console.WriteLine($"    Link summary         : {operationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Route executions     : {operationSnapshot.TotalRouteExecutionCount}");
+Console.WriteLine($"    Route summary        : {operationSnapshot.RouteExecutionSummary}");
 Console.WriteLine($"    Has warnings         : {operationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues  : {operationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
@@ -930,7 +933,8 @@ var linkAwareOperationSnapshot = ground.DiagnosticsEngine.CreateSnapshot(
     ground.GetFleetSnapshot(),
     ground.GetCommandHistorySnapshot(),
     ground.WorldModel,
-    linkHealthSnapshot);
+    linkHealthSnapshot,
+    ground.GetRouteExecutionSnapshot());
 
 Console.WriteLine("    Link-aware operation snapshot:");
 Console.WriteLine($"    Overall health            : {linkAwareOperationSnapshot.OverallHealth}");
@@ -947,6 +951,7 @@ Console.WriteLine($"    Avg vehicle link quality  : {linkAwareOperationSnapshot.
 Console.WriteLine($"    Avg transport quality     : {linkAwareOperationSnapshot.AverageTransportLinkQualityScore}");
 Console.WriteLine($"    Worst vehicle quality     : {linkAwareOperationSnapshot.WorstVehicleLinkQualityScore}");
 Console.WriteLine($"    Worst transport quality   : {linkAwareOperationSnapshot.WorstTransportLinkQualityScore}");
+Console.WriteLine($"    Route summary             : {linkAwareOperationSnapshot.RouteExecutionSummary}");
 Console.WriteLine();
 
 Console.WriteLine("[16] Link-aware routing preparation test:");
@@ -1013,13 +1018,15 @@ var lostLinkOperationSnapshot = ground.DiagnosticsEngine.CreateSnapshot(
     ground.GetFleetSnapshot(),
     ground.GetCommandHistorySnapshot(),
     ground.WorldModel,
-    lostSnapshot);
+    lostSnapshot,
+    ground.GetRouteExecutionSnapshot());
 
 Console.WriteLine();
 Console.WriteLine("    Operation snapshot after link loss simulation:");
 Console.WriteLine($"    Overall health       : {lostLinkOperationSnapshot.OverallHealth}");
 Console.WriteLine($"    Summary              : {lostLinkOperationSnapshot.Summary}");
 Console.WriteLine($"    Link health summary  : {lostLinkOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Route summary        : {lostLinkOperationSnapshot.RouteExecutionSummary}");
 Console.WriteLine($"    Good links           : {lostLinkOperationSnapshot.GoodLinkCount}");
 Console.WriteLine($"    Degraded links       : {lostLinkOperationSnapshot.DegradedLinkCount}");
 Console.WriteLine($"    Critical links       : {lostLinkOperationSnapshot.CriticalLinkCount}");
@@ -1028,7 +1035,198 @@ Console.WriteLine($"    Has warnings         : {lostLinkOperationSnapshot.HasWar
 Console.WriteLine($"    Has critical issues  : {lostLinkOperationSnapshot.HasCriticalIssues}");
 Console.WriteLine();
 
-Console.WriteLine("[18] Mark stale nodes offline test:");
+Console.WriteLine("[18] Transport execution tracker ACK success test:");
+
+if (coordination.Envelope is not null)
+{
+    var ackExecution = ground.BeginRouteExecutionWithLinkHealth(
+        coordination.Envelope,
+        nowUtc: DateTimeOffset.UtcNow);
+
+    var sendStart = DateTimeOffset.UtcNow;
+    var sendCompleted = sendStart.AddMilliseconds(31);
+
+    var sendAttemptRecorded = ground.RecordTransportSendAttempt(
+        ackExecution.ExecutionId,
+        TransportKind.Tcp,
+        sendStart);
+
+    var ackRecorded = ground.RecordTransportAcked(
+        ackExecution.ExecutionId,
+        TransportKind.Tcp,
+        sendStart,
+        sendCompleted,
+        latencyMs: 31,
+        reason: "Simulated ACK for coordinated mission command.");
+
+    Console.WriteLine($"    ExecutionId        : {ackExecution.ExecutionId}");
+    Console.WriteLine($"    CanRoute           : {ackExecution.RouteResult.CanRoute}");
+    Console.WriteLine($"    Candidate          : {string.Join(", ", ackExecution.CandidateTransports)}");
+    Console.WriteLine($"    Send attempt       : {sendAttemptRecorded}");
+    Console.WriteLine($"    ACK recorded       : {ackRecorded}");
+    Console.WriteLine($"    IsCompleted        : {ackExecution.IsCompleted}");
+    Console.WriteLine($"    HasSuccess         : {ackExecution.HasSuccess}");
+    Console.WriteLine($"    HasAck             : {ackExecution.HasAck}");
+    Console.WriteLine($"    LastStatus         : {ackExecution.LastStatus}");
+    Console.WriteLine($"    BestLatencyMs      : {ackExecution.BestLatencyMs}");
+}
+
+Console.WriteLine();
+
+Console.WriteLine("[19] Transport execution timeout / failure test:");
+
+var transportTimeoutEnvelope = HydronomEnvelopeFactory.CreateCommand(new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "SetSpeed",
+    AuthorityLevel = "ControlCommand",
+    Priority = MessagePriority.High,
+    Args = new Dictionary<string, string>
+    {
+        ["speedMps"] = "0.75"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = true
+});
+
+var timeoutExecution = ground.BeginRouteExecutionWithLinkHealth(
+    transportTimeoutEnvelope,
+    nowUtc: DateTimeOffset.UtcNow);
+
+var timeoutStart = DateTimeOffset.UtcNow;
+var timeoutEnd = timeoutStart.AddMilliseconds(900);
+
+var timeoutSendAttemptRecorded = ground.RecordTransportSendAttempt(
+    timeoutExecution.ExecutionId,
+    TransportKind.Mock,
+    timeoutStart);
+
+var timeoutRecorded = ground.RecordTransportTimeout(
+    timeoutExecution.ExecutionId,
+    TransportKind.Mock,
+    timeoutStart,
+    timeoutEnd,
+    reason: "Simulated transport timeout on Mock link.");
+
+Console.WriteLine("    Timeout execution:");
+Console.WriteLine($"    ExecutionId        : {timeoutExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute           : {timeoutExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    Candidate          : {string.Join(", ", timeoutExecution.CandidateTransports)}");
+Console.WriteLine($"    Send attempt       : {timeoutSendAttemptRecorded}");
+Console.WriteLine($"    Timeout recorded   : {timeoutRecorded}");
+Console.WriteLine($"    IsCompleted        : {timeoutExecution.IsCompleted}");
+Console.WriteLine($"    HasTimeout         : {timeoutExecution.HasTimeout}");
+Console.WriteLine($"    HasFailure         : {timeoutExecution.HasFailure}");
+Console.WriteLine($"    LastStatus         : {timeoutExecution.LastStatus}");
+Console.WriteLine();
+
+var transportFailureEnvelope = HydronomEnvelopeFactory.CreateCommand(new FleetCommand
+{
+    SourceNodeId = "GROUND-001",
+    TargetNodeId = "VEHICLE-ALPHA-001",
+    CommandType = "RequestLongTelemetry",
+    AuthorityLevel = "MissionCommand",
+    Priority = MessagePriority.Normal,
+    Args = new Dictionary<string, string>
+    {
+        ["profile"] = "Full"
+    },
+    IsOperatorIssued = true,
+    RequiresResult = false
+});
+
+var failureExecution = ground.BeginRouteExecution(
+    transportFailureEnvelope,
+    nowUtc: DateTimeOffset.UtcNow);
+
+var failureStart = DateTimeOffset.UtcNow;
+var failureEnd = failureStart.AddMilliseconds(140);
+
+var failureRecorded = ground.RecordTransportFailure(
+    failureExecution.ExecutionId,
+    TransportKind.WebSocket,
+    TransportSendStatus.Failed,
+    failureStart,
+    failureEnd,
+    reason: "Simulated transport send failure.",
+    errorMessage: "Mock WebSocket send error.");
+
+Console.WriteLine("    Failure execution:");
+Console.WriteLine($"    ExecutionId        : {failureExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute           : {failureExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    Candidate          : {string.Join(", ", failureExecution.CandidateTransports)}");
+Console.WriteLine($"    Failure recorded   : {failureRecorded}");
+Console.WriteLine($"    IsCompleted        : {failureExecution.IsCompleted}");
+Console.WriteLine($"    HasFailure         : {failureExecution.HasFailure}");
+Console.WriteLine($"    LastStatus         : {failureExecution.LastStatus}");
+Console.WriteLine();
+
+Console.WriteLine("[20] Route unavailable execution test:");
+
+var routeUnavailableExecution = ground.BeginRouteExecution(
+    unknownTargetEnvelope,
+    nowUtc: DateTimeOffset.UtcNow);
+
+Console.WriteLine($"    ExecutionId        : {routeUnavailableExecution.ExecutionId}");
+Console.WriteLine($"    CanRoute           : {routeUnavailableExecution.RouteResult.CanRoute}");
+Console.WriteLine($"    IsCompleted        : {routeUnavailableExecution.IsCompleted}");
+Console.WriteLine($"    HasFailure         : {routeUnavailableExecution.HasFailure}");
+Console.WriteLine($"    LastStatus         : {routeUnavailableExecution.LastStatus}");
+Console.WriteLine($"    SendResults        : {routeUnavailableExecution.SendResults.Count}");
+Console.WriteLine();
+
+Console.WriteLine("[21] Route execution diagnostics snapshot test:");
+
+var routeExecutionSnapshot = ground.GetRouteExecutionSnapshot();
+
+Console.WriteLine($"    Route execution count     : {routeExecutionSnapshot.Count}");
+
+foreach (var execution in routeExecutionSnapshot)
+{
+    Console.WriteLine($"    ExecutionId               : {execution.ExecutionId}");
+    Console.WriteLine($"    MessageType               : {execution.MessageType}");
+    Console.WriteLine($"    Target                    : {execution.TargetNodeId}");
+    Console.WriteLine($"    CanRoute                  : {execution.CanRoute}");
+    Console.WriteLine($"    IsCompleted               : {execution.IsCompleted}");
+    Console.WriteLine($"    HasSuccess                : {execution.HasSuccess}");
+    Console.WriteLine($"    HasAck                    : {execution.HasAck}");
+    Console.WriteLine($"    HasTimeout                : {execution.HasTimeout}");
+    Console.WriteLine($"    HasFailure                : {execution.HasFailure}");
+    Console.WriteLine($"    LastStatus                : {execution.LastStatus}");
+    Console.WriteLine($"    BestLatencyMs             : {execution.BestLatencyMs}");
+    Console.WriteLine($"    CandidateTransports       : {string.Join(", ", execution.CandidateTransports)}");
+    Console.WriteLine($"    SendResultCount           : {execution.SendResults.Count}");
+}
+
+var routeAwareOperationSnapshot = ground.CreateOperationSnapshot();
+
+Console.WriteLine();
+Console.WriteLine("    Route-aware operation snapshot:");
+Console.WriteLine($"    Overall health            : {routeAwareOperationSnapshot.OverallHealth}");
+Console.WriteLine($"    Summary                   : {routeAwareOperationSnapshot.Summary}");
+Console.WriteLine($"    Route summary             : {routeAwareOperationSnapshot.RouteExecutionSummary}");
+Console.WriteLine($"    Total route executions    : {routeAwareOperationSnapshot.TotalRouteExecutionCount}");
+Console.WriteLine($"    Pending route executions  : {routeAwareOperationSnapshot.PendingRouteExecutionCount}");
+Console.WriteLine($"    Completed route executions: {routeAwareOperationSnapshot.CompletedRouteExecutionCount}");
+Console.WriteLine($"    Successful route execs    : {routeAwareOperationSnapshot.SuccessfulRouteExecutionCount}");
+Console.WriteLine($"    Acked route execs         : {routeAwareOperationSnapshot.AckedRouteExecutionCount}");
+Console.WriteLine($"    Timeout route execs       : {routeAwareOperationSnapshot.TimeoutRouteExecutionCount}");
+Console.WriteLine($"    Failed route execs        : {routeAwareOperationSnapshot.FailedRouteExecutionCount}");
+Console.WriteLine($"    Unroutable route execs    : {routeAwareOperationSnapshot.RouteUnavailableExecutionCount}");
+Console.WriteLine($"    Total send results        : {routeAwareOperationSnapshot.TotalTransportSendResultCount}");
+Console.WriteLine($"    Successful send results   : {routeAwareOperationSnapshot.SuccessfulTransportSendResultCount}");
+Console.WriteLine($"    ACK send results          : {routeAwareOperationSnapshot.AckedTransportSendResultCount}");
+Console.WriteLine($"    Timeout send results      : {routeAwareOperationSnapshot.TimeoutTransportSendResultCount}");
+Console.WriteLine($"    Failed send results       : {routeAwareOperationSnapshot.FailedTransportSendResultCount}");
+Console.WriteLine($"    Avg route latency ms      : {routeAwareOperationSnapshot.AverageRouteExecutionLatencyMs}");
+Console.WriteLine($"    Best route latency ms     : {routeAwareOperationSnapshot.BestRouteExecutionLatencyMs}");
+Console.WriteLine($"    Worst route latency ms    : {routeAwareOperationSnapshot.WorstRouteExecutionLatencyMs}");
+Console.WriteLine($"    Has warnings              : {routeAwareOperationSnapshot.HasWarnings}");
+Console.WriteLine($"    Has critical issues       : {routeAwareOperationSnapshot.HasCriticalIssues}");
+Console.WriteLine();
+
+Console.WriteLine("[22] Mark stale nodes offline test:");
 
 var changed = ground.MarkStaleNodesOffline(
     timeout: TimeSpan.FromMilliseconds(1),
@@ -1054,6 +1252,8 @@ Console.WriteLine($"    Offline nodes        : {offlineOperationSnapshot.Offline
 Console.WriteLine($"    Link vehicles        : {offlineOperationSnapshot.LinkVehicleCount}");
 Console.WriteLine($"    Total links          : {offlineOperationSnapshot.TotalLinkCount}");
 Console.WriteLine($"    Link summary         : {offlineOperationSnapshot.LinkHealthSummary}");
+Console.WriteLine($"    Route executions     : {offlineOperationSnapshot.TotalRouteExecutionCount}");
+Console.WriteLine($"    Route summary        : {offlineOperationSnapshot.RouteExecutionSummary}");
 Console.WriteLine($"    Has warnings         : {offlineOperationSnapshot.HasWarnings}");
 Console.WriteLine($"    Has critical issues  : {offlineOperationSnapshot.HasCriticalIssues}");
 

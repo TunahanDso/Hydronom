@@ -1,6 +1,7 @@
 namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.GroundStation.LinkHealth;
+using Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
 /// Ground Station tarafının tek bakışta okunabilir operasyon özetini temsil eder.
@@ -13,6 +14,7 @@ using Hydronom.GroundStation.LinkHealth;
 /// - Komut geçmişi,
 /// - Ortak dünya modeli,
 /// - Bağlantı/link sağlığı,
+/// - Route execution / transport gönderim durumu,
 /// - Genel health değerlendirmesi,
 /// - Kısa açıklama.
 /// </summary>
@@ -197,6 +199,118 @@ public sealed record GroundOperationSnapshot
     /// </summary>
     public IReadOnlyList<VehicleLinkHealthSnapshot> LinkHealth { get; init; } =
         Array.Empty<VehicleLinkHealthSnapshot>();
+
+    /// <summary>
+    /// Toplam route execution kaydı sayısı.
+    /// 
+    /// Bu değer GroundTransportExecutionTracker içinde başlatılmış route/gönderim takip kayıtlarını gösterir.
+    /// </summary>
+    public int TotalRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// Henüz tamamlanmamış route execution sayısı.
+    /// </summary>
+    public int PendingRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// Tamamlanmış route execution sayısı.
+    /// </summary>
+    public int CompletedRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// En az bir başarılı gönderim sonucu olan route execution sayısı.
+    /// </summary>
+    public int SuccessfulRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// ACK alınmış route execution sayısı.
+    /// </summary>
+    public int AckedRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// Timeout yaşamış route execution sayısı.
+    /// </summary>
+    public int TimeoutRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// Başarısız route execution sayısı.
+    /// </summary>
+    public int FailedRouteExecutionCount { get; init; }
+
+    /// <summary>
+    /// Route edilemeyen execution sayısı.
+    /// 
+    /// CanRoute false olan route kayıtlarını sayar.
+    /// </summary>
+    public int RouteUnavailableExecutionCount { get; init; }
+
+    /// <summary>
+    /// Transport gönderim sonuçlarının toplam sayısı.
+    /// 
+    /// Bir route execution içinde birden fazla transport denemesi olabilir.
+    /// </summary>
+    public int TotalTransportSendResultCount { get; init; }
+
+    /// <summary>
+    /// Başarılı transport send sonucu sayısı.
+    /// Sent veya Acked durumları başarılı kabul edilir.
+    /// </summary>
+    public int SuccessfulTransportSendResultCount { get; init; }
+
+    /// <summary>
+    /// ACK alınmış transport send sonucu sayısı.
+    /// </summary>
+    public int AckedTransportSendResultCount { get; init; }
+
+    /// <summary>
+    /// Timeout transport send sonucu sayısı.
+    /// </summary>
+    public int TimeoutTransportSendResultCount { get; init; }
+
+    /// <summary>
+    /// Başarısız transport send sonucu sayısı.
+    /// </summary>
+    public int FailedTransportSendResultCount { get; init; }
+
+    /// <summary>
+    /// Route execution kayıtlarında ölçülen ortalama en iyi latency.
+    /// 
+    /// Her execution için BestLatencyMs değerlerinin ortalamasıdır.
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? AverageRouteExecutionLatencyMs { get; init; }
+
+    /// <summary>
+    /// Route execution kayıtlarında görülen en iyi latency değeri.
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? BestRouteExecutionLatencyMs { get; init; }
+
+    /// <summary>
+    /// Route execution kayıtlarında görülen en kötü latency değeri.
+    /// Veri yoksa null kalır.
+    /// </summary>
+    public double? WorstRouteExecutionLatencyMs { get; init; }
+
+    /// <summary>
+    /// Route execution / transport send durumunun kısa insan-okunabilir açıklaması.
+    /// 
+    /// Hydronom Ops diagnostics panelinde, command route ekranında veya iletişim geçmişinde gösterilebilir.
+    /// </summary>
+    public string RouteExecutionSummary { get; init; } = "No route execution data.";
+
+    /// <summary>
+    /// Route execution snapshot listesi.
+    /// 
+    /// Bu alan Hydronom Ops tarafında:
+    /// - route history,
+    /// - command delivery trace,
+    /// - transport send result history,
+    /// - ACK / timeout izleme
+    /// ekranlarını besleyebilir.
+    /// </summary>
+    public IReadOnlyList<RouteExecutionSnapshot> RouteExecutions { get; init; } =
+        Array.Empty<RouteExecutionSnapshot>();
 
     /// <summary>
     /// Ground Station genel health değerlendirmesi.

@@ -3,6 +3,7 @@ namespace Hydronom.GroundStation.Diagnostics;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Commanding;
 using Hydronom.GroundStation.LinkHealth;
+using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
 
 /// <summary>
@@ -14,6 +15,7 @@ using Hydronom.GroundStation.WorldModel;
 /// - CommandTracker geçmişini yorumlamak,
 /// - GroundWorldModel durumunu yorumlamak,
 /// - LinkHealthTracker bağlantı sağlığını yorumlamak,
+/// - GroundTransportExecutionTracker route/gönderim durumunu yorumlamak,
 /// - genel health ve kısa açıklama üretmektir.
 /// 
 /// Böylece Hydronom Ops veya ilerideki Gateway katmanı tek çağrıyla
@@ -22,21 +24,22 @@ using Hydronom.GroundStation.WorldModel;
 public sealed class GroundDiagnosticsEngine
 {
     /// <summary>
-    /// Filo, komut, dünya modeli ve bağlantı sağlığı verilerinden operasyon snapshot'ı üretir.
+    /// Filo, komut, dünya modeli, bağlantı sağlığı ve route execution verilerinden operasyon snapshot'ı üretir.
     /// 
-    /// linkHealthSnapshot opsiyoneldir.
+    /// linkHealthSnapshot ve routeExecutionSnapshot opsiyoneldir.
     /// Böylece eski çağrılar bozulmadan çalışmaya devam eder.
-    /// GroundStationEngine ilerleyen adımda LinkHealthTracker snapshot'ını buraya bağlayacaktır.
     /// </summary>
     public GroundOperationSnapshot CreateSnapshot(
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot,
         IReadOnlyList<CommandRecord> commandSnapshot,
         GroundWorldModel worldModel,
-        IReadOnlyList<VehicleLinkHealthSnapshot>? linkHealthSnapshot = null)
+        IReadOnlyList<VehicleLinkHealthSnapshot>? linkHealthSnapshot = null,
+        IReadOnlyList<RouteExecutionSnapshot>? routeExecutionSnapshot = null)
     {
         fleetSnapshot ??= Array.Empty<VehicleNodeStatus>();
         commandSnapshot ??= Array.Empty<CommandRecord>();
         linkHealthSnapshot ??= Array.Empty<VehicleLinkHealthSnapshot>();
+        routeExecutionSnapshot ??= Array.Empty<RouteExecutionSnapshot>();
 
         var totalNodes = fleetSnapshot.Count;
         var onlineNodes = fleetSnapshot.Count(x => x.IsOnline);
@@ -114,6 +117,54 @@ public sealed class GroundDiagnosticsEngine
             averageTransportLinkQualityScore,
             worstTransportLinkQualityScore);
 
+        var routeExecutions = routeExecutionSnapshot.ToArray();
+
+        var totalRouteExecutions = routeExecutions.Length;
+        var pendingRouteExecutions = routeExecutions.Count(x => !x.IsCompleted);
+        var completedRouteExecutions = routeExecutions.Count(x => x.IsCompleted);
+        var successfulRouteExecutions = routeExecutions.Count(x => x.HasSuccess);
+        var ackedRouteExecutions = routeExecutions.Count(x => x.HasAck);
+        var timeoutRouteExecutions = routeExecutions.Count(x => x.HasTimeout);
+        var failedRouteExecutions = routeExecutions.Count(x => x.HasFailure);
+        var routeUnavailableExecutions = routeExecutions.Count(x => !x.CanRoute);
+
+        var transportSendResults = routeExecutions
+            .SelectMany(x => x.SendResults ?? Array.Empty<TransportSendResult>())
+            .ToArray();
+
+        var totalTransportSendResults = transportSendResults.Length;
+        var successfulTransportSendResults = transportSendResults.Count(x => x.Success);
+        var ackedTransportSendResults = transportSendResults.Count(x => x.HasAck);
+        var timeoutTransportSendResults = transportSendResults.Count(x => x.IsTimeout);
+        var failedTransportSendResults = transportSendResults.Count(x => x.IsFailure);
+
+        var routeLatencies = routeExecutions
+            .Where(x => x.BestLatencyMs.HasValue)
+            .Select(x => x.BestLatencyMs!.Value)
+            .ToArray();
+
+        double? averageRouteExecutionLatencyMs = routeLatencies.Length == 0
+            ? null
+            : Math.Round(routeLatencies.Average(), 2);
+
+        double? bestRouteExecutionLatencyMs = routeLatencies.Length == 0
+            ? null
+            : Math.Round(routeLatencies.Min(), 2);
+
+        double? worstRouteExecutionLatencyMs = routeLatencies.Length == 0
+            ? null
+            : Math.Round(routeLatencies.Max(), 2);
+
+        var routeExecutionSummary = BuildRouteExecutionSummary(
+            totalRouteExecutions,
+            successfulRouteExecutions,
+            ackedRouteExecutions,
+            timeoutRouteExecutions,
+            failedRouteExecutions,
+            routeUnavailableExecutions,
+            averageRouteExecutionLatencyMs,
+            worstRouteExecutionLatencyMs);
+
         var overallHealth = EvaluateOverallHealth(
             totalNodes,
             onlineNodes,
@@ -125,7 +176,12 @@ public sealed class GroundDiagnosticsEngine
             goodLinks,
             degradedLinks,
             criticalLinks,
-            lostLinks);
+            lostLinks,
+            totalRouteExecutions,
+            pendingRouteExecutions,
+            timeoutRouteExecutions,
+            failedRouteExecutions,
+            routeUnavailableExecutions);
 
         var summary = BuildSummary(
             overallHealth,
@@ -135,7 +191,8 @@ public sealed class GroundDiagnosticsEngine
             failedCommands,
             activeObstacles,
             activeTargets,
-            linkHealthSummary);
+            linkHealthSummary,
+            routeExecutionSummary);
 
         return new GroundOperationSnapshot
         {
@@ -173,6 +230,25 @@ public sealed class GroundDiagnosticsEngine
             LinkHealthSummary = linkHealthSummary,
             LinkHealth = linkVehicles,
 
+            TotalRouteExecutionCount = totalRouteExecutions,
+            PendingRouteExecutionCount = pendingRouteExecutions,
+            CompletedRouteExecutionCount = completedRouteExecutions,
+            SuccessfulRouteExecutionCount = successfulRouteExecutions,
+            AckedRouteExecutionCount = ackedRouteExecutions,
+            TimeoutRouteExecutionCount = timeoutRouteExecutions,
+            FailedRouteExecutionCount = failedRouteExecutions,
+            RouteUnavailableExecutionCount = routeUnavailableExecutions,
+            TotalTransportSendResultCount = totalTransportSendResults,
+            SuccessfulTransportSendResultCount = successfulTransportSendResults,
+            AckedTransportSendResultCount = ackedTransportSendResults,
+            TimeoutTransportSendResultCount = timeoutTransportSendResults,
+            FailedTransportSendResultCount = failedTransportSendResults,
+            AverageRouteExecutionLatencyMs = averageRouteExecutionLatencyMs,
+            BestRouteExecutionLatencyMs = bestRouteExecutionLatencyMs,
+            WorstRouteExecutionLatencyMs = worstRouteExecutionLatencyMs,
+            RouteExecutionSummary = routeExecutionSummary,
+            RouteExecutions = routeExecutions,
+
             OverallHealth = overallHealth,
             Summary = summary
         };
@@ -206,7 +282,7 @@ public sealed class GroundDiagnosticsEngine
     /// Ground Station genel sağlık durumunu değerlendirir.
     /// 
     /// İlk fazda basit kural tabanlı değerlendirme kullanıyoruz.
-    /// Link health verisi varsa bağlantı durumu da genel değerlendirmeye katılır.
+    /// Link health ve route execution verisi varsa bunlar da genel değerlendirmeye katılır.
     /// </summary>
     private static string EvaluateOverallHealth(
         int totalNodes,
@@ -219,7 +295,12 @@ public sealed class GroundDiagnosticsEngine
         int goodLinks,
         int degradedLinks,
         int criticalLinks,
-        int lostLinks)
+        int lostLinks,
+        int totalRouteExecutions,
+        int pendingRouteExecutions,
+        int timeoutRouteExecutions,
+        int failedRouteExecutions,
+        int routeUnavailableExecutions)
     {
         if (totalNodes == 0)
             return "Critical";
@@ -237,6 +318,13 @@ public sealed class GroundDiagnosticsEngine
         if (totalLinks > 0 && goodLinks == 0 && degradedLinks == 0)
             return "Critical";
 
+        // Route execution verisi varsa ve route/gönderim başarısızlıkları çok baskınsa kritik kabul edilir.
+        if (totalRouteExecutions > 0 &&
+            failedRouteExecutions + timeoutRouteExecutions + routeUnavailableExecutions >= Math.Max(3, totalRouteExecutions))
+        {
+            return "Critical";
+        }
+
         if (warningNodes > 0)
             return "Warning";
 
@@ -250,6 +338,12 @@ public sealed class GroundDiagnosticsEngine
             return "Warning";
 
         if (degradedLinks > 0)
+            return "Warning";
+
+        if (pendingRouteExecutions >= 5)
+            return "Warning";
+
+        if (timeoutRouteExecutions > 0 || failedRouteExecutions > 0 || routeUnavailableExecutions > 0)
             return "Warning";
 
         return "OK";
@@ -293,6 +387,38 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
+    /// Route execution / transport send için kısa özet cümlesi üretir.
+    /// </summary>
+    private static string BuildRouteExecutionSummary(
+        int totalRouteExecutions,
+        int successfulRouteExecutions,
+        int ackedRouteExecutions,
+        int timeoutRouteExecutions,
+        int failedRouteExecutions,
+        int routeUnavailableExecutions,
+        double? averageRouteExecutionLatencyMs,
+        double? worstRouteExecutionLatencyMs)
+    {
+        if (totalRouteExecutions == 0)
+            return "No route execution data.";
+
+        var avgText = averageRouteExecutionLatencyMs.HasValue
+            ? averageRouteExecutionLatencyMs.Value.ToString("0.##")
+            : "n/a";
+
+        var worstText = worstRouteExecutionLatencyMs.HasValue
+            ? worstRouteExecutionLatencyMs.Value.ToString("0.##")
+            : "n/a";
+
+        if (timeoutRouteExecutions > 0 || failedRouteExecutions > 0 || routeUnavailableExecutions > 0)
+        {
+            return $"Route execution warning: {successfulRouteExecutions}/{totalRouteExecutions} successful, {ackedRouteExecutions} acked, {timeoutRouteExecutions} timeout, {failedRouteExecutions} failed, {routeUnavailableExecutions} unroutable, avg latency {avgText} ms, worst {worstText} ms.";
+        }
+
+        return $"Route executions OK: {successfulRouteExecutions}/{totalRouteExecutions} successful, {ackedRouteExecutions} acked, avg latency {avgText} ms, worst {worstText} ms.";
+    }
+
+    /// <summary>
     /// Snapshot için kısa özet cümlesi üretir.
     /// </summary>
     private static string BuildSummary(
@@ -303,18 +429,19 @@ public sealed class GroundDiagnosticsEngine
         int failedCommands,
         int activeObstacles,
         int activeTargets,
-        string linkHealthSummary)
+        string linkHealthSummary,
+        string routeExecutionSummary)
     {
         if (string.Equals(overallHealth, "Critical", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary}";
+            return $"Critical ground status: {onlineNodes}/{totalNodes} nodes online, {failedCommands} failed commands, {activeObstacles} active obstacles. {linkHealthSummary} {routeExecutionSummary}";
         }
 
         if (string.Equals(overallHealth, "Warning", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary}";
+            return $"Warning ground status: {onlineNodes}/{totalNodes} nodes online, {pendingCommands} pending commands, {failedCommands} failed commands. {linkHealthSummary} {routeExecutionSummary}";
         }
 
-        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary}";
+        return $"Ground station OK: {onlineNodes}/{totalNodes} nodes online, {activeObstacles} active obstacles, {activeTargets} active targets. {linkHealthSummary} {routeExecutionSummary}";
     }
 }

@@ -9,6 +9,7 @@ using Hydronom.GroundStation.Diagnostics;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.Routing;
 using Hydronom.GroundStation.Telemetry;
+using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
@@ -25,6 +26,7 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
 /// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
 /// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
+/// - GroundTransportExecutionTracker ile route/gönderim sonuçlarını takip etmek,
 /// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
 /// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
 /// - Heartbeat mesajlarını registry'ye işlemek,
@@ -41,143 +43,79 @@ using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 /// - ReplayRecorder
 /// - GroundWorldModel
 /// - LinkHealthTracker / LinkQualityMap
+/// - GroundTransportExecutionTracker
 /// </summary>
 public sealed class GroundStationEngine
 {
     /// <summary>
     /// Yer istasyonunun araç/node kayıt defteri.
-    /// 
-    /// Araçlardan gelen heartbeat/status mesajları bu registry'yi günceller.
-    /// Hydronom Ops veya Gateway tarafı güncel filo görünümünü buradan alabilir.
     /// </summary>
     public FleetRegistryStore FleetRegistry { get; } = new();
 
     /// <summary>
     /// Yer istasyonu tarafından gönderilen komutları ve araçlardan dönen sonuçları takip eder.
-    /// 
-    /// Bu yapı ileride Hydronom Ops tarafındaki:
-    /// - Command History
-    /// - Operator Timeline
-    /// - Safety Rejection Log
-    /// - Mission Command Audit
-    /// ekranlarının temel veri kaynağı olacaktır.
     /// </summary>
     public CommandTracker CommandTracker { get; } = new();
 
     /// <summary>
     /// Yer istasyonunun ortak dünya modelidir.
-    /// 
-    /// Farklı araçlardan gelen obstacle, target, no-go zone, mission area,
-    /// link quality ve event bilgileri burada tutulabilir.
-    /// 
-    /// Bu yapı ileride:
-    /// - TelemetryFusionEngine,
-    /// - GroundAnalysisEngine,
-    /// - MissionPlanner,
-    /// - Hydronom Ops map paneli
-    /// için temel veri kaynağı olacaktır.
     /// </summary>
     public GroundWorldModel WorldModel { get; } = new();
 
     /// <summary>
     /// Görev isteklerini filo içindeki uygun araca atamaya çalışan ilk görev dağıtım modülüdür.
-    /// 
-    /// Bu yapı şu an:
-    /// - Online araçları,
-    /// - Araç tipini,
-    /// - Zorunlu/tercih edilen kabiliyetleri,
-    /// - Batarya ve health durumunu
-    /// dikkate alarak basit bir skor üretir.
     /// </summary>
     public MissionAllocator MissionAllocator { get; } = new();
 
     /// <summary>
     /// Görev isteğini alıp uygun aracı seçen ve araca gönderilecek FleetCommand envelope üreten
     /// koordinasyon modülüdür.
-    /// 
-    /// Bu yapı MissionAllocator'ın bir üst katmanıdır:
-    /// - MissionAllocator hangi aracın uygun olduğunu seçer.
-    /// - FleetCoordinator bu kararı FleetCommand'a dönüştürür.
     /// </summary>
     public FleetCoordinator FleetCoordinator { get; }
 
     /// <summary>
     /// Gönderilecek HydronomEnvelope mesajları için route sonucu üreten iletişim yönlendiricisidir.
-    /// 
-    /// Bu yapı şimdilik gerçek gönderim yapmaz.
-    /// İlk fazda:
-    /// - TransportRoutingPolicy kararını alır,
-    /// - hedef node'un AvailableTransports listesini okur,
-    /// - route kararını uygulanabilir transport'lara göre filtreler,
-    /// - mesaj gönderilebilir mi sorusuna cevap verir.
-    /// 
-    /// İleride TransportManager, ITransport implementasyonları, retry/ACK, send queue
-    /// ve LinkHealthTracker destekli link-aware routing bu yapının üzerine bağlanacaktır.
     /// </summary>
     public CommunicationRouter CommunicationRouter { get; } = new();
 
     /// <summary>
     /// CommunicationRouter tarafından üretilen route sonucuna göre telemetry profil planı üretir.
-    /// 
-    /// Bu yapı:
-    /// - Route edilebilen transport listesini inceler,
-    /// - AdaptiveTelemetryProfileSelector ile Light/Normal/Full profil seçer,
-    /// - Diagnostics ve Hydronom Ops tarafı için açıklamalı telemetry planı üretir.
-    /// 
-    /// İlk fazda gerçek telemetry payload üretmez.
-    /// Sadece route + telemetry yoğunluğu kararını birleştirir.
     /// </summary>
     public TelemetryRoutePlanner TelemetryRoutePlanner { get; } = new();
 
     /// <summary>
     /// Yer istasyonu seviyesinde araçların haberleşme bağlantı kalitesini takip eder.
-    /// 
-    /// Bu yapı:
-    /// - Araç başına bağlantı kalite skoru,
-    /// - Transport bazlı health durumu,
-    /// - ACK / timeout / latency / packet loss benzeri metrikler,
-    /// - Son route başarı/başarısızlık bilgisi
-    /// için temel veri kaynağıdır.
-    /// 
-    /// İleride:
-    /// - GroundDiagnosticsEngine,
-    /// - CommunicationRouter,
-    /// - TelemetryRoutePlanner,
-    /// - Hydronom Ops link health paneli
-    /// bu tracker üzerinden beslenecektir.
     /// </summary>
     public LinkHealthTracker LinkHealthTracker { get; } = new();
 
     /// <summary>
-    /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
+    /// Route execution / transport gönderim sonucu takip motorudur.
     /// 
     /// Bu yapı:
-    /// - Filo durumunu,
-    /// - Komut geçmişini,
-    /// - Dünya modeli durumunu,
-    /// - Link health durumunu,
-    /// - Genel health sonucunu,
-    /// - Kısa özet açıklamasını
-    /// üretir.
+    /// - Route kararından execution kaydı başlatır,
+    /// - Transport gönderim denemelerini kaydeder,
+    /// - Sent / Acked / Timeout / Failed sonuçlarını takip eder,
+    /// - LinkHealthTracker'ı otomatik günceller,
+    /// - Diagnostics ve Hydronom Ops için execution snapshot üretir.
     /// 
-    /// Hydronom Ops ve Gateway tarafında üst panel / diagnostics ekranı için kullanılabilir.
+    /// Gerçek transport katmanı geldiğinde router → transport send → result → link health
+    /// zincirinin merkezi olacaktır.
+    /// </summary>
+    public GroundTransportExecutionTracker TransportExecutionTracker { get; }
+
+    /// <summary>
+    /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
     /// </summary>
     public GroundDiagnosticsEngine DiagnosticsEngine { get; } = new();
 
     /// <summary>
     /// Ground Station tarafında gelen mesajları MessageType değerine göre
     /// ilgili handler'a yönlendiren dispatcher.
-    /// 
-    /// Bu yapı sayesinde GroundStationEngine içinde sürekli büyüyen
-    /// if/switch blokları oluşmaz.
     /// </summary>
     public GroundMessageDispatcher Dispatcher { get; }
 
     /// <summary>
     /// Yer istasyonunun kendi node kimliği.
-    /// 
-    /// Varsayılan olarak GROUND-001 kullanıyoruz.
-    /// İleride config üzerinden değiştirilebilir.
     /// </summary>
     public NodeIdentity Identity { get; init; } = new()
     {
@@ -189,18 +127,11 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// GroundStationEngine oluşturur.
-    /// 
-    /// Dispatcher burada:
-    /// - FleetHeartbeat mesajlarını FleetRegistry.ApplyHeartbeat metoduna,
-    /// - FleetCommandResult mesajlarını CommandTracker.ApplyResult metoduna
-    /// bağlar.
-    /// 
-    /// FleetCoordinator ise aynı MissionAllocator örneğiyle oluşturulur.
-    /// Böylece görev atama skorlama mantığı tek yerde kalır.
     /// </summary>
     public GroundStationEngine()
     {
         FleetCoordinator = new FleetCoordinator(MissionAllocator);
+        TransportExecutionTracker = new GroundTransportExecutionTracker(LinkHealthTracker);
 
         Dispatcher = new GroundMessageDispatcher(
             onHeartbeat: FleetRegistry.ApplyHeartbeat,
@@ -209,9 +140,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Gelen HydronomEnvelope mesajını işler.
-    /// 
-    /// Artık mesaj tipi ayrıştırma işi GroundMessageDispatcher tarafından yapılır.
-    /// Bu sınıf yalnızca ana giriş noktası olarak davranır.
     /// </summary>
     public bool HandleEnvelope(HydronomEnvelope envelope)
     {
@@ -221,13 +149,6 @@ public sealed class GroundStationEngine
     /// <summary>
     /// Yer istasyonu tarafından üretilecek/gönderilecek bir komutu kayıt altına alır
     /// ve aynı komutu HydronomEnvelope içine sararak döndürür.
-    /// 
-    /// Bu metot komutu henüz fiziksel olarak göndermez.
-    /// Sadece:
-    /// - CommandTracker içine kaydeder,
-    /// - HydronomEnvelopeFactory ile envelope üretir.
-    /// 
-    /// Gerçek gönderim ileride CommunicationRouter / TransportManager üzerinden yapılacaktır.
     /// </summary>
     public HydronomEnvelope? CreateTrackedCommandEnvelope(FleetCommand command)
     {
@@ -244,16 +165,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
-    /// 
-    /// Bu metot görevi fiziksel olarak araca göndermez.
-    /// Sadece MissionAllocator üzerinden görev atama kararı üretir.
-    /// 
-    /// İleride bu karar:
-    /// - FleetCommand üretimine,
-    /// - Operatör onayına,
-    /// - AI öneri katmanına,
-    /// - MissionPlanner akışına
-    /// bağlanabilir.
     /// </summary>
     public MissionAllocationResult AllocateMission(MissionRequest request)
     {
@@ -264,14 +175,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen görev isteğini filo koordinasyon sonucuna çevirir.
-    /// 
-    /// Bu metot:
-    /// - FleetCoordinator ile uygun aracı seçer,
-    /// - AssignMission FleetCommand üretir,
-    /// - Üretilen komutu CommandTracker'a kaydeder,
-    /// - Tracked HydronomEnvelope döndürür.
-    /// 
-    /// Eğer koordinasyon başarılı fakat tracking başarısız olursa sonuç başarısız kabul edilir.
     /// </summary>
     public FleetCoordinationResult CoordinateMission(MissionRequest request)
     {
@@ -303,14 +206,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen envelope için mevcut fleet snapshot üzerinden route sonucu üretir.
-    /// 
-    /// Bu metot gerçek gönderim yapmaz.
-    /// Sadece CommunicationRouter üzerinden:
-    /// - hedef node biliniyor mu,
-    /// - hedef hangi transport'lara sahip,
-    /// - policy hangi route'u öneriyor,
-    /// - filtre sonrası uygulanabilir transport kaldı mı
-    /// sorularına cevap verir.
     /// </summary>
     public CommunicationRouteResult RouteEnvelope(HydronomEnvelope envelope)
     {
@@ -321,13 +216,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen envelope için mevcut fleet snapshot ve LinkHealthTracker üzerinden link-aware route sonucu üretir.
-    /// 
-    /// Bu metot:
-    /// - FleetRegistry'deki AvailableTransports listesini,
-    /// - LinkHealthTracker içindeki kullanılabilir bağlantıları
-    /// birlikte değerlendirir.
-    /// 
-    /// İlk fazda sadece Good/Degraded linkleri kullanılabilir kabul eden hazırlık katmanıdır.
     /// </summary>
     public CommunicationRouteResult RouteEnvelopeWithLinkHealth(HydronomEnvelope envelope)
     {
@@ -341,12 +229,186 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen route sonucuna göre telemetry profil planı üretir.
+    /// Verilen envelope için route sonucu üretir ve route execution kaydı başlatır.
     /// 
-    /// Bu metot:
-    /// - Route sonucu uygulanabilir mi bakar,
-    /// - route içindeki Primary/Fallback transport listesini inceler,
-    /// - uygun Light/Normal/Full telemetry profilini seçer.
+    /// Bu metot gerçek gönderim yapmaz.
+    /// Sadece gönderim denemesinin takip edilebilir kayıt nesnesini üretir.
+    /// </summary>
+    public RouteExecutionRecord BeginRouteExecution(
+        HydronomEnvelope envelope,
+        DateTimeOffset? nowUtc = null)
+    {
+        var route = RouteEnvelope(envelope);
+
+        return TransportExecutionTracker.BeginExecution(
+            envelope,
+            route,
+            nowUtc);
+    }
+
+    /// <summary>
+    /// Verilen envelope için link health destekli route sonucu üretir ve route execution kaydı başlatır.
+    /// 
+    /// Bu metot ileride sağlıklı linklerden gönderim denemesi başlatmak için kullanılacaktır.
+    /// </summary>
+    public RouteExecutionRecord BeginRouteExecutionWithLinkHealth(
+        HydronomEnvelope envelope,
+        DateTimeOffset? nowUtc = null)
+    {
+        var route = RouteEnvelopeWithLinkHealth(envelope);
+
+        return TransportExecutionTracker.BeginExecution(
+            envelope,
+            route,
+            nowUtc);
+    }
+
+    /// <summary>
+    /// Verilen route sonucu ve envelope ile manuel execution kaydı başlatır.
+    /// 
+    /// Testlerde veya dış modüllerde route önceden üretildiyse kullanılır.
+    /// </summary>
+    public RouteExecutionRecord BeginRouteExecution(
+        HydronomEnvelope envelope,
+        CommunicationRouteResult route,
+        DateTimeOffset? nowUtc = null)
+    {
+        return TransportExecutionTracker.BeginExecution(
+            envelope,
+            route,
+            nowUtc);
+    }
+
+    /// <summary>
+    /// Belirli execution için transport gönderim denemesi başladığını kaydeder.
+    /// 
+    /// LinkHealthTracker üzerinde send sayacını da artırır.
+    /// </summary>
+    public bool RecordTransportSendAttempt(
+        string executionId,
+        TransportKind transportKind,
+        DateTimeOffset? nowUtc = null)
+    {
+        return TransportExecutionTracker.RecordSendAttempt(
+            executionId,
+            transportKind,
+            nowUtc);
+    }
+
+    /// <summary>
+    /// Belirli execution için başarılı gönderim sonucunu kaydeder.
+    /// 
+    /// LinkHealthTracker üzerinde route success metriğini de günceller.
+    /// </summary>
+    public bool RecordTransportSent(
+        string executionId,
+        TransportKind transportKind,
+        DateTimeOffset startedUtc,
+        DateTimeOffset completedUtc,
+        double? latencyMs = null,
+        string? reason = null)
+    {
+        return TransportExecutionTracker.RecordSent(
+            executionId,
+            transportKind,
+            startedUtc,
+            completedUtc,
+            latencyMs,
+            reason);
+    }
+
+    /// <summary>
+    /// Belirli execution için ACK alınmış gönderim sonucunu kaydeder.
+    /// 
+    /// LinkHealthTracker üzerinde hem route success hem ACK metriği güncellenir.
+    /// </summary>
+    public bool RecordTransportAcked(
+        string executionId,
+        TransportKind transportKind,
+        DateTimeOffset startedUtc,
+        DateTimeOffset completedUtc,
+        double? latencyMs = null,
+        string? reason = null)
+    {
+        return TransportExecutionTracker.RecordAcked(
+            executionId,
+            transportKind,
+            startedUtc,
+            completedUtc,
+            latencyMs,
+            reason);
+    }
+
+    /// <summary>
+    /// Belirli execution için timeout sonucunu kaydeder.
+    /// 
+    /// LinkHealthTracker üzerinde timeout metriğini de günceller.
+    /// </summary>
+    public bool RecordTransportTimeout(
+        string executionId,
+        TransportKind transportKind,
+        DateTimeOffset startedUtc,
+        DateTimeOffset completedUtc,
+        string? reason = null)
+    {
+        return TransportExecutionTracker.RecordTimeout(
+            executionId,
+            transportKind,
+            startedUtc,
+            completedUtc,
+            reason);
+    }
+
+    /// <summary>
+    /// Belirli execution için başarısız gönderim sonucunu kaydeder.
+    /// 
+    /// LinkHealthTracker üzerinde route failure metriğini de günceller.
+    /// </summary>
+    public bool RecordTransportFailure(
+        string executionId,
+        TransportKind transportKind,
+        TransportSendStatus status,
+        DateTimeOffset startedUtc,
+        DateTimeOffset completedUtc,
+        string reason,
+        string? errorMessage = null)
+    {
+        return TransportExecutionTracker.RecordFailure(
+            executionId,
+            transportKind,
+            status,
+            startedUtc,
+            completedUtc,
+            reason,
+            errorMessage);
+    }
+
+    /// <summary>
+    /// Tüm route execution kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<RouteExecutionSnapshot> GetRouteExecutionSnapshot()
+    {
+        return TransportExecutionTracker.GetSnapshot();
+    }
+
+    /// <summary>
+    /// Pending route execution kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<RouteExecutionSnapshot> GetPendingRouteExecutionSnapshot()
+    {
+        return TransportExecutionTracker.GetPendingSnapshot();
+    }
+
+    /// <summary>
+    /// Başarısız route execution kayıtlarının snapshot listesini döndürür.
+    /// </summary>
+    public IReadOnlyList<RouteExecutionSnapshot> GetFailedRouteExecutionSnapshot()
+    {
+        return TransportExecutionTracker.GetFailedSnapshot();
+    }
+
+    /// <summary>
+    /// Verilen route sonucuna göre telemetry profil planı üretir.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForRoute(CommunicationRouteResult route)
     {
@@ -355,9 +417,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen envelope için önce route sonucu, sonra telemetry route planı üretir.
-    /// 
-    /// Bu yardımcı metot test ve diagnostics amaçlıdır.
-    /// Gerçek sistemde route sonucu ve telemetry planı ayrı aşamalarda da üretilebilir.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForEnvelope(HydronomEnvelope envelope)
     {
@@ -367,9 +426,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen envelope için link health destekli route sonucu, sonra telemetry route planı üretir.
-    /// 
-    /// Bu metot ileride bağlantı kalitesine göre telemetry profil düşürme/yükseltme
-    /// akışına zemin hazırlar.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForEnvelopeWithLinkHealth(HydronomEnvelope envelope)
     {
@@ -379,13 +435,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için route sonucu üretir.
-    /// 
-    /// Bu metot görevi fiziksel olarak göndermez.
-    /// Sadece:
-    /// - görev koordinasyonunu,
-    /// - komut tracking işlemini,
-    /// - route kararını
-    /// tek sonuçta birleştirmek isteyen test/diagnostics akışları için yardımcıdır.
     /// </summary>
     public CommunicationRouteResult? CoordinateMissionAndRoute(MissionRequest request)
     {
@@ -412,12 +461,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen görev isteğini koordine eder, route eder ve telemetry planını üretir.
-    /// 
-    /// Bu metot:
-    /// - MissionRequest → FleetCommand envelope,
-    /// - envelope → route kararı,
-    /// - route kararı → telemetry profil planı
-    /// zincirini tek çağrıda test etmeyi sağlar.
     /// </summary>
     public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetry(MissionRequest request)
     {
@@ -431,9 +474,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Verilen görev isteğini koordine eder, link health destekli route eder ve telemetry planını üretir.
-    /// 
-    /// Bu helper ileride görev atama sonrası bağlantı kalitesine duyarlı telemetry
-    /// profil kararını tek çağrıda almak için kullanılabilir.
     /// </summary>
     public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetryWithLinkHealth(MissionRequest request)
     {
@@ -447,34 +487,19 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Ground Station'ın mevcut operasyon durumundan tek bakışlık snapshot üretir.
-    /// 
-    /// Bu metot:
-    /// - FleetRegistry snapshot,
-    /// - CommandTracker snapshot,
-    /// - GroundWorldModel durumu,
-    /// - LinkHealthTracker bağlantı sağlık durumu
-    /// okuyarak GroundOperationSnapshot döndürür.
-    /// 
-    /// Hydronom Ops üst paneli, Gateway diagnostics endpoint'i veya smoke test
-    /// bu metot üzerinden genel yer istasyonu sağlığını okuyabilir.
     /// </summary>
-    public GroundOperationSnapshot CreateOperationSnapshot()
-    {
-        return DiagnosticsEngine.CreateSnapshot(
-            FleetRegistry.GetSnapshot(),
-            CommandTracker.GetSnapshot(),
-            WorldModel,
-            LinkHealthTracker.GetSnapshot(DateTime.UtcNow));
-    }
+   public GroundOperationSnapshot CreateOperationSnapshot()
+{
+    return DiagnosticsEngine.CreateSnapshot(
+        FleetRegistry.GetSnapshot(),
+        CommandTracker.GetSnapshot(),
+        WorldModel,
+        LinkHealthTracker.GetSnapshot(DateTime.UtcNow),
+        TransportExecutionTracker.GetSnapshot());
+}
 
     /// <summary>
     /// Belirli bir aracın belirli bir transport üzerinden görüldüğünü LinkHealthTracker'a bildirir.
-    /// 
-    /// Bu metot heartbeat, telemetry, command result veya başka bir inbound mesaj alındığında
-    /// çağrılabilir.
-    /// 
-    /// İlk fazda otomatik transport algılama henüz yapılmadığı için transportKind dışarıdan verilir.
-    /// İleride envelope metadata / transport context üzerinden otomatik doldurulabilir.
     /// </summary>
     public void MarkLinkSeen(
         string vehicleId,
@@ -489,9 +514,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Bir araca belirli transport üzerinden mesaj gönderme denemesini kayıt altına alır.
-    /// 
-    /// Bu metot gerçek gönderim yapmaz.
-    /// Sadece bağlantı sağlık metriği için send sayacını artırır.
     /// </summary>
     public void RecordLinkSend(
         string vehicleId,
@@ -506,8 +528,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Bir route/gönderim denemesinin başarılı olduğunu bağlantı sağlık metriğine işler.
-    /// 
-    /// latencyMs verilirse bağlantının gecikme metriği de güncellenir.
     /// </summary>
     public void RecordLinkRouteSuccess(
         string vehicleId,
@@ -538,8 +558,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli bir transport üzerinden ACK alındığını bağlantı sağlık metriğine işler.
-    /// 
-    /// latencyMs verilirse round-trip latency gibi kullanılabilir.
     /// </summary>
     public void RecordLinkAck(
         string vehicleId,
@@ -556,8 +574,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli bir transport üzerinden timeout yaşandığını bağlantı sağlık metriğine işler.
-    /// 
-    /// Bu metot FailureCount ve TimeoutCount değerlerini etkiler.
     /// </summary>
     public void RecordLinkTimeout(
         string vehicleId,
@@ -572,9 +588,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Tahmini paket kaybı bilgisini bağlantı sağlık metriğine işler.
-    /// 
-    /// İlk fazda bu değer manuel/test amaçlı girilir.
-    /// İleride sequence number veya ACK takip sistemiyle otomatik hesaplanabilir.
     /// </summary>
     public void RecordEstimatedLinkPacketLoss(
         string vehicleId,
@@ -591,9 +604,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Tüm araçların bağlantı sağlık snapshot listesini döndürür.
-    /// 
-    /// Hydronom Ops link health paneli, diagnostics ekranı veya smoke test
-    /// bu metotla güncel bağlantı durumunu okuyabilir.
     /// </summary>
     public IReadOnlyList<VehicleLinkHealthSnapshot> GetLinkHealthSnapshot(DateTime? nowUtc = null)
     {
@@ -602,9 +612,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli bir araç için en iyi kullanılabilir bağlantıyı döndürür.
-    /// 
-    /// Bu metot ileride CommunicationRouter'ın link-aware routing kararına
-    /// doğrudan girdi sağlayacaktır.
     /// </summary>
     public TransportLinkMetrics? GetBestAvailableLink(string vehicleId)
     {
@@ -621,14 +628,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// GroundWorldModel içine yeni bir dünya nesnesi ekler veya mevcut nesneyi günceller.
-    /// 
-    /// Bu metot şu an doğrudan WorldModel.Upsert çağırır.
-    /// İleride burada:
-    /// - TelemetryFusionEngine ile nesne birleştirme,
-    /// - confidence güncelleme,
-    /// - kaynak doğrulama,
-    /// - duplicate obstacle merge
-    /// gibi işlemler eklenebilir.
     /// </summary>
     public bool UpsertWorldObject(GroundWorldObject worldObject)
     {
@@ -637,9 +636,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// GroundWorldModel içindeki tüm dünya nesnelerinin snapshot listesini döndürür.
-    /// 
-    /// Hydronom Ops map paneli, diagnostics ekranı veya test kodu
-    /// bu metotla ortak dünya modelini okuyabilir.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetWorldSnapshot()
     {
@@ -672,14 +668,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// FleetCommandResult mesajlarını işler.
-    /// 
-    /// Gelen result, CommandTracker içinde daha önce kaydedilmiş komutla eşleştirilir.
-    /// Böylece Ground Station:
-    /// - Komut kabul edildi mi?
-    /// - SafetyGate engelledi mi?
-    /// - Komut uygulandı mı?
-    /// - Komut başarısız mı oldu?
-    /// sorularını takip edebilir.
     /// </summary>
     private bool HandleCommandResult(FleetCommandResult result)
     {
@@ -691,8 +679,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Registry içindeki tüm araç/node durumlarının snapshot listesini döndürür.
-    /// 
-    /// Ops Gateway veya test kodu bu metotla güncel filo görünümünü alabilir.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetFleetSnapshot()
     {
@@ -701,9 +687,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Online kabul edilen araç/node durumlarının snapshot listesini döndürür.
-    /// 
-    /// Bu metot ileride Hydronom Ops tarafında sadece aktif araçları göstermek için
-    /// kullanılabilir.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetOnlineFleetSnapshot()
     {
@@ -712,8 +695,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Kayıtlı tüm komut geçmişinin snapshot listesini döndürür.
-    /// 
-    /// Hydronom Ops ileride bu metotla komut geçmişi ekranını besleyebilir.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetCommandHistorySnapshot()
     {
@@ -730,8 +711,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli süre heartbeat göndermeyen araçları offline olarak işaretler.
-    /// 
-    /// Bu metot GroundStation ana döngüsü veya timer tarafından çağrılabilir.
     /// </summary>
     public int MarkStaleNodesOffline(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -740,8 +719,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli süre boyunca sonuç dönmeyen pending komutları expired olarak işaretler.
-    /// 
-    /// Bu metot ileride GroundStation watchdog veya timer tarafından çağrılabilir.
     /// </summary>
     public int MarkExpiredCommands(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -750,8 +727,6 @@ public sealed class GroundStationEngine
 
     /// <summary>
     /// Belirli süreden uzun süredir güncellenmeyen aktif dünya nesnelerini pasif hale getirir.
-    /// 
-    /// Özellikle geçici obstacle/target bilgileri için kullanılabilir.
     /// </summary>
     public int DeactivateStaleWorldObjects(TimeSpan maxAge, DateTimeOffset? nowUtc = null)
     {
