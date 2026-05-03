@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Hydronom.Core.Domain
@@ -43,13 +43,13 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// Görev tanımı:
-    /// - Name: Görev adı
-    /// - Target: Tek hedef noktası
-    /// - Waypoints: Çok noktalı rota
+    /// GÃ¶rev tanÄ±mÄ±:
+    /// - Name: GÃ¶rev adÄ±
+    /// - Target: Tek hedef noktasÄ±
+    /// - Waypoints: Ã‡ok noktalÄ± rota
     /// - HoldOnArrive: Son noktada bekle
-    /// - WaitSecondsPerPoint: Her waypoint'te bekleme süresi
-    /// - Loop: Rota bittiğinde başa sar
+    /// - WaitSecondsPerPoint: Her waypoint'te bekleme sÃ¼resi
+    /// - Loop: Rota bittiÄŸinde baÅŸa sar
     /// </summary>
     public record TaskDefinition(string Name, Vec3? Target)
     {
@@ -62,12 +62,12 @@ namespace Hydronom.Core.Domain
         public bool Loop { get; set; } = false;
 
         /// <summary>
-        /// Görev aktif olarak hedef içeriyor mu?
+        /// GÃ¶rev aktif olarak hedef iÃ§eriyor mu?
         /// </summary>
         public bool HasTarget => Target is not null || Waypoints.Count > 0;
 
         /// <summary>
-        /// Tek hedefli görev oluşturmak için kısa yardımcı.
+        /// Tek hedefli gÃ¶rev oluÅŸturmak iÃ§in kÄ±sa yardÄ±mcÄ±.
         /// </summary>
         public static TaskDefinition GoTo(string name, Vec3 target, bool holdOnArrive = false)
         {
@@ -78,7 +78,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Çok noktalı rota görevi oluşturmak için yardımcı.
+        /// Ã‡ok noktalÄ± rota gÃ¶revi oluÅŸturmak iÃ§in yardÄ±mcÄ±.
         /// </summary>
         public static TaskDefinition Route(
             string name,
@@ -105,11 +105,11 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// Manuel sürüş komutu.
-    /// Karar modülünden bağımsız doğrudan kullanıcı veya üst runtime tarafından üretilebilir.
-    /// Normalize alan önerisi:
+    /// Manuel sÃ¼rÃ¼ÅŸ komutu.
+    /// Karar modÃ¼lÃ¼nden baÄŸÄ±msÄ±z doÄŸrudan kullanÄ±cÄ± veya Ã¼st runtime tarafÄ±ndan Ã¼retilebilir.
+    /// Normalize alan Ã¶nerisi:
     /// - Surge/Sway/Heave/Roll/Pitch/Yaw -> genelde [-1, +1]
-    /// Ancak bu sınıf değeri zorla clamp etmez.
+    /// Ancak bu sÄ±nÄ±f deÄŸeri zorla clamp etmez.
     /// </summary>
     public readonly record struct ManualDriveCommand(
         double Surge,
@@ -130,8 +130,8 @@ namespace Hydronom.Core.Domain
             Math.Abs(Yaw) < 1e-12;
 
         /// <summary>
-        /// Manuel komutu fiziksel karara dönüştürmek için basit yardımcı.
-        /// Katsayıları üst katman verebilir.
+        /// Manuel komutu fiziksel karara dÃ¶nÃ¼ÅŸtÃ¼rmek iÃ§in basit yardÄ±mcÄ±.
+        /// KatsayÄ±larÄ± Ã¼st katman verebilir.
         /// </summary>
         public DecisionCommand ToDecisionCommand(
             double maxFx,
@@ -153,11 +153,11 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// 6-DoF karar çıktısı:
-    /// - Fx, Fy, Fz : body-frame kuvvet bileşenleri
-    /// - Tx, Ty, Tz : body-frame tork bileşenleri
+    /// 6-DoF karar Ã§Ä±ktÄ±sÄ±:
+    /// - Fx, Fy, Fz : body-frame kuvvet bileÅŸenleri
+    /// - Tx, Ty, Tz : body-frame tork bileÅŸenleri
     ///
-    /// Geriye dönük uyumluluk:
+    /// Geriye dÃ¶nÃ¼k uyumluluk:
     /// - Throttle01      -> Fx
     /// - RudderNeg1To1   -> Tz
     /// </summary>
@@ -174,7 +174,7 @@ namespace Hydronom.Core.Domain
         public double Tz { get; init; }
 
         /// <summary>
-        /// Eski planar API alias'ı.
+        /// Eski planar API alias'Ä±.
         /// </summary>
         public double Throttle01
         {
@@ -183,7 +183,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Eski planar API alias'ı.
+        /// Eski planar API alias'Ä±.
         /// </summary>
         public double RudderNeg1To1
         {
@@ -206,7 +206,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Geriye dönük planar kurucu:
+        /// Geriye dÃ¶nÃ¼k planar kurucu:
         /// throttle -> Fx
         /// rudder   -> Tz
         /// </summary>
@@ -250,7 +250,7 @@ namespace Hydronom.Core.Domain
             => manual.ToDecisionCommand(maxFx, maxFy, maxFz, maxTx, maxTy, maxTz);
 
         /// <summary>
-        /// Belirli katsayı ile tüm eksenleri ölçekler.
+        /// Belirli katsayÄ± ile tÃ¼m eksenleri Ã¶lÃ§ekler.
         /// </summary>
         public DecisionCommand Scale(double factor)
         {
@@ -265,7 +265,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Manual / safety override akışlarında hızlı toplama için.
+        /// Manual / safety override akÄ±ÅŸlarÄ±nda hÄ±zlÄ± toplama iÃ§in.
         /// </summary>
         public DecisionCommand Add(DecisionCommand other)
         {

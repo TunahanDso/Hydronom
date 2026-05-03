@@ -1,16 +1,16 @@
-namespace Hydronom.GroundStation.Ack;
+﻿namespace Hydronom.GroundStation.Ack;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Command ACK korelasyon kayıtlarının immutable snapshot modelidir.
+/// Command ACK korelasyon kayÄ±tlarÄ±nÄ±n immutable snapshot modelidir.
 /// 
-/// Hydronom Ops tarafında:
+/// Hydronom Ops tarafÄ±nda:
 /// - command delivery trace,
-/// - gerçek ACK durumu,
+/// - gerÃ§ek ACK durumu,
 /// - command result gecikmesi,
 /// - execution correlation
-/// ekranlarını besleyebilir.
+/// ekranlarÄ±nÄ± besleyebilir.
 /// </summary>
 public sealed record CommandAckCorrelationSnapshot
 {

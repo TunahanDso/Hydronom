@@ -1,25 +1,25 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 /// <summary>
-/// Hydronom Fleet & Ground Station mimarisinde tüm haberleşme kanallarının
-/// ortak davranış sözleşmesini temsil eder.
+/// Hydronom Fleet & Ground Station mimarisinde tÃ¼m haberleÅŸme kanallarÄ±nÄ±n
+/// ortak davranÄ±ÅŸ sÃ¶zleÅŸmesini temsil eder.
 /// 
-/// Bu arayüzün amacı:
-/// - TCP, WebSocket, Serial, LoRa, RF modem, MQTT, Cellular, Mesh gibi farklı
-///   haberleşme yöntemlerini tek bir ortak model altında toplamak.
-/// - Üst seviye Hydronom sisteminin "mesaj nasıl taşındı?" detayını bilmesini engellemek.
-/// - CommunicationRouter ve TransportManager gibi modüllerin farklı transport'ları
-///   plug-and-play şekilde kullanabilmesini sağlamaktır.
+/// Bu arayÃ¼zÃ¼n amacÄ±:
+/// - TCP, WebSocket, Serial, LoRa, RF modem, MQTT, Cellular, Mesh gibi farklÄ±
+///   haberleÅŸme yÃ¶ntemlerini tek bir ortak model altÄ±nda toplamak.
+/// - Ãœst seviye Hydronom sisteminin "mesaj nasÄ±l taÅŸÄ±ndÄ±?" detayÄ±nÄ± bilmesini engellemek.
+/// - CommunicationRouter ve TransportManager gibi modÃ¼llerin farklÄ± transport'larÄ±
+///   plug-and-play ÅŸekilde kullanabilmesini saÄŸlamaktÄ±r.
 /// 
-/// Yani üst seviye sistem sadece HydronomEnvelope üretir.
-/// Bu envelope'un hangi kanaldan gönderileceğine transport katmanı karar verir.
+/// Yani Ã¼st seviye sistem sadece HydronomEnvelope Ã¼retir.
+/// Bu envelope'un hangi kanaldan gÃ¶nderileceÄŸine transport katmanÄ± karar verir.
 /// </summary>
 public interface ITransport
 {
     /// <summary>
-    /// Transport instance'ının okunabilir adı.
+    /// Transport instance'Ä±nÄ±n okunabilir adÄ±.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "tcp-main"
     /// - "websocket-ops"
     /// - "lora-long-range"
@@ -29,102 +29,102 @@ public interface ITransport
     /// Bu isim:
     /// - Loglarda,
     /// - Link kalite takibinde,
-    /// - Diagnostics ekranlarında,
-    /// - CommunicationRouter kararlarında kullanılabilir.
+    /// - Diagnostics ekranlarÄ±nda,
+    /// - CommunicationRouter kararlarÄ±nda kullanÄ±labilir.
     /// </summary>
     string Name { get; }
 
     /// <summary>
-    /// Transport'un türü.
+    /// Transport'un tÃ¼rÃ¼.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - TransportKind.Tcp
     /// - TransportKind.WebSocket
     /// - TransportKind.LoRa
     /// - TransportKind.RfModem
     /// 
-    /// Bu bilgi routing policy için önemlidir.
-    /// Örneğin:
-    /// - Full telemetry yüksek bant genişlikli kanala yönlendirilebilir.
-    /// - Light telemetry LoRa/RF üzerinden gönderilebilir.
-    /// - EmergencyStop tüm uygun transport'lardan yayınlanabilir.
+    /// Bu bilgi routing policy iÃ§in Ã¶nemlidir.
+    /// Ã–rneÄŸin:
+    /// - Full telemetry yÃ¼ksek bant geniÅŸlikli kanala yÃ¶nlendirilebilir.
+    /// - Light telemetry LoRa/RF Ã¼zerinden gÃ¶nderilebilir.
+    /// - EmergencyStop tÃ¼m uygun transport'lardan yayÄ±nlanabilir.
     /// </summary>
     TransportKind Kind { get; }
 
     /// <summary>
-    /// Transport'un şu anda bağlı veya kullanılabilir olup olmadığını belirtir.
+    /// Transport'un ÅŸu anda baÄŸlÄ± veya kullanÄ±labilir olup olmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
     /// true:
-    /// - Mesaj gönderimi yapılabilir.
-    /// - ReceiveAsync üzerinden mesaj alınabilir.
+    /// - Mesaj gÃ¶nderimi yapÄ±labilir.
+    /// - ReceiveAsync Ã¼zerinden mesaj alÄ±nabilir.
     /// 
     /// false:
-    /// - Transport kopmuş olabilir.
-    /// - Donanım bulunamamış olabilir.
-    /// - Bağlantı henüz kurulmamış olabilir.
+    /// - Transport kopmuÅŸ olabilir.
+    /// - DonanÄ±m bulunamamÄ±ÅŸ olabilir.
+    /// - BaÄŸlantÄ± henÃ¼z kurulmamÄ±ÅŸ olabilir.
     /// 
-    /// CommunicationRouter bu değeri kullanarak aktif kanalları seçebilir.
+    /// CommunicationRouter bu deÄŸeri kullanarak aktif kanallarÄ± seÃ§ebilir.
     /// </summary>
     bool IsConnected { get; }
 
     /// <summary>
-    /// Transport bağlantısını başlatır.
+    /// Transport baÄŸlantÄ±sÄ±nÄ± baÅŸlatÄ±r.
     /// 
-    /// TCP için:
-    /// - Socket bağlantısı açabilir.
+    /// TCP iÃ§in:
+    /// - Socket baÄŸlantÄ±sÄ± aÃ§abilir.
     /// 
-    /// WebSocket için:
-    /// - WebSocket endpoint'e bağlanabilir.
+    /// WebSocket iÃ§in:
+    /// - WebSocket endpoint'e baÄŸlanabilir.
     /// 
-    /// Serial / LoRa / RF için:
-    /// - Seri portu açabilir.
+    /// Serial / LoRa / RF iÃ§in:
+    /// - Seri portu aÃ§abilir.
     /// - Cihaz handshake'i yapabilir.
     /// 
-    /// Mock / FileReplay için:
-    /// - Simülasyon veya replay kaynağını hazırlayabilir.
+    /// Mock / FileReplay iÃ§in:
+    /// - SimÃ¼lasyon veya replay kaynaÄŸÄ±nÄ± hazÄ±rlayabilir.
     /// </summary>
     Task ConnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Transport bağlantısını düzgün şekilde kapatır.
+    /// Transport baÄŸlantÄ±sÄ±nÄ± dÃ¼zgÃ¼n ÅŸekilde kapatÄ±r.
     /// 
-    /// Kullanım alanları:
-    /// - Uygulama kapanışı,
-    /// - Link değişimi,
-    /// - Donanım hot-reload,
-    /// - Bağlantı resetleme,
-    /// - Test teardown işlemleri.
+    /// KullanÄ±m alanlarÄ±:
+    /// - Uygulama kapanÄ±ÅŸÄ±,
+    /// - Link deÄŸiÅŸimi,
+    /// - DonanÄ±m hot-reload,
+    /// - BaÄŸlantÄ± resetleme,
+    /// - Test teardown iÅŸlemleri.
     /// 
     /// Not:
-    /// Disconnect sonrasında IsConnected false dönmelidir.
+    /// Disconnect sonrasÄ±nda IsConnected false dÃ¶nmelidir.
     /// </summary>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Bir HydronomEnvelope mesajını bu transport üzerinden gönderir.
+    /// Bir HydronomEnvelope mesajÄ±nÄ± bu transport Ã¼zerinden gÃ¶nderir.
     /// 
-    /// Transport implementasyonu burada kendi detaylarını uygular:
+    /// Transport implementasyonu burada kendi detaylarÄ±nÄ± uygular:
     /// - TCP ise JSON/NDJSON olarak yazar.
-    /// - WebSocket ise socket frame gönderir.
-    /// - LoRa ise payload boyutuna göre paketleyebilir.
-    /// - RF modem ise seri protokol üzerinden aktarabilir.
-    /// - FileReplay ise dosyaya yazabilir veya simüle edebilir.
+    /// - WebSocket ise socket frame gÃ¶nderir.
+    /// - LoRa ise payload boyutuna gÃ¶re paketleyebilir.
+    /// - RF modem ise seri protokol Ã¼zerinden aktarabilir.
+    /// - FileReplay ise dosyaya yazabilir veya simÃ¼le edebilir.
     /// 
-    /// Üst seviye sistem bu detayları bilmez.
+    /// Ãœst seviye sistem bu detaylarÄ± bilmez.
     /// </summary>
     Task SendAsync(
         HydronomEnvelope envelope,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Bu transport üzerinden gelen HydronomEnvelope mesajlarını asenkron olarak üretir.
+    /// Bu transport Ã¼zerinden gelen HydronomEnvelope mesajlarÄ±nÄ± asenkron olarak Ã¼retir.
     /// 
-    /// IAsyncEnumerable kullanmamızın sebebi:
-    /// - Transport sürekli mesaj üretebilir.
+    /// IAsyncEnumerable kullanmamÄ±zÄ±n sebebi:
+    /// - Transport sÃ¼rekli mesaj Ã¼retebilir.
     /// - Gateway veya Runtime bunu await foreach ile dinleyebilir.
-    /// - Bağlantı kopana veya cancellation istenene kadar akış devam edebilir.
+    /// - BaÄŸlantÄ± kopana veya cancellation istenene kadar akÄ±ÅŸ devam edebilir.
     /// 
-    /// Örnek kullanım:
+    /// Ã–rnek kullanÄ±m:
     /// await foreach (var envelope in transport.ReceiveAsync(ct))
     /// {
     ///     router.Handle(envelope);

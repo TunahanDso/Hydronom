@@ -1,14 +1,14 @@
-namespace HydronomOps.Gateway.Configuration;
+﻿namespace HydronomOps.Gateway.Configuration;
 
 /// <summary>
-/// Runtime TCP giriş ayarları.
+/// Runtime TCP giriÅŸ ayarlarÄ±.
 /// </summary>
 public sealed class RuntimeTcpOptions
 {
     public const string SectionName = "RuntimeTcp";
 
     /// <summary>
-    /// Runtime'ın dinlediği IP veya host.
+    /// Runtime'Ä±n dinlediÄŸi IP veya host.
     /// </summary>
     public string Host { get; set; } = "127.0.0.1";
 
@@ -18,37 +18,37 @@ public sealed class RuntimeTcpOptions
     public int Port { get; set; } = 5060;
 
     /// <summary>
-    /// İlk bağlantı kurulumunda otomatik bağlan.
+    /// Ä°lk baÄŸlantÄ± kurulumunda otomatik baÄŸlan.
     /// </summary>
     public bool AutoConnect { get; set; } = true;
 
     /// <summary>
-    /// Bağlantı koparsa yeniden deneme aralığı.
+    /// BaÄŸlantÄ± koparsa yeniden deneme aralÄ±ÄŸÄ±.
     /// </summary>
     public int ReconnectDelayMs { get; set; } = 3000;
 
     /// <summary>
-    /// Soket bağlantı zaman aşımı.
+    /// Soket baÄŸlantÄ± zaman aÅŸÄ±mÄ±.
     /// </summary>
     public int ConnectTimeoutMs { get; set; } = 5000;
 
     /// <summary>
-    /// Soket okuma timeout süresi.
+    /// Soket okuma timeout sÃ¼resi.
     /// </summary>
     public int ReadTimeoutMs { get; set; } = 1000;
 
     /// <summary>
-    /// Soket yazma timeout süresi.
+    /// Soket yazma timeout sÃ¼resi.
     /// </summary>
     public int WriteTimeoutMs { get; set; } = 1000;
 
     /// <summary>
-    /// NDJSON satır tampon boyutu.
+    /// NDJSON satÄ±r tampon boyutu.
     /// </summary>
     public int BufferSize { get; set; } = 8192;
 
     /// <summary>
-    /// Geriye dönük uyumluluk için alternatif buffer adı.
+    /// Geriye dÃ¶nÃ¼k uyumluluk iÃ§in alternatif buffer adÄ±.
     /// </summary>
     public int ReceiveBufferSize => BufferSize;
 }

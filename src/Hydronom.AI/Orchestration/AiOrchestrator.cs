@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,8 +7,8 @@ using Hydronom.Core.Domain.AI;
 namespace Hydronom.AI.Orchestration
 {
     /// <summary>
-    /// HydronomAI planlama köprüsü.
-    /// Şimdilik tool execution yapmaz; yalnızca plan ve replan üretimini IAiClient üzerinden yürütür.
+    /// HydronomAI planlama kÃ¶prÃ¼sÃ¼.
+    /// Åimdilik tool execution yapmaz; yalnÄ±zca plan ve replan Ã¼retimini IAiClient Ã¼zerinden yÃ¼rÃ¼tÃ¼r.
     /// </summary>
     public sealed class AiOrchestrator
     {

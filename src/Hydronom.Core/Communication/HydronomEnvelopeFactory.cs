@@ -1,27 +1,27 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// HydronomEnvelope üretimini standartlaştıran yardımcı sınıftır.
+/// HydronomEnvelope Ã¼retimini standartlaÅŸtÄ±ran yardÄ±mcÄ± sÄ±nÄ±ftÄ±r.
 /// 
-/// Bu sınıfın amacı:
-/// - Her yerde tekrar tekrar envelope oluşturma kodu yazmayı engellemek.
-/// - MessageType, SourceNodeId, TargetNodeId, Priority ve TransportHints alanlarını
-///   tutarlı şekilde doldurmak.
-/// - FleetHeartbeat, FleetCommand ve FleetCommandResult gibi temel mesajları
-///   güvenli ve okunabilir şekilde zarflamaktır.
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - Her yerde tekrar tekrar envelope oluÅŸturma kodu yazmayÄ± engellemek.
+/// - MessageType, SourceNodeId, TargetNodeId, Priority ve TransportHints alanlarÄ±nÄ±
+///   tutarlÄ± ÅŸekilde doldurmak.
+/// - FleetHeartbeat, FleetCommand ve FleetCommandResult gibi temel mesajlarÄ±
+///   gÃ¼venli ve okunabilir ÅŸekilde zarflamaktÄ±r.
 /// 
-/// Fleet & Ground Station mimarisinde HydronomEnvelope sistemin ortak mesaj zarfıdır.
-/// Bu factory ise o zarfın doğru şekilde üretilmesini kolaylaştırır.
+/// Fleet & Ground Station mimarisinde HydronomEnvelope sistemin ortak mesaj zarfÄ±dÄ±r.
+/// Bu factory ise o zarfÄ±n doÄŸru ÅŸekilde Ã¼retilmesini kolaylaÅŸtÄ±rÄ±r.
 /// </summary>
 public static class HydronomEnvelopeFactory
 {
     /// <summary>
-    /// FleetHeartbeat payload'ı için standart HydronomEnvelope üretir.
+    /// FleetHeartbeat payload'Ä± iÃ§in standart HydronomEnvelope Ã¼retir.
     /// 
-    /// Heartbeat mesajları genellikle araçtan yer istasyonuna gider.
-    /// Varsayılan hedef "GROUND-001" olarak bırakılmıştır; istenirse değiştirilebilir.
+    /// Heartbeat mesajlarÄ± genellikle araÃ§tan yer istasyonuna gider.
+    /// VarsayÄ±lan hedef "GROUND-001" olarak bÄ±rakÄ±lmÄ±ÅŸtÄ±r; istenirse deÄŸiÅŸtirilebilir.
     /// </summary>
     public static HydronomEnvelope CreateHeartbeat(
         FleetHeartbeat heartbeat,
@@ -44,11 +44,11 @@ public static class HydronomEnvelopeFactory
     }
 
     /// <summary>
-    /// FleetCommand payload'ı için standart HydronomEnvelope üretir.
+    /// FleetCommand payload'Ä± iÃ§in standart HydronomEnvelope Ã¼retir.
     /// 
-    /// Komutun priority bilgisi FleetCommand içinden alınır.
-    /// Emergency seviyesindeki komutlar için transport hint otomatik olarak
-    /// tüm bağlantılardan yayınlanacak şekilde ayarlanır.
+    /// Komutun priority bilgisi FleetCommand iÃ§inden alÄ±nÄ±r.
+    /// Emergency seviyesindeki komutlar iÃ§in transport hint otomatik olarak
+    /// tÃ¼m baÄŸlantÄ±lardan yayÄ±nlanacak ÅŸekilde ayarlanÄ±r.
     /// </summary>
     public static HydronomEnvelope CreateCommand(FleetCommand command)
     {
@@ -86,10 +86,10 @@ public static class HydronomEnvelopeFactory
     }
 
     /// <summary>
-    /// FleetCommandResult payload'ı için standart HydronomEnvelope üretir.
+    /// FleetCommandResult payload'Ä± iÃ§in standart HydronomEnvelope Ã¼retir.
     /// 
-    /// Bu mesaj araçtan yer istasyonuna veya komutu gönderen node'a dönen cevaptır.
-    /// Başarısız sonuçlar yüksek öncelikli, başarılı sonuçlar normal öncelikli gönderilir.
+    /// Bu mesaj araÃ§tan yer istasyonuna veya komutu gÃ¶nderen node'a dÃ¶nen cevaptÄ±r.
+    /// BaÅŸarÄ±sÄ±z sonuÃ§lar yÃ¼ksek Ã¶ncelikli, baÅŸarÄ±lÄ± sonuÃ§lar normal Ã¶ncelikli gÃ¶nderilir.
     /// </summary>
     public static HydronomEnvelope CreateCommandResult(FleetCommandResult result)
     {
@@ -110,16 +110,16 @@ public static class HydronomEnvelopeFactory
     }
 
     /// <summary>
-    /// Genel amaçlı HydronomEnvelope üretir.
+    /// Genel amaÃ§lÄ± HydronomEnvelope Ã¼retir.
     /// 
-    /// Özel mesaj tipleri için kullanılabilir.
-    /// Örneğin ileride:
+    /// Ã–zel mesaj tipleri iÃ§in kullanÄ±labilir.
+    /// Ã–rneÄŸin ileride:
     /// - FleetStatus
     /// - TelemetryFrame
     /// - GroundWorldUpdate
     /// - LinkQualityReport
     /// - CapabilityAnnouncement
-    /// gibi mesajlar bu metotla hızlıca zarflanabilir.
+    /// gibi mesajlar bu metotla hÄ±zlÄ±ca zarflanabilir.
     /// </summary>
     public static HydronomEnvelope Create(
         string sourceNodeId,

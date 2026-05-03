@@ -1,4 +1,4 @@
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using HydronomOps.Gateway.Infrastructure.Broadcast;
@@ -7,8 +7,8 @@ using HydronomOps.Gateway.Infrastructure.Serialization;
 namespace HydronomOps.Gateway.Endpoints;
 
 /// <summary>
-/// WebSocket endpoint tanımı.
-/// Tarayıcı istemcileri gateway yayınlarını bu uçtan dinler.
+/// WebSocket endpoint tanÄ±mÄ±.
+/// TarayÄ±cÄ± istemcileri gateway yayÄ±nlarÄ±nÄ± bu uÃ§tan dinler.
 /// </summary>
 public static class WebSocketEndpointExtensions
 {
@@ -58,7 +58,7 @@ public static class WebSocketEndpointExtensions
             }
             catch (WebSocketException ex)
             {
-                logger.LogWarning(ex, "WebSocket bağlantısında hata oluştu. ConnectionId={ConnectionId}", connection.Id);
+                logger.LogWarning(ex, "WebSocket baÄŸlantÄ±sÄ±nda hata oluÅŸtu. ConnectionId={ConnectionId}", connection.Id);
             }
             finally
             {
@@ -75,7 +75,7 @@ public static class WebSocketEndpointExtensions
     }
 
     /// <summary>
-    /// İstemciden gelen mesajları okuyup bağlantıyı canlı tutar.
+    /// Ä°stemciden gelen mesajlarÄ± okuyup baÄŸlantÄ±yÄ± canlÄ± tutar.
     /// </summary>
     private static async Task ReceiveLoopAsync(
         WebSocket socket,
@@ -136,7 +136,7 @@ public static class WebSocketEndpointExtensions
     }
 
     /// <summary>
-    /// Parçalı gelen text frame'i tek string olarak toplar.
+    /// ParÃ§alÄ± gelen text frame'i tek string olarak toplar.
     /// </summary>
     private static async Task<string> ReadTextMessageAsync(
         WebSocket socket,
@@ -165,7 +165,7 @@ public static class WebSocketEndpointExtensions
     }
 
     /// <summary>
-    /// JSON tabanlı ping isteğini işler.
+    /// JSON tabanlÄ± ping isteÄŸini iÅŸler.
     /// </summary>
     private static bool TryHandleJsonPing(string message, out string responseJson)
     {

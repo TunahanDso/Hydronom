@@ -1,45 +1,45 @@
-namespace Hydronom.GroundStation.WorldModel;
+﻿namespace Hydronom.GroundStation.WorldModel;
 
 /// <summary>
-/// Ground Station tarafındaki ortak dünya modelini temsil eder.
+/// Ground Station tarafÄ±ndaki ortak dÃ¼nya modelini temsil eder.
 /// 
-/// Bu sınıf, farklı araçlardan ve yer istasyonundan gelen dünya bilgilerini
+/// Bu sÄ±nÄ±f, farklÄ± araÃ§lardan ve yer istasyonundan gelen dÃ¼nya bilgilerini
 /// merkezi bir modelde saklar.
 /// 
-/// İlk fazda amaç:
-/// - Engel eklemek/güncellemek,
-/// - Hedef eklemek/güncellemek,
+/// Ä°lk fazda amaÃ§:
+/// - Engel eklemek/gÃ¼ncellemek,
+/// - Hedef eklemek/gÃ¼ncellemek,
 /// - No-go zone veya mission area gibi nesneleri tutmak,
-/// - Nesneleri türüne göre listelemek,
-/// - Eski nesneleri pasifleştirmek,
-/// - Hydronom Ops ve ileride TelemetryFusionEngine için ortak veri kaynağı sağlamaktır.
+/// - Nesneleri tÃ¼rÃ¼ne gÃ¶re listelemek,
+/// - Eski nesneleri pasifleÅŸtirmek,
+/// - Hydronom Ops ve ileride TelemetryFusionEngine iÃ§in ortak veri kaynaÄŸÄ± saÄŸlamaktÄ±r.
 /// 
-/// Bu sınıf henüz karmaşık geometri/fusion algoritması yapmaz.
-/// Şimdilik güvenli, thread-safe, basit bir store olarak tasarlanmıştır.
+/// Bu sÄ±nÄ±f henÃ¼z karmaÅŸÄ±k geometri/fusion algoritmasÄ± yapmaz.
+/// Åimdilik gÃ¼venli, thread-safe, basit bir store olarak tasarlanmÄ±ÅŸtÄ±r.
 /// </summary>
 public sealed class GroundWorldModel
 {
     /// <summary>
-    /// ObjectId -> GroundWorldObject eşlemesini tutar.
+    /// ObjectId -> GroundWorldObject eÅŸlemesini tutar.
     /// </summary>
     private readonly Dictionary<string, GroundWorldObject> _objects = new();
 
     /// <summary>
-    /// World model erişimlerini thread-safe tutmak için kullanılan lock objesi.
+    /// World model eriÅŸimlerini thread-safe tutmak iÃ§in kullanÄ±lan lock objesi.
     /// 
-    /// İleride aynı anda:
+    /// Ä°leride aynÄ± anda:
     /// - TelemetryFusionEngine,
     /// - GroundAnalysisEngine,
     /// - Hydronom Ops Gateway,
     /// - ReplayRecorder,
     /// - Operator map tools
-    /// bu modele erişebilir.
+    /// bu modele eriÅŸebilir.
     /// </summary>
     private readonly object _sync = new();
 
     /// <summary>
-    /// Kayıtlı toplam dünya nesnesi sayısını döndürür.
-    /// Aktif/pasif ayrımı yapmaz.
+    /// KayÄ±tlÄ± toplam dÃ¼nya nesnesi sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
+    /// Aktif/pasif ayrÄ±mÄ± yapmaz.
     /// </summary>
     public int Count
     {
@@ -53,7 +53,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Aktif dünya nesnesi sayısını döndürür.
+    /// Aktif dÃ¼nya nesnesi sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public int ActiveCount
     {
@@ -67,9 +67,9 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Bir dünya nesnesini ekler veya aynı ObjectId varsa günceller.
+    /// Bir dÃ¼nya nesnesini ekler veya aynÄ± ObjectId varsa gÃ¼nceller.
     /// 
-    /// Geçersiz nesne gelirse false döner.
+    /// GeÃ§ersiz nesne gelirse false dÃ¶ner.
     /// </summary>
     public bool Upsert(GroundWorldObject worldObject)
     {
@@ -88,7 +88,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Bir dünya nesnesini ObjectId ile bulmaya çalışır.
+    /// Bir dÃ¼nya nesnesini ObjectId ile bulmaya Ã§alÄ±ÅŸÄ±r.
     /// </summary>
     public bool TryGet(string objectId, out GroundWorldObject? worldObject)
     {
@@ -105,12 +105,12 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Mevcut bir dünya nesnesine yeni kaynak katkısı ekler.
+    /// Mevcut bir dÃ¼nya nesnesine yeni kaynak katkÄ±sÄ± ekler.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// Alpha bir engel bildirdi.
-    /// Beta aynı ObjectId için katkı verdi.
-    /// Bu durumda ContributorNodeIds listesi Alpha + Beta olacak şekilde güncellenir.
+    /// Beta aynÄ± ObjectId iÃ§in katkÄ± verdi.
+    /// Bu durumda ContributorNodeIds listesi Alpha + Beta olacak ÅŸekilde gÃ¼ncellenir.
     /// </summary>
     public bool AddContribution(string objectId, string nodeId)
     {
@@ -128,7 +128,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Tüm dünya nesnelerinin snapshot kopyasını döndürür.
+    /// TÃ¼m dÃ¼nya nesnelerinin snapshot kopyasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetSnapshot()
     {
@@ -143,7 +143,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Sadece aktif dünya nesnelerinin snapshot kopyasını döndürür.
+    /// Sadece aktif dÃ¼nya nesnelerinin snapshot kopyasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveSnapshot()
     {
@@ -159,7 +159,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Belirli türdeki dünya nesnelerinin snapshot kopyasını döndürür.
+    /// Belirli tÃ¼rdeki dÃ¼nya nesnelerinin snapshot kopyasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetByKind(WorldObjectKind kind, bool onlyActive = true)
     {
@@ -179,7 +179,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Aktif engellerin snapshot listesini döndürür.
+    /// Aktif engellerin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveObstacles()
     {
@@ -187,7 +187,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Aktif hedeflerin snapshot listesini döndürür.
+    /// Aktif hedeflerin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveTargets()
     {
@@ -195,7 +195,7 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Aktif no-go zone listesini döndürür.
+    /// Aktif no-go zone listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveNoGoZones()
     {
@@ -203,10 +203,10 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Bir dünya nesnesini pasif hâle getirir.
+    /// Bir dÃ¼nya nesnesini pasif hÃ¢le getirir.
     /// 
-    /// Nesne silinmez; sadece IsActive=false yapılır.
-    /// Böylece replay/event timeline/after-action analysis için geçmiş korunabilir.
+    /// Nesne silinmez; sadece IsActive=false yapÄ±lÄ±r.
+    /// BÃ¶ylece replay/event timeline/after-action analysis iÃ§in geÃ§miÅŸ korunabilir.
     /// </summary>
     public bool Deactivate(string objectId)
     {
@@ -229,10 +229,10 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// ObjectId ile dünya nesnesini tamamen siler.
+    /// ObjectId ile dÃ¼nya nesnesini tamamen siler.
     /// 
-    /// Genellikle test/cleanup için kullanılmalıdır.
-    /// Operasyon geçmişinde kalması gereken nesnelerde Deactivate tercih edilmelidir.
+    /// Genellikle test/cleanup iÃ§in kullanÄ±lmalÄ±dÄ±r.
+    /// Operasyon geÃ§miÅŸinde kalmasÄ± gereken nesnelerde Deactivate tercih edilmelidir.
     /// </summary>
     public bool Remove(string objectId)
     {
@@ -246,13 +246,13 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Belirli süreden uzun süredir güncellenmeyen aktif nesneleri pasif hale getirir.
+    /// Belirli sÃ¼reden uzun sÃ¼redir gÃ¼ncellenmeyen aktif nesneleri pasif hale getirir.
     /// 
-    /// Örnek:
-    /// - Geçici engel 30 saniye boyunca tekrar görülmediyse pasifleştirilebilir.
-    /// - Target kaybolduysa eski sayılabilir.
+    /// Ã–rnek:
+    /// - GeÃ§ici engel 30 saniye boyunca tekrar gÃ¶rÃ¼lmediyse pasifleÅŸtirilebilir.
+    /// - Target kaybolduysa eski sayÄ±labilir.
     /// 
-    /// Bu metot özellikle dinamik obstacle/target bilgileri için faydalıdır.
+    /// Bu metot Ã¶zellikle dinamik obstacle/target bilgileri iÃ§in faydalÄ±dÄ±r.
     /// </summary>
     public int DeactivateStaleObjects(TimeSpan maxAge, DateTimeOffset? nowUtc = null)
     {
@@ -287,9 +287,9 @@ public sealed class GroundWorldModel
     }
 
     /// <summary>
-    /// Tüm dünya modelini temizler.
+    /// TÃ¼m dÃ¼nya modelini temizler.
     /// 
-    /// Test, replay reset veya yeni operasyon başlatma sırasında kullanılabilir.
+    /// Test, replay reset veya yeni operasyon baÅŸlatma sÄ±rasÄ±nda kullanÄ±labilir.
     /// </summary>
     public void Clear()
     {

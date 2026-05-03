@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Hydronom.Core.Domain;
@@ -6,20 +6,20 @@ using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Actuators;
 using Microsoft.Extensions.Configuration;
 
-// ThrusterDesc adını Runtime.Actuators içindeki tipe sabitle
+// ThrusterDesc adÄ±nÄ± Runtime.Actuators iÃ§indeki tipe sabitle
 using ThrusterDesc = Hydronom.Runtime.Actuators.ThrusterDesc;
 
 partial class Program
 {
     /// <summary>
-    /// Thruster konfigürasyonunu farklı kaynaklardan sırayla yükler.
+    /// Thruster konfigÃ¼rasyonunu farklÄ± kaynaklardan sÄ±rayla yÃ¼kler.
     ///
-    /// Öncelik:
+    /// Ã–ncelik:
     /// 1. Thrusters section
     /// 2. Configs/actuators.discovered.json
     /// 3. Configs/thrusters.geometry.json
     /// 4. Actuator:Thrusters legacy section
-    /// 5. AutoDiscovery çıktısı placeholder
+    /// 5. AutoDiscovery Ã§Ä±ktÄ±sÄ± placeholder
     /// </summary>
     private static ThrusterDesc[] LoadThrusterDescriptions(IConfiguration config)
     {
@@ -64,7 +64,7 @@ partial class Program
 
     /// <summary>
     /// Thruster config loader.
-    /// Configs altındaki keşif/geometri dosyalarını dener.
+    /// Configs altÄ±ndaki keÅŸif/geometri dosyalarÄ±nÄ± dener.
     /// </summary>
     private static ThrusterDesc[] TryLoadThrustersFromChannelProfiles(IConfiguration config)
     {
@@ -78,9 +78,9 @@ partial class Program
             if (File.Exists(discoveredPath))
             {
                 var json = File.ReadAllText(discoveredPath);
-                var arr = System.Text.Json.JsonSerializer.Deserialize<ThrusterDesc[]>(json);
+                var arr = DeserializeThrusterConfig(json);
 
-                if (arr is not null && arr.Length > 0)
+                if (arr.Length > 0)
                 {
                     Console.WriteLine($"[CFG] Thrusters loaded from Configs/actuators.discovered.json ({arr.Length} ch).");
                     return arr;
@@ -99,9 +99,9 @@ partial class Program
             if (File.Exists(geomPath))
             {
                 var json = File.ReadAllText(geomPath);
-                var arr = System.Text.Json.JsonSerializer.Deserialize<ThrusterDesc[]>(json);
+                var arr = DeserializeThrusterConfig(json);
 
-                if (arr is not null && arr.Length > 0)
+                if (arr.Length > 0)
                 {
                     Console.WriteLine($"[CFG] Thrusters loaded from Configs/thrusters.geometry.json ({arr.Length} ch).");
                     return arr;
@@ -122,9 +122,9 @@ partial class Program
             if (!File.Exists(fullPath))
                 return Array.Empty<ThrusterDesc>();
 
-            // Bu alan bilinçli olarak placeholder bırakıldı.
-            // AutoDiscovery ChannelProfileSet tipi runtime tarafında doğrudan tanımlı değilse
-            // geometri dönüşümü ayrı bir adapter ile yapılmalı.
+            // Bu alan bilinÃ§li olarak placeholder bÄ±rakÄ±ldÄ±.
+            // AutoDiscovery ChannelProfileSet tipi runtime tarafÄ±nda doÄŸrudan tanÄ±mlÄ± deÄŸilse
+            // geometri dÃ¶nÃ¼ÅŸÃ¼mÃ¼ ayrÄ± bir adapter ile yapÄ±lmalÄ±.
             Console.WriteLine("[CFG] Skipping AutoDiscovery: ChannelProfileSet type not defined here.");
             return Array.Empty<ThrusterDesc>();
         }
@@ -136,8 +136,58 @@ partial class Program
     }
 
     /// <summary>
-    /// Config kaynaklarından gelen thruster tanımlarını güvenli hale getirir.
-    /// Bozuk channel/id/force direction gibi değerlerde mümkün olduğunca güvenli fallback uygular.
+    /// Hem dÃ¼z ThrusterDesc[] JSON formatÄ±nÄ± hem de
+    /// { SchemaVersion, FrameId, GeometryPolicy, Thrusters: [...] } formatÄ±nÄ± destekler.
+    /// </summary>
+    private static ThrusterDesc[] DeserializeThrusterConfig(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return Array.Empty<ThrusterDesc>();
+
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        try
+        {
+            var geometry = System.Text.Json.JsonSerializer.Deserialize<ThrusterGeometryConfig>(json, options);
+
+            if (geometry?.Thrusters is not null && geometry.Thrusters.Length > 0)
+                return geometry.Thrusters;
+        }
+        catch
+        {
+            // Root-object format deÄŸilse aÅŸaÄŸÄ±da array formatÄ±nÄ± deneyeceÄŸiz.
+        }
+
+        try
+        {
+            var arr = System.Text.Json.JsonSerializer.Deserialize<ThrusterDesc[]>(json, options);
+            return arr ?? Array.Empty<ThrusterDesc>();
+        }
+        catch
+        {
+            return Array.Empty<ThrusterDesc>();
+        }
+    }
+
+    /// <summary>
+    /// thrusters.geometry.json root modeli.
+    /// Burada SchemaVersion, FrameId ve GeometryPolicy ÅŸu an runtime iÃ§in yalnÄ±zca taÅŸÄ±yÄ±cÄ± metadÄ±r.
+    /// AsÄ±l actuator modeli Thrusters dizisinden oluÅŸturulur.
+    /// </summary>
+    private sealed class ThrusterGeometryConfig
+    {
+        public string? SchemaVersion { get; set; }
+        public string? FrameId { get; set; }
+        public object? GeometryPolicy { get; set; }
+        public ThrusterDesc[]? Thrusters { get; set; }
+    }
+
+    /// <summary>
+    /// Config kaynaklarÄ±ndan gelen thruster tanÄ±mlarÄ±nÄ± gÃ¼venli hale getirir.
+    /// Bozuk channel/id/force direction gibi deÄŸerlerde mÃ¼mkÃ¼n olduÄŸunca gÃ¼venli fallback uygular.
     /// </summary>
     private static ThrusterDesc[] SanitizeThrusterDescriptions(ThrusterDesc[] input)
     {
@@ -165,15 +215,16 @@ partial class Program
                     Channel: t.Channel,
                     Position: pos,
                     ForceDir: dir,
-                    Reversed: t.Reversed
+                    Reversed: t.Reversed,
+                    CanReverse: t.CanReverse
                 );
             })
             .ToArray();
     }
 
     /// <summary>
-    /// Motors → Thrusters geri uyum dönüştürücüsü.
-    /// Eski motor config yapısını basit ileri-itki thruster geometrisine çevirir.
+    /// Motors â†’ Thrusters geri uyum dÃ¶nÃ¼ÅŸtÃ¼rÃ¼cÃ¼sÃ¼.
+    /// Eski motor config yapÄ±sÄ±nÄ± basit ileri-itki thruster geometrisine Ã§evirir.
     /// </summary>
     private static ThrusterDesc[] MapMotorsToThrusters(MotorDesc[] motors)
     {
@@ -211,7 +262,8 @@ partial class Program
                     Channel: m.Channel,
                     Position: pos,
                     ForceDir: dir,
-                    Reversed: false
+                    Reversed: false,
+                    CanReverse: false
                 );
             })
             .ToArray();

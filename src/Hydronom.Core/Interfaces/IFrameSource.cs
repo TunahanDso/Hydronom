@@ -46,3 +46,4 @@ public interface IFrameSource
     /// </returns>
     bool TryGetLatestFrame(out FusedFrame? frame);
 }
+

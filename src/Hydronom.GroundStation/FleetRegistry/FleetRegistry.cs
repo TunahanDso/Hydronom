@@ -1,26 +1,26 @@
-namespace Hydronom.GroundStation.FleetRegistry;
+﻿namespace Hydronom.GroundStation.FleetRegistry;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Yer istasyonunun filo içindeki araçları/node'ları takip ettiği ana kayıt defteridir.
+/// Yer istasyonunun filo iÃ§indeki araÃ§larÄ±/node'larÄ± takip ettiÄŸi ana kayÄ±t defteridir.
 /// 
-/// FleetRegistry, Hydronom Ground Station tarafının ilk temel modülüdür.
-/// Görevi:
-/// - Araçlardan gelen heartbeat mesajlarını almak,
-/// - Araçların son bilinen durumunu saklamak,
-/// - Hangi araç online/offline takip etmek,
-/// - Araçları NodeId üzerinden bulmak,
-/// - Hydronom Ops / Gateway tarafına güncel filo görünümü sağlamaktır.
+/// FleetRegistry, Hydronom Ground Station tarafÄ±nÄ±n ilk temel modÃ¼lÃ¼dÃ¼r.
+/// GÃ¶revi:
+/// - AraÃ§lardan gelen heartbeat mesajlarÄ±nÄ± almak,
+/// - AraÃ§larÄ±n son bilinen durumunu saklamak,
+/// - Hangi araÃ§ online/offline takip etmek,
+/// - AraÃ§larÄ± NodeId Ã¼zerinden bulmak,
+/// - Hydronom Ops / Gateway tarafÄ±na gÃ¼ncel filo gÃ¶rÃ¼nÃ¼mÃ¼ saÄŸlamaktÄ±r.
 /// 
-/// Bu sınıf şu anda bilinçli olarak basit tutulmuştur.
-/// İlk hedef:
-/// Birden fazla Hydronom aracını yer istasyonunda kayıtlı ve izlenebilir hale getirmek.
+/// Bu sÄ±nÄ±f ÅŸu anda bilinÃ§li olarak basit tutulmuÅŸtur.
+/// Ä°lk hedef:
+/// Birden fazla Hydronom aracÄ±nÄ± yer istasyonunda kayÄ±tlÄ± ve izlenebilir hale getirmek.
 /// </summary>
 public sealed class FleetRegistry
 {
     /// <summary>
-    /// NodeId -> VehicleNodeStatus eşlemesini tutar.
+    /// NodeId -> VehicleNodeStatus eÅŸlemesini tutar.
     /// 
     /// Key:
     /// - VEHICLE-ALPHA-001
@@ -28,27 +28,27 @@ public sealed class FleetRegistry
     /// - SIM-VEHICLE-001
     /// 
     /// Value:
-    /// - Aracın son bilinen Fleet status bilgisi.
+    /// - AracÄ±n son bilinen Fleet status bilgisi.
     /// </summary>
     private readonly Dictionary<string, VehicleNodeStatus> _nodes = new();
 
     /// <summary>
-    /// Registry erişimlerini thread-safe tutmak için kullanılan lock objesi.
+    /// Registry eriÅŸimlerini thread-safe tutmak iÃ§in kullanÄ±lan lock objesi.
     /// 
-    /// GroundStation ileride aynı anda:
+    /// GroundStation ileride aynÄ± anda:
     /// - Transport reader,
     /// - Gateway API,
     /// - Ops WebSocket publisher,
     /// - Analysis engine
-    /// gibi farklı katmanlardan erişim alabilir.
+    /// gibi farklÄ± katmanlardan eriÅŸim alabilir.
     /// 
-    /// İlk sürüm için basit lock yeterlidir.
-    /// İleride ConcurrentDictionary veya daha gelişmiş state store kullanılabilir.
+    /// Ä°lk sÃ¼rÃ¼m iÃ§in basit lock yeterlidir.
+    /// Ä°leride ConcurrentDictionary veya daha geliÅŸmiÅŸ state store kullanÄ±labilir.
     /// </summary>
     private readonly object _sync = new();
 
     /// <summary>
-    /// Registry içinde kayıtlı toplam node sayısını döndürür.
+    /// Registry iÃ§inde kayÄ±tlÄ± toplam node sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public int Count
     {
@@ -62,13 +62,13 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Bir heartbeat mesajını registry'ye işler.
+    /// Bir heartbeat mesajÄ±nÄ± registry'ye iÅŸler.
     /// 
-    /// Heartbeat geçerliyse:
-    /// - Heartbeat VehicleNodeStatus modeline dönüştürülür.
-    /// - NodeId üzerinden registry'ye eklenir veya mevcut kayıt güncellenir.
+    /// Heartbeat geÃ§erliyse:
+    /// - Heartbeat VehicleNodeStatus modeline dÃ¶nÃ¼ÅŸtÃ¼rÃ¼lÃ¼r.
+    /// - NodeId Ã¼zerinden registry'ye eklenir veya mevcut kayÄ±t gÃ¼ncellenir.
     /// 
-    /// Geçersiz heartbeat gelirse false döner.
+    /// GeÃ§ersiz heartbeat gelirse false dÃ¶ner.
     /// </summary>
     public bool ApplyHeartbeat(FleetHeartbeat heartbeat)
     {
@@ -79,14 +79,14 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Bir VehicleNodeStatus kaydını registry'ye ekler veya mevcut kaydı günceller.
+    /// Bir VehicleNodeStatus kaydÄ±nÄ± registry'ye ekler veya mevcut kaydÄ± gÃ¼nceller.
     /// 
     /// Upsert:
-    /// - Kayıt yoksa ekle,
-    /// - Kayıt varsa güncelle
-    /// anlamına gelir.
+    /// - KayÄ±t yoksa ekle,
+    /// - KayÄ±t varsa gÃ¼ncelle
+    /// anlamÄ±na gelir.
     /// 
-    /// Bu metot ileride sadece heartbeat değil,
+    /// Bu metot ileride sadece heartbeat deÄŸil,
     /// CapabilityAnnouncement veya FleetStatus gibi mesajlardan da beslenebilir.
     /// </summary>
     public bool Upsert(VehicleNodeStatus status)
@@ -105,10 +105,10 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// NodeId ile kayıtlı bir node durumunu bulmaya çalışır.
+    /// NodeId ile kayÄ±tlÄ± bir node durumunu bulmaya Ã§alÄ±ÅŸÄ±r.
     /// 
-    /// Başarılıysa true döner ve status dışarı verilir.
-    /// Bulunamazsa false döner.
+    /// BaÅŸarÄ±lÄ±ysa true dÃ¶ner ve status dÄ±ÅŸarÄ± verilir.
+    /// Bulunamazsa false dÃ¶ner.
     /// </summary>
     public bool TryGet(string nodeId, out VehicleNodeStatus? status)
     {
@@ -125,12 +125,12 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Registry içindeki tüm node durumlarının snapshot kopyasını döndürür.
+    /// Registry iÃ§indeki tÃ¼m node durumlarÄ±nÄ±n snapshot kopyasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Snapshot kopyası dönmemizin sebebi:
-    /// - Dış katmanların internal dictionary üzerinde değişiklik yapmasını engellemek,
-    /// - Lock süresini kısa tutmak,
-    /// - Gateway/Ops tarafına güvenli veri vermektir.
+    /// Snapshot kopyasÄ± dÃ¶nmemizin sebebi:
+    /// - DÄ±ÅŸ katmanlarÄ±n internal dictionary Ã¼zerinde deÄŸiÅŸiklik yapmasÄ±nÄ± engellemek,
+    /// - Lock sÃ¼resini kÄ±sa tutmak,
+    /// - Gateway/Ops tarafÄ±na gÃ¼venli veri vermektir.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetSnapshot()
     {
@@ -144,10 +144,10 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Online kabul edilen node'ların snapshot listesini döndürür.
+    /// Online kabul edilen node'larÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Bu metot sadece VehicleNodeStatus.IsOnline alanına bakar.
-    /// Zaman aşımı kontrolü için MarkStaleNodesOffline metodu kullanılmalıdır.
+    /// Bu metot sadece VehicleNodeStatus.IsOnline alanÄ±na bakar.
+    /// Zaman aÅŸÄ±mÄ± kontrolÃ¼ iÃ§in MarkStaleNodesOffline metodu kullanÄ±lmalÄ±dÄ±r.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetOnlineNodes()
     {
@@ -162,15 +162,15 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Belirtilen süre boyunca heartbeat göndermeyen node'ları offline olarak işaretler.
+    /// Belirtilen sÃ¼re boyunca heartbeat gÃ¶ndermeyen node'larÄ± offline olarak iÅŸaretler.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// timeout = TimeSpan.FromSeconds(5)
     /// 
-    /// Eğer bir araç 5 saniyeden uzun süredir görülmediyse IsOnline=false yapılır.
+    /// EÄŸer bir araÃ§ 5 saniyeden uzun sÃ¼redir gÃ¶rÃ¼lmediyse IsOnline=false yapÄ±lÄ±r.
     /// 
-    /// Bu metot bağlantı kopmasını anlamak için GroundStation ana döngüsü
-    /// veya watchdog tarafından periyodik çağrılabilir.
+    /// Bu metot baÄŸlantÄ± kopmasÄ±nÄ± anlamak iÃ§in GroundStation ana dÃ¶ngÃ¼sÃ¼
+    /// veya watchdog tarafÄ±ndan periyodik Ã§aÄŸrÄ±labilir.
     /// </summary>
     public int MarkStaleNodesOffline(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -200,12 +200,12 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Registry'den bir node kaydını siler.
+    /// Registry'den bir node kaydÄ±nÄ± siler.
     /// 
-    /// Kullanım alanları:
-    /// - Simülasyon node'u kaldırma,
-    /// - Test temizliği,
-    /// - Operasyondan çıkan aracı listeden alma.
+    /// KullanÄ±m alanlarÄ±:
+    /// - SimÃ¼lasyon node'u kaldÄ±rma,
+    /// - Test temizliÄŸi,
+    /// - Operasyondan Ã§Ä±kan aracÄ± listeden alma.
     /// </summary>
     public bool Remove(string nodeId)
     {
@@ -219,9 +219,9 @@ public sealed class FleetRegistry
     }
 
     /// <summary>
-    /// Tüm registry kayıtlarını temizler.
+    /// TÃ¼m registry kayÄ±tlarÄ±nÄ± temizler.
     /// 
-    /// Genellikle test, replay reset veya yeni operasyon başlatma sırasında kullanılır.
+    /// Genellikle test, replay reset veya yeni operasyon baÅŸlatma sÄ±rasÄ±nda kullanÄ±lÄ±r.
     /// </summary>
     public void Clear()
     {

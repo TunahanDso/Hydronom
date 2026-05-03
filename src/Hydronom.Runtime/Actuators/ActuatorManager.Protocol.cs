@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,14 +10,14 @@ using Hydronom.Core.Domain;
 namespace Hydronom.Runtime.Actuators
 {
     /// <summary>
-    /// ActuatorManager serial protocol bölümü.
+    /// ActuatorManager serial protocol bÃ¶lÃ¼mÃ¼.
     ///
-    /// Bu partial dosya şunlardan sorumludur:
-    /// - COBS framed binary serial protokolü
-    /// - Komut payload üretimi
+    /// Bu partial dosya ÅŸunlardan sorumludur:
+    /// - COBS framed binary serial protokolÃ¼
+    /// - Komut payload Ã¼retimi
     /// - Telemetry payload parse
-    /// - TX/RX worker döngüleri
-    /// - CRC16 doğrulama
+    /// - TX/RX worker dÃ¶ngÃ¼leri
+    /// - CRC16 doÄŸrulama
     ///
     /// Protokol:
     /// - Frame delimiter: 0x00
@@ -242,9 +242,13 @@ namespace Hydronom.Runtime.Actuators
 
                     if (i < _thrusters.Count)
                     {
-                        double val = _thrusters[i].IsHealthy
-                            ? _thrusters[i].Current
+                        var thruster = _thrusters[i];
+
+                        double val = thruster.IsHealthy
+                            ? thruster.Current
                             : 0.0;
+
+                        val = SanitizeProtocolCommand(thruster, val);
 
                         q = QuantizeNormalizedSigned(val);
                     }
@@ -260,6 +264,23 @@ namespace Hydronom.Runtime.Actuators
             BinaryPrimitives.WriteUInt16LittleEndian(payload.AsSpan(payloadLength - 2, 2), crc);
 
             return payload;
+        }
+
+        /// <summary>
+        /// Serial protokole yazmadan Ã¶nce son gÃ¼venlik filtresi.
+        ///
+        /// Apply aÅŸamasÄ±nda zaten CanReverse uygulanÄ±r; bu metot ise
+        /// serial payload iÃ§in ikinci savunma hattÄ±dÄ±r.
+        /// </summary>
+        private static double SanitizeProtocolCommand(Thruster thruster, double value)
+        {
+            if (!double.IsFinite(value))
+                return 0.0;
+
+            if (!thruster.CanReverse && value < 0.0)
+                value = 0.0;
+
+            return Math.Clamp(value, thruster.CanReverse ? -1.0 : 0.0, 1.0);
         }
 
         private void ProcessInboundPayload(byte[] payload)
@@ -297,7 +318,7 @@ namespace Hydronom.Runtime.Actuators
         /// [2..3]   Sequence
         /// [4]      ThrusterCount
         /// [5]      Flags
-        /// [6..69]  16 kanal için current_mA + rpm
+        /// [6..69]  16 kanal iÃ§in current_mA + rpm
         /// [70..71] CRC16
         /// </summary>
         private bool TryParseTelemetryPayload(byte[] payload)
@@ -386,7 +407,7 @@ namespace Hydronom.Runtime.Actuators
                 RebuildSolverCache_NoLockRequired();
                 RecomputeAuthorityProfile_NoLockRequired();
 
-                EnqueueLog($"[ActuatorManager] Health update → authority profile: {AuthorityProfile}");
+                EnqueueLog($"[ActuatorManager] Health update â†’ authority profile: {AuthorityProfile}");
             }
 
             return true;
@@ -412,7 +433,11 @@ namespace Hydronom.Runtime.Actuators
                         " ",
                         _thrusters
                             .OrderBy(t => t.Channel)
-                            .Select(t => $"{t.Id}@ch{t.Channel} cur={t.Current:F3} healthy={t.IsHealthy}")
+                            .Select(t =>
+                                $"{t.Id}@ch{t.Channel} " +
+                                $"cur={t.Current:F3} " +
+                                $"canRev={t.CanReverse} " +
+                                $"healthy={t.IsHealthy}")
                     );
 
                     EnqueueLog("[THRUSTER-STATE] " + text);

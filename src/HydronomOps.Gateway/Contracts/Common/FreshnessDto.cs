@@ -1,17 +1,17 @@
-namespace HydronomOps.Gateway.Contracts.Common;
+﻿namespace HydronomOps.Gateway.Contracts.Common;
 
 /// <summary>
-/// Veri tazelik bilgisini taşır.
+/// Veri tazelik bilgisini taÅŸÄ±r.
 /// </summary>
 public sealed class FreshnessDto
 {
     /// <summary>
-    /// Verinin üretim zamanı (UTC).
+    /// Verinin Ã¼retim zamanÄ± (UTC).
     /// </summary>
     public DateTime TimestampUtc { get; set; }
 
     /// <summary>
-    /// Şu ana göre veri yaşı.
+    /// Åu ana gÃ¶re veri yaÅŸÄ±.
     /// </summary>
     public double AgeMs { get; set; }
 
@@ -21,12 +21,12 @@ public sealed class FreshnessDto
     public bool IsFresh { get; set; }
 
     /// <summary>
-    /// Tazelik eşiği.
+    /// Tazelik eÅŸiÄŸi.
     /// </summary>
     public double ThresholdMs { get; set; }
 
     /// <summary>
-    /// Kaynağın etiketi.
+    /// KaynaÄŸÄ±n etiketi.
     /// </summary>
     public string Source { get; set; } = "runtime";
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
@@ -6,16 +6,16 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Runtime.Actuators
 {
     /// <summary>
-    /// ActuatorManager allocation / control effectiveness / solver bölümü.
+    /// ActuatorManager allocation / control effectiveness / solver bÃ¶lÃ¼mÃ¼.
     ///
-    /// Bu partial dosya şunlardan sorumludur:
-    /// - Thruster geometrisinden 6xM B matrisi üretmek
-    /// - Sağlıklı thruster maskesine göre solver cache oluşturmak
-    /// - Ridge least-squares ile istenen wrench için thruster çözümü üretmek
+    /// Bu partial dosya ÅŸunlardan sorumludur:
+    /// - Thruster geometrisinden 6xM B matrisi Ã¼retmek
+    /// - SaÄŸlÄ±klÄ± thruster maskesine gÃ¶re solver cache oluÅŸturmak
+    /// - Ridge least-squares ile istenen wrench iÃ§in thruster Ã§Ã¶zÃ¼mÃ¼ Ã¼retmek
     /// - Control authority profilini hesaplamak
-    /// - Hedef/gerçek wrench farkını raporlamak
+    /// - Hedef/gerÃ§ek wrench farkÄ±nÄ± raporlamak
     ///
-    /// Frame sözleşmesi:
+    /// Frame sÃ¶zleÅŸmesi:
     /// - B matrisi body frame'dedir.
     /// - RequestedForceBody ve RequestedTorqueBody body frame'dedir.
     /// - Thruster ForceDir ve Position body frame'dedir.
@@ -23,13 +23,13 @@ namespace Hydronom.Runtime.Actuators
     public sealed partial class ActuatorManager
     {
         /// <summary>
-        /// DecisionCommand içinden 6 elemanlı hedef wrench vektörü üretir.
+        /// DecisionCommand iÃ§inden 6 elemanlÄ± hedef wrench vektÃ¶rÃ¼ Ã¼retir.
         ///
-        /// Sıra:
+        /// SÄ±ra:
         /// [Fx, Fy, Fz, Tx, Ty, Tz]
         ///
-        /// TorqueWeight yalnızca solver hedefinde moment eksenlerinin sayısal ağırlığını
-        /// değiştirmek için kullanılır. Rapor tarafında gerçek istenen tork korunur.
+        /// TorqueWeight yalnÄ±zca solver hedefinde moment eksenlerinin sayÄ±sal aÄŸÄ±rlÄ±ÄŸÄ±nÄ±
+        /// deÄŸiÅŸtirmek iÃ§in kullanÄ±lÄ±r. Rapor tarafÄ±nda gerÃ§ek istenen tork korunur.
         /// </summary>
         private double[] BuildRequestedWrenchVector(DecisionCommand cmd)
         {
@@ -45,11 +45,11 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// DecisionCommand için açıklanabilir allocation işlemi yapar.
+        /// DecisionCommand iÃ§in aÃ§Ä±klanabilir allocation iÅŸlemi yapar.
         ///
-        /// Bu metot thruster Current değerlerini doğrudan değiştirmez.
-        /// Sadece solver çıktısı ve rapor üretir.
-        /// Uygulama/slew/health etkisi ana Apply metodunda işlenir.
+        /// Bu metot thruster Current deÄŸerlerini doÄŸrudan deÄŸiÅŸtirmez.
+        /// Sadece solver Ã§Ä±ktÄ±sÄ± ve rapor Ã¼retir.
+        /// Uygulama/slew/health/capability etkisi ana Apply metodunda iÅŸlenir.
         /// </summary>
         private AllocationSolveResult SolveAllocation(DecisionCommand cmd)
         {
@@ -85,7 +85,7 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Uygulanan thruster çıkışlarından gerçek body-frame wrench hesaplar.
+        /// Uygulanan thruster Ã§Ä±kÄ±ÅŸlarÄ±ndan gerÃ§ek body-frame wrench hesaplar.
         /// </summary>
         private (Vec3 forceBody, Vec3 torqueBody) ComputeAchievedWrench_NoLock()
         {
@@ -108,8 +108,8 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Allocation raporu üretir.
-        /// Hedef wrench ile uygulanmış thruster current'larından hesaplanan gerçek wrench'i karşılaştırır.
+        /// Allocation raporu Ã¼retir.
+        /// Hedef wrench ile uygulanmÄ±ÅŸ thruster current'larÄ±ndan hesaplanan gerÃ§ek wrench'i karÅŸÄ±laÅŸtÄ±rÄ±r.
         /// </summary>
         private ActuatorAllocationReport BuildAllocationReport_NoLock(
             AllocationSolveResult solve,
@@ -117,7 +117,8 @@ namespace Hydronom.Runtime.Actuators
             Vec3 achievedTorqueBody,
             bool hadSaturation,
             int activeThrusterCount,
-            double saturationRatio)
+            double saturationRatio,
+            int reverseClampCount = 0)
         {
             int healthyCount = _thrusters.Count(t => t.IsHealthy);
             bool hadUnhealthy = healthyCount < _thrusters.Count;
@@ -132,17 +133,21 @@ namespace Hydronom.Runtime.Actuators
                 ? errorNorm
                 : errorNorm / requestedNorm;
 
+            bool hadReverseClamp = reverseClampCount > 0;
+
             bool authorityLimited =
                 solve.SolverWasEmpty ||
                 healthyCount == 0 ||
                 hadSaturation ||
+                hadReverseClamp ||
                 normalizedError > 0.25;
 
             string reason = BuildAllocationReason(
                 solve.SolverWasEmpty,
                 healthyCount,
                 hadSaturation,
-                normalizedError
+                normalizedError,
+                reverseClampCount
             );
 
             return new ActuatorAllocationReport(
@@ -160,14 +165,17 @@ namespace Hydronom.Runtime.Actuators
                 HealthyThrusterCount: healthyCount,
                 HadSaturation: hadSaturation,
                 HadUnhealthyThruster: hadUnhealthy,
-                AuthorityLimited: authorityLimited
+                AuthorityLimited: authorityLimited,
+                ReverseClampCount: reverseClampCount
             );
         }
 
         /// <summary>
-        /// Geometriye bağlı sabit 6xM B matrisi üretir.
+        /// Geometriye baÄŸlÄ± sabit 6xM B matrisi Ã¼retir.
         ///
-        /// Her kolon bir thruster'ın normalize +1 komutunda üreteceği body-frame wrench'tir.
+        /// Her kolon bir thruster'Ä±n normalize +1 komutunda Ã¼reteceÄŸi body-frame wrench'tir.
+        /// CanReverse=false olan thruster iÃ§in kolon yine +1 yÃ¶nÃ¼nÃ¼ temsil eder;
+        /// negatif komut kabiliyeti Apply aÅŸamasÄ±nda fiziksel Ã§Ä±kÄ±ÅŸtan Ã¶nce kÄ±rpÄ±lÄ±r.
         /// </summary>
         private double[,] BuildThrusterMatrixFromGeometry()
         {
@@ -195,7 +203,12 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Sağlık durumuna göre effective B matrisi ve Ridge LS cache'i üretir.
+        /// SaÄŸlÄ±k durumuna gÃ¶re effective B matrisi ve Ridge LS cache'i Ã¼retir.
+        ///
+        /// Not:
+        /// CanReverse=false iÃ§in negatif komut sÄ±nÄ±rÄ± burada deÄŸil Apply aÅŸamasÄ±nda uygulanÄ±r.
+        /// Ã‡Ã¼nkÃ¼ mevcut ridge solver box-constraint Ã§Ã¶zÃ¼mÃ¼ yapmÄ±yor.
+        /// Bu nedenle rapor tarafÄ±nda reverse clamp aÃ§Ä±kÃ§a iÅŸaretlenir.
         /// </summary>
         private void RebuildSolverCache_NoLockRequired()
         {
@@ -237,7 +250,14 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Mevcut geometri ve sağlıklı thruster'lara göre eksen otoritesi hesaplar.
+        /// Mevcut geometri ve saÄŸlÄ±klÄ± thruster'lara gÃ¶re eksen otoritesi hesaplar.
+        ///
+        /// CanReverse=true:
+        ///   +1 komut kolon yÃ¶nÃ¼nde, -1 komut kolonun ters yÃ¶nÃ¼nde otorite saÄŸlar.
+        ///
+        /// CanReverse=false:
+        ///   yalnÄ±zca +1 komut yÃ¶nÃ¼ geÃ§erli kabul edilir.
+        ///   BÃ¶ylece tek yÃ¶nlÃ¼ ESC kullanÄ±lan araÃ§larda negatif eksen otoritesi yanlÄ±ÅŸ ÅŸiÅŸirilmez.
         /// </summary>
         private void RecomputeAuthorityProfile_NoLockRequired()
         {
@@ -261,15 +281,30 @@ namespace Hydronom.Runtime.Actuators
 
                     for (int j = 0; j < cols; j++)
                     {
-                        if (!_thrusters[j].IsHealthy)
+                        var thruster = _thrusters[j];
+
+                        if (!thruster.IsHealthy)
                             continue;
 
                         double v = _baseB[i, j];
 
+                        if (Math.Abs(v) <= 1e-12)
+                            continue;
+
                         if (v > 0.0)
+                        {
                             pos += v;
-                        else if (v < 0.0)
+
+                            if (thruster.CanReverse)
+                                neg += v;
+                        }
+                        else
+                        {
                             neg += -v;
+
+                            if (thruster.CanReverse)
+                                pos += -v;
+                        }
                     }
 
                     axes[i] = new AxisAuthority(pos, neg);
@@ -287,10 +322,15 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Ridge least-squares çözümü.
+        /// Ridge least-squares Ã§Ã¶zÃ¼mÃ¼.
         ///
-        /// Kullanılan form:
-        /// u = S^-1 * (Bs^T Bs + λI)^-1 * Bs^T * target
+        /// KullanÄ±lan form:
+        /// u = S^-1 * (Bs^T Bs + Î»I)^-1 * Bs^T * target
+        ///
+        /// Not:
+        /// Bu Ã§Ã¶zÃ¼m unconstrained ridge LS'tir. CanReverse=false iÃ§in negatif komut
+        /// Apply aÅŸamasÄ±nda kÄ±rpÄ±lÄ±r. Ä°leride box-constrained NNLS/QP solver eklenirse
+        /// tek yÃ¶nlÃ¼ thruster'lar Ã§Ã¶zÃ¼m aÅŸamasÄ±nda da [0,+1] sÄ±nÄ±rÄ±na alÄ±nabilir.
         /// </summary>
         private static double[] SolveWithCache(SolverCache cache, double[] targetWrench)
         {
@@ -511,13 +551,20 @@ namespace Hydronom.Runtime.Actuators
             bool solverWasEmpty,
             int healthyCount,
             bool hadSaturation,
-            double normalizedError)
+            double normalizedError,
+            int reverseClampCount = 0)
         {
             if (solverWasEmpty)
                 return "SOLVER_EMPTY";
 
             if (healthyCount <= 0)
                 return "NO_HEALTHY_THRUSTERS";
+
+            if (reverseClampCount > 0 && normalizedError > 0.25)
+                return "REVERSE_CLAMP_HIGH_ERROR";
+
+            if (reverseClampCount > 0)
+                return "REVERSE_CLAMPED";
 
             if (hadSaturation && normalizedError > 0.25)
                 return "SATURATED_HIGH_ERROR";

@@ -1,82 +1,82 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HydronomOps.Gateway.Contracts.Common;
 
 namespace HydronomOps.Gateway.Contracts.Mission;
 
 /// <summary>
-/// Araç görev durumunu ve görev akış özetini taşır.
+/// AraÃ§ gÃ¶rev durumunu ve gÃ¶rev akÄ±ÅŸ Ã¶zetini taÅŸÄ±r.
 /// </summary>
 public sealed class MissionStateDto
 {
     /// <summary>
-    /// Görev durum paketinin üretim zamanı.
+    /// GÃ¶rev durum paketinin Ã¼retim zamanÄ±.
     /// </summary>
     public DateTime TimestampUtc { get; set; }
 
     /// <summary>
-    /// Araç kimliği.
+    /// AraÃ§ kimliÄŸi.
     /// </summary>
     public string VehicleId { get; set; } = "hydronom-main";
 
     /// <summary>
-    /// Aktif görev kimliği.
+    /// Aktif gÃ¶rev kimliÄŸi.
     /// </summary>
     public string? MissionId { get; set; }
 
     /// <summary>
-    /// Aktif görev adı.
+    /// Aktif gÃ¶rev adÄ±.
     /// </summary>
     public string? MissionName { get; set; }
 
     /// <summary>
-    /// Görev durumu.
-    /// Örn: idle, planned, running, paused, completed, failed.
+    /// GÃ¶rev durumu.
+    /// Ã–rn: idle, planned, running, paused, completed, failed.
     /// </summary>
     public string Status { get; set; } = "idle";
 
     /// <summary>
-    /// Aktif adım indeksi.
+    /// Aktif adÄ±m indeksi.
     /// </summary>
     public int CurrentStepIndex { get; set; }
 
     /// <summary>
-    /// Toplam adım sayısı.
+    /// Toplam adÄ±m sayÄ±sÄ±.
     /// </summary>
     public int TotalStepCount { get; set; }
 
     /// <summary>
-    /// Aktif adım başlığı.
+    /// Aktif adÄ±m baÅŸlÄ±ÄŸÄ±.
     /// </summary>
     public string? CurrentStepTitle { get; set; }
 
     /// <summary>
-    /// Sonraki hedef veya görev açıklaması.
+    /// Sonraki hedef veya gÃ¶rev aÃ§Ä±klamasÄ±.
     /// </summary>
     public string? NextObjective { get; set; }
 
     /// <summary>
-    /// Hedefe kalan yaklaşık mesafe.
+    /// Hedefe kalan yaklaÅŸÄ±k mesafe.
     /// </summary>
     public double? RemainingDistanceMeters { get; set; }
 
     /// <summary>
-    /// Görev başlangıç zamanı.
+    /// GÃ¶rev baÅŸlangÄ±Ã§ zamanÄ±.
     /// </summary>
     public DateTime? StartedAtUtc { get; set; }
 
     /// <summary>
-    /// Görev bitiş zamanı.
+    /// GÃ¶rev bitiÅŸ zamanÄ±.
     /// </summary>
     public DateTime? FinishedAtUtc { get; set; }
 
     /// <summary>
-    /// Görevle ilişkili uyarılar.
+    /// GÃ¶revle iliÅŸkili uyarÄ±lar.
     /// </summary>
     public List<string> Warnings { get; set; } = new();
 
     /// <summary>
-    /// Veri tazelik özeti.
+    /// Veri tazelik Ã¶zeti.
     /// </summary>
     public FreshnessDto? Freshness { get; set; }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Modules;
 using Hydronom.Runtime.Actuators;
@@ -8,8 +8,8 @@ using Hydronom.Runtime.Tuning;
 partial class Program
 {
     /// <summary>
-    /// Ana loop logunun basılıp basılmayacağını belirler.
-    /// Verbose modda her döngüde, compact modda belirli aralıklarla log basılır.
+    /// Ana loop logunun basÄ±lÄ±p basÄ±lmayacaÄŸÄ±nÄ± belirler.
+    /// Verbose modda her dÃ¶ngÃ¼de, compact modda belirli aralÄ±klarla log basÄ±lÄ±r.
     /// </summary>
     private static bool ShouldEmitLoopLog(RuntimeOptions runtime, long tickIndex)
     {
@@ -17,7 +17,7 @@ partial class Program
     }
 
     /// <summary>
-    /// LOOP / CTL loglarını basar.
+    /// LOOP / CTL loglarÄ±nÄ± basar.
     /// </summary>
     private static void EmitLoopDiagnostics(
         RuntimeOptions runtime,
@@ -50,7 +50,7 @@ partial class Program
 
     /// <summary>
     /// Compact loop logu.
-    /// Tek satırda operasyonel durum verir.
+    /// Tek satÄ±rda operasyonel durum verir.
     /// </summary>
     private static void EmitCompactLoopDiagnostics(
         RuntimeDiagnosticsSnapshot diagnostics,
@@ -73,11 +73,11 @@ partial class Program
             $"accept={target.TaskReport.EffectiveArrivalThresholdM:F2}m " +
             $"queue={target.TaskReport.QueuedTaskCount} " +
             $"pos=({state.Position.X:F2},{state.Position.Y:F2}) " +
-            $"yaw={state.Orientation.YawDeg:F1}° " +
-            $"yawRate={state.AngularVelocity.Z:F1}°/s " +
+            $"yaw={state.Orientation.YawDeg:F1}Â° " +
+            $"yawRate={state.AngularVelocity.Z:F1}Â°/s " +
             $"dist={(double.IsNaN(target.DistanceToTargetM) ? -1 : target.DistanceToTargetM):F1}m " +
-            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}° " +
-            $"decDHead={decision.HeadingErrorDeg:F1}° " +
+            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}Â° " +
+            $"decDHead={decision.HeadingErrorDeg:F1}Â° " +
             $"vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"Fx={limitedCommand.Fx:F2} Fy={limitedCommand.Fy:F2} Fz={limitedCommand.Fz:F2} Tz={limitedCommand.Tz:F2} " +
             $"obsAhead={(insights.HasObstacleAhead ? "True" : "False")} " +
@@ -89,7 +89,7 @@ partial class Program
 
     /// <summary>
     /// Verbose loop logu.
-    /// Ayrıntılı state + control bilgisi verir.
+    /// AyrÄ±ntÄ±lÄ± state + control bilgisi verir.
     /// </summary>
     private static void EmitVerboseLoopDiagnostics(
         RuntimeDiagnosticsSnapshot diagnostics,
@@ -126,8 +126,8 @@ partial class Program
             $"decision={decision.Mode} reason={decision.Reason} " +
             $"task={target.TaskInfoInline} " +
             $"dist={(double.IsNaN(target.DistanceToTargetM) ? -1 : target.DistanceToTargetM):F1}m " +
-            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}° " +
-            $"decDHead={decision.HeadingErrorDeg:F1}° " +
+            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}Â° " +
+            $"decDHead={decision.HeadingErrorDeg:F1}Â° " +
             $"vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"pre(Fx={desiredCommand.Fx:F2},Fy={desiredCommand.Fy:F2},Fz={desiredCommand.Fz:F2},Tz={desiredCommand.Tz:F2}) -> " +
             $"post(Fx={limitedCommand.Fx:F2},Fy={limitedCommand.Fy:F2},Fz={limitedCommand.Fz:F2},Tz={limitedCommand.Tz:F2}) " +
@@ -136,7 +136,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Verbose modda state ve açıklanabilir modül raporlarını basar.
+    /// Verbose modda state ve aÃ§Ä±klanabilir modÃ¼l raporlarÄ±nÄ± basar.
     /// </summary>
     private static void EmitVerboseModuleReports(
         RuntimeOptions runtime,
@@ -195,13 +195,13 @@ partial class Program
             $"queue={task.QueuedTaskCount} taskReason={task.Reason} " +
             $"dtTarget={tickMs}ms dtMeasured={dtMeasured * 1000.0:F0}ms " +
             $"pos=({state.Position.X:F2},{state.Position.Y:F2}) " +
-            $"yaw={state.Orientation.YawDeg:F1}° " +
-            $"yawRate={state.AngularVelocity.Z:F1}°/s " +
+            $"yaw={state.Orientation.YawDeg:F1}Â° " +
+            $"yawRate={state.AngularVelocity.Z:F1}Â°/s " +
             $"frameAgeMs={(double.IsNaN(frameAgeMs) ? -1 : frameAgeMs):F0} " +
             $"armed={cmdSrv.IsArmed} estop={cmdSrv.IsEmergencyStop} manual={cmdSrv.IsManualMode} " +
             $"serial={(actuatorManager.IsSerialOpen ? "open" : "closed")} " +
             $"risk={analysis.FrontRiskScore:F2} avoid={analysis.SuggestedSide} " +
-            $"decDHead={decision.HeadingErrorDeg:F1}° vFwd={decision.ForwardSpeedMps:F2}m/s " +
+            $"decDHead={decision.HeadingErrorDeg:F1}Â° vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"thr={decision.ThrottleNorm:F2} rud={decision.RudderNorm:F2} " +
             $"lim={diagnostics.LimitFlags} " +
             $"alloc={allocation.Reason} allocErr={allocation.NormalizedError:F2}"

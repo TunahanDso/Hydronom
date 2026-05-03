@@ -1,92 +1,92 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HydronomOps.Gateway.Contracts.Common;
 
 namespace HydronomOps.Gateway.Contracts.Sensors;
 
 /// <summary>
-/// Sensör durum özetini taşır.
+/// SensÃ¶r durum Ã¶zetini taÅŸÄ±r.
 /// </summary>
 public sealed class SensorStateDto
 {
     /// <summary>
-    /// Paket zamanı.
+    /// Paket zamanÄ±.
     /// </summary>
     public DateTime TimestampUtc { get; set; }
 
     /// <summary>
-    /// Araç kimliği.
+    /// AraÃ§ kimliÄŸi.
     /// </summary>
     public string VehicleId { get; set; } = "hydronom-main";
 
     /// <summary>
-    /// Sensör adı.
+    /// SensÃ¶r adÄ±.
     /// </summary>
     public string SensorName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Sensör tipi.
-    /// Örn: imu, gps, lidar, camera.
+    /// SensÃ¶r tipi.
+    /// Ã–rn: imu, gps, lidar, camera.
     /// </summary>
     public string SensorType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Sensör kaynağı / backend bilgisi.
+    /// SensÃ¶r kaynaÄŸÄ± / backend bilgisi.
     /// </summary>
     public string? Source { get; set; }
 
     /// <summary>
-    /// Sensör arka uç sürücüsü.
+    /// SensÃ¶r arka uÃ§ sÃ¼rÃ¼cÃ¼sÃ¼.
     /// </summary>
     public string? Backend { get; set; }
 
     /// <summary>
-    /// Simülasyon modu mu.
+    /// SimÃ¼lasyon modu mu.
     /// </summary>
     public bool IsSimulated { get; set; }
 
     /// <summary>
-    /// Sensör aktif mi.
+    /// SensÃ¶r aktif mi.
     /// </summary>
     public bool IsEnabled { get; set; }
 
     /// <summary>
-    /// Sensörden veri geliyor mu.
+    /// SensÃ¶rden veri geliyor mu.
     /// </summary>
     public bool IsHealthy { get; set; }
 
     /// <summary>
-    /// Konfigüre edilen yayın / örnekleme hızı.
+    /// KonfigÃ¼re edilen yayÄ±n / Ã¶rnekleme hÄ±zÄ±.
     /// </summary>
     public double? ConfiguredRateHz { get; set; }
 
     /// <summary>
-    /// Ölçülen efektif hız.
+    /// Ã–lÃ§Ã¼len efektif hÄ±z.
     /// </summary>
     public double? EffectiveRateHz { get; set; }
 
     /// <summary>
-    /// Son veri zamanı.
+    /// Son veri zamanÄ±.
     /// </summary>
     public DateTime? LastSampleUtc { get; set; }
 
     /// <summary>
-    /// Son hata mesajı.
+    /// Son hata mesajÄ±.
     /// </summary>
     public string? LastError { get; set; }
 
     /// <summary>
-    /// Sensöre ait özet metrikler.
+    /// SensÃ¶re ait Ã¶zet metrikler.
     /// </summary>
     public Dictionary<string, double> Metrics { get; set; } = new();
 
     /// <summary>
-    /// Sensöre ait metinsel durum alanları.
+    /// SensÃ¶re ait metinsel durum alanlarÄ±.
     /// </summary>
     public Dictionary<string, string> Fields { get; set; } = new();
 
     /// <summary>
-    /// Veri tazelik özeti.
+    /// Veri tazelik Ã¶zeti.
     /// </summary>
     public FreshnessDto? Freshness { get; set; }
 }

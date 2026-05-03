@@ -1,9 +1,9 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace HydronomOps.Gateway.Infrastructure.Serialization;
 
 /// <summary>
-/// Gateway genel JSON ayarları.
+/// Gateway genel JSON ayarlarÄ±.
 /// </summary>
 public static class JsonDefaults
 {

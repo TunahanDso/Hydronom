@@ -1,77 +1,77 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// PWM–IMU tabanlı motor keşif sürecinin konfigürasyon parametreleri.
-    /// AutoDiscoveryEngine tarafından referans alınır.
+    /// PWMâ€“IMU tabanlÄ± motor keÅŸif sÃ¼recinin konfigÃ¼rasyon parametreleri.
+    /// AutoDiscoveryEngine tarafÄ±ndan referans alÄ±nÄ±r.
     /// </summary>
     public record DiscoveryConfig
     {
         // --- ZAMANLAMA ---
 
         /// <summary>
-        /// Bir test darbesinden sonra suyun durulması için beklenecek süre [ms].
-        /// Su altı araçlarında atalet yüksektir, bu süre ChannelDelay'den uzun olmalıdır.
+        /// Bir test darbesinden sonra suyun durulmasÄ± iÃ§in beklenecek sÃ¼re [ms].
+        /// Su altÄ± araÃ§larÄ±nda atalet yÃ¼ksektir, bu sÃ¼re ChannelDelay'den uzun olmalÄ±dÄ±r.
         /// </summary>
         public int SettlingTimeMs { get; init; } = 2000;
 
         /// <summary>
-        /// Her kanal için uygulanacak PWM "ON" süresi [ms].
+        /// Her kanal iÃ§in uygulanacak PWM "ON" sÃ¼resi [ms].
         /// </summary>
         public int PulseDurationMs { get; init; } = 800;
 
         /// <summary>
-        /// PWM kanalları arası minimum geçiş beklemesi [ms].
+        /// PWM kanallarÄ± arasÄ± minimum geÃ§iÅŸ beklemesi [ms].
         /// </summary>
         public int ChannelDelayMs { get; init; } = 500;
 
         /// <summary>
-        /// IMU örnekleme aralığı [ms].
+        /// IMU Ã¶rnekleme aralÄ±ÄŸÄ± [ms].
         /// </summary>
         public int ImuSampleIntervalMs { get; init; } = 10;
 
 
-        // --- EŞİK DEĞERLERİ (Hassasiyet) ---
+        // --- EÅÄ°K DEÄERLERÄ° (Hassasiyet) ---
 
         /// <summary>
-        /// Eşik lineer hızlanma değeri [m/s²]. Gürültü filtresi.
+        /// EÅŸik lineer hÄ±zlanma deÄŸeri [m/sÂ²]. GÃ¼rÃ¼ltÃ¼ filtresi.
         /// </summary>
         public double AccelThreshold { get; init; } = 0.02;
 
         /// <summary>
-        /// Eşik açısal hızlanma değeri [rad/s].
-        /// Tork çıkarımı için bu değerin aşılması gerekir.
+        /// EÅŸik aÃ§Ä±sal hÄ±zlanma deÄŸeri [rad/s].
+        /// Tork Ã§Ä±karÄ±mÄ± iÃ§in bu deÄŸerin aÅŸÄ±lmasÄ± gerekir.
         /// </summary>
         public double GyroThreshold { get; init; } = 0.05;
 
         /// <summary>
-        /// Bir ölçümün geçerli sayılması için gereken minimum güven skoru (0.0–1.0).
+        /// Bir Ã¶lÃ§Ã¼mÃ¼n geÃ§erli sayÄ±lmasÄ± iÃ§in gereken minimum gÃ¼ven skoru (0.0â€“1.0).
         /// </summary>
         public double MinConfidenceScore { get; init; } = 0.3;
 
 
-        // --- TEST PROSEDÜRÜ ---
+        // --- TEST PROSEDÃœRÃœ ---
 
         /// <summary>
-        /// PWM taraması sırasında kullanılacak minimum sinyal oranı (0.0–1.0).
+        /// PWM taramasÄ± sÄ±rasÄ±nda kullanÄ±lacak minimum sinyal oranÄ± (0.0â€“1.0).
         /// </summary>
         public double MinThrottle { get; init; } = 0.25;
 
         /// <summary>
-        /// PWM taraması sırasında kullanılacak maksimum sinyal oranı (0.0–1.0).
+        /// PWM taramasÄ± sÄ±rasÄ±nda kullanÄ±lacak maksimum sinyal oranÄ± (0.0â€“1.0).
         /// </summary>
         public double MaxThrottle { get; init; } = 0.50;
 
         /// <summary>
-        /// Motorların ters yönde de test edilip edilmeyeceği.
-        /// (ReverseEfficiencyRatio için gereklidir.)
+        /// MotorlarÄ±n ters yÃ¶nde de test edilip edilmeyeceÄŸi.
+        /// (ReverseEfficiencyRatio iÃ§in gereklidir.)
         /// </summary>
         public bool TestReverseDirection { get; init; } = true;
 
         /// <summary>
-        /// Her kanalın kaç kez tekrar test edileceği.
+        /// Her kanalÄ±n kaÃ§ kez tekrar test edileceÄŸi.
         /// </summary>
         public int Repeats { get; init; } = 3;
 
@@ -79,35 +79,35 @@ namespace Hydronom.Core.Domain
         // --- VARSAYIMLAR (Fallback) ---
 
         /// <summary>
-        /// Fiziksel çıkarım yapılamazsa varsayılan motor sayısı.
+        /// Fiziksel Ã§Ä±karÄ±m yapÄ±lamazsa varsayÄ±lan motor sayÄ±sÄ±.
         /// </summary>
         public int AssumedMotorCount { get; init; } = 4;
 
         /// <summary>
-        /// Fiziksel çıkarım yapılamazsa varsayılan motor yarıçapı (metre).
+        /// Fiziksel Ã§Ä±karÄ±m yapÄ±lamazsa varsayÄ±lan motor yarÄ±Ã§apÄ± (metre).
         /// </summary>
         public double AssumedRadiusM { get; init; } = 0.5;
 
 
-        // --- SİSTEM ---
+        // --- SÄ°STEM ---
 
         /// <summary>
-        /// Taranacak toplam PWM kanalı (PCA9685 = 16).
+        /// Taranacak toplam PWM kanalÄ± (PCA9685 = 16).
         /// </summary>
         public int TotalChannels { get; init; } = 16;
 
         /// <summary>
-        /// Sadece belirli kanalları taramak için whitelist. Boş ise tüm kanallar taranır.
+        /// Sadece belirli kanallarÄ± taramak iÃ§in whitelist. BoÅŸ ise tÃ¼m kanallar taranÄ±r.
         /// </summary>
         public List<int> ChannelWhitelist { get; init; } = new();
 
         /// <summary>
-        /// Simülasyon modunun açık olup olmadığı.
+        /// SimÃ¼lasyon modunun aÃ§Ä±k olup olmadÄ±ÄŸÄ±.
         /// </summary>
         public bool SimulationMode { get; init; } = false;
 
         /// <summary>
-        /// Keşif raporlarının yazılacağı dizin.
+        /// KeÅŸif raporlarÄ±nÄ±n yazÄ±lacaÄŸÄ± dizin.
         /// </summary>
         public string OutputDirectory { get; init; } = "Configs/AutoDiscovery";
 
@@ -119,3 +119,4 @@ namespace Hydronom.Core.Domain
         }
     }
 }
+

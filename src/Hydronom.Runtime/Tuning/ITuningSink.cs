@@ -1,4 +1,4 @@
-namespace Hydronom.Runtime.Tuning
+﻿namespace Hydronom.Runtime.Tuning
 {
     public interface ITuningSink
     {
@@ -18,3 +18,4 @@ namespace Hydronom.Runtime.Tuning
         bool TaskActive
     );
 }
+

@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 
 namespace Hydronom.Core.Modules
 {
-    /// Minimal COLREG sınıflandırıcı (yalnızca göreli geometri)
+    /// Minimal COLREG sÄ±nÄ±flandÄ±rÄ±cÄ± (yalnÄ±zca gÃ¶reli geometri)
     public sealed class SimpleColregAdvisor : IColregAdvisor
     {
         private readonly double _considerRangeM;
@@ -18,7 +18,7 @@ namespace Hydronom.Core.Modules
 
         public ColregAdvisory Advise(VehicleState own, FusedFrame frame)
         {
-            // En yakın kontağı seç
+            // En yakÄ±n kontaÄŸÄ± seÃ§
             Obstacle? closest = null;
             double closestDist = double.MaxValue;
 
@@ -37,7 +37,7 @@ namespace Hydronom.Core.Modules
             if (closest is null || closestDist > _considerRangeM)
                 return ColregAdvisory.None;
 
-            // Göreli bearing: own heading'e göre (+) sancak / (-) iskele
+            // GÃ¶reli bearing: own heading'e gÃ¶re (+) sancak / (-) iskele
             var relX = closest.Position.X - own.Position.X;
             var relY = closest.Position.Y - own.Position.Y;
             var brgAbsDeg = Math.Atan2(relY, relX) * 180.0 / Math.PI;
@@ -46,7 +46,7 @@ namespace Hydronom.Core.Modules
             var relBearing = NormalizePm180(brgAbsDeg - ownHdg);
             var abs = Math.Abs(relBearing);
 
-            // Sınıflandırma (POZİSYONEL kurucu kullanımı!)
+            // SÄ±nÄ±flandÄ±rma (POZÄ°SYONEL kurucu kullanÄ±mÄ±!)
             if (abs <= _headOnTolDeg)
                 return new ColregAdvisory(EncounterType.HeadOn,               false, +1.0, "R14");
 
@@ -67,3 +67,4 @@ namespace Hydronom.Core.Modules
         }
     }
 }
+

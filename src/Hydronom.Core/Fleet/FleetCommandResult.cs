@@ -1,59 +1,59 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 /// <summary>
-/// Bir FleetCommand komutuna araç/node tarafından verilen sonucu temsil eder.
+/// Bir FleetCommand komutuna araÃ§/node tarafÄ±ndan verilen sonucu temsil eder.
 /// 
-/// Bu model HydronomEnvelope.Payload içinde taşınır.
-/// MessageType örneği:
+/// Bu model HydronomEnvelope.Payload iÃ§inde taÅŸÄ±nÄ±r.
+/// MessageType Ã¶rneÄŸi:
 /// - "FleetCommandResult"
 /// - "CommandResult"
 /// 
-/// Amaç:
-/// Yer istasyonu veya komutu gönderen node şunu anlayabilsin:
-/// - Komut alındı mı?
+/// AmaÃ§:
+/// Yer istasyonu veya komutu gÃ¶nderen node ÅŸunu anlayabilsin:
+/// - Komut alÄ±ndÄ± mÄ±?
 /// - Kabul edildi mi?
 /// - Reddedildi mi?
-/// - SafetyGate tarafından engellendi mi?
-/// - Uygulandı mı?
-/// - Hata mı oluştu?
+/// - SafetyGate tarafÄ±ndan engellendi mi?
+/// - UygulandÄ± mÄ±?
+/// - Hata mÄ± oluÅŸtu?
 /// 
-/// Bu sonuç modeli, özellikle yer istasyonu kontrolünde çok önemlidir.
-/// Çünkü operatör sadece komutu göndermemeli; aracın bu komuta ne cevap verdiğini de görmelidir.
+/// Bu sonuÃ§ modeli, Ã¶zellikle yer istasyonu kontrolÃ¼nde Ã§ok Ã¶nemlidir.
+/// Ã‡Ã¼nkÃ¼ operatÃ¶r sadece komutu gÃ¶ndermemeli; aracÄ±n bu komuta ne cevap verdiÄŸini de gÃ¶rmelidir.
 /// </summary>
 public sealed record FleetCommandResult
 {
     /// <summary>
-    /// Sonuç mesajının benzersiz kimliği.
+    /// SonuÃ§ mesajÄ±nÄ±n benzersiz kimliÄŸi.
     /// 
-    /// Loglama, replay ve debugging için kullanılır.
+    /// Loglama, replay ve debugging iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public string ResultId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Bu sonucun hangi komuta ait olduğunu belirtir.
+    /// Bu sonucun hangi komuta ait olduÄŸunu belirtir.
     /// 
-    /// FleetCommand.CommandId ile eşleşmelidir.
-    /// Böylece yer istasyonu gönderdiği komutla gelen cevabı bağlayabilir.
+    /// FleetCommand.CommandId ile eÅŸleÅŸmelidir.
+    /// BÃ¶ylece yer istasyonu gÃ¶nderdiÄŸi komutla gelen cevabÄ± baÄŸlayabilir.
     /// </summary>
     public string CommandId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Sonucu üreten node kimliği.
+    /// Sonucu Ã¼reten node kimliÄŸi.
     /// 
-    /// Genellikle komutu alan araçtır.
+    /// Genellikle komutu alan araÃ§tÄ±r.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "VEHICLE-ALPHA-001"
     /// - "VEHICLE-BETA-001"
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Sonucun gönderileceği node kimliği.
+    /// Sonucun gÃ¶nderileceÄŸi node kimliÄŸi.
     /// 
-    /// Genellikle komutu gönderen yer istasyonu veya gateway'dir.
+    /// Genellikle komutu gÃ¶nderen yer istasyonu veya gateway'dir.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "GROUND-001"
     /// - "OPS-GATEWAY-001"
     /// </summary>
@@ -62,7 +62,7 @@ public sealed record FleetCommandResult
     /// <summary>
     /// Komut sonucunun genel durumu.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Received"
     /// - "Accepted"
     /// - "Rejected"
@@ -72,29 +72,29 @@ public sealed record FleetCommandResult
     /// - "Applied"
     /// - "Failed"
     /// 
-    /// Şimdilik string bırakıyoruz.
-    /// İleride CommandResultStatus enum'una çevrilebilir.
+    /// Åimdilik string bÄ±rakÄ±yoruz.
+    /// Ä°leride CommandResultStatus enum'una Ã§evrilebilir.
     /// </summary>
     public string Status { get; init; } = "Received";
 
     /// <summary>
-    /// Sonucun başarılı kabul edilip edilmediğini belirtir.
+    /// Sonucun baÅŸarÄ±lÄ± kabul edilip edilmediÄŸini belirtir.
     /// 
     /// true:
-    /// - Komut kabul edilmiş veya uygulanmıştır.
+    /// - Komut kabul edilmiÅŸ veya uygulanmÄ±ÅŸtÄ±r.
     /// 
     /// false:
-    /// - Komut reddedilmiş, safety tarafından engellenmiş,
-    ///   yetkisiz bulunmuş veya hata oluşmuştur.
+    /// - Komut reddedilmiÅŸ, safety tarafÄ±ndan engellenmiÅŸ,
+    ///   yetkisiz bulunmuÅŸ veya hata oluÅŸmuÅŸtur.
     /// </summary>
     public bool Success { get; init; }
 
     /// <summary>
-    /// Sonuçla ilgili insan tarafından okunabilir kısa açıklama.
+    /// SonuÃ§la ilgili insan tarafÄ±ndan okunabilir kÄ±sa aÃ§Ä±klama.
     /// 
-    /// Hydronom Ops tarafında operatöre gösterilebilir.
+    /// Hydronom Ops tarafÄ±nda operatÃ¶re gÃ¶sterilebilir.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "Mission command accepted."
     /// - "Command rejected by SafetyGate: obstacle too close."
     /// - "Operator is not authorized for manual control."
@@ -103,16 +103,16 @@ public sealed record FleetCommandResult
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    /// Sonucun üretildiği UTC zaman damgası.
+    /// Sonucun Ã¼retildiÄŸi UTC zaman damgasÄ±.
     /// 
-    /// Komut-cevap gecikmesi ve olay zaman çizelgesi için kullanılır.
+    /// Komut-cevap gecikmesi ve olay zaman Ã§izelgesi iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Komutun araç tarafında hangi katmana kadar ilerlediğini belirtir.
+    /// Komutun araÃ§ tarafÄ±nda hangi katmana kadar ilerlediÄŸini belirtir.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Received"
     /// - "Validated"
     /// - "AuthorityChecked"
@@ -120,15 +120,15 @@ public sealed record FleetCommandResult
     /// - "DecisionAccepted"
     /// - "ActuationApplied"
     /// 
-    /// Bu alan debugging için çok değerlidir.
-    /// Yer istasyonu sadece "başarısız" görmek yerine nerede takıldığını anlayabilir.
+    /// Bu alan debugging iÃ§in Ã§ok deÄŸerlidir.
+    /// Yer istasyonu sadece "baÅŸarÄ±sÄ±z" gÃ¶rmek yerine nerede takÄ±ldÄ±ÄŸÄ±nÄ± anlayabilir.
     /// </summary>
     public string ProcessingStage { get; init; } = "Received";
 
     /// <summary>
-    /// Komutun reddedilme veya başarısız olma sebebi.
+    /// Komutun reddedilme veya baÅŸarÄ±sÄ±z olma sebebi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "InvalidCommand"
     /// - "UnauthorizedSource"
     /// - "SafetyRisk"
@@ -137,33 +137,33 @@ public sealed record FleetCommandResult
     /// - "UnsupportedCommandType"
     /// - "RuntimeFault"
     /// 
-    /// Başarılı sonuçlarda boş kalabilir.
+    /// BaÅŸarÄ±lÄ± sonuÃ§larda boÅŸ kalabilir.
     /// </summary>
     public string FailureReason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Sonuçla ilgili ek metadata bilgileri.
+    /// SonuÃ§la ilgili ek metadata bilgileri.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "latencyMs": "32"
     /// - "safetyGate": "passed"
     /// - "runtimeMode": "Autonomous"
     /// - "activeMissionId": "MISSION-2026-001"
     /// 
-    /// İlk fazda esneklik sağlar.
+    /// Ä°lk fazda esneklik saÄŸlar.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Sonucun temel olarak geçerli olup olmadığını döndürür.
+    /// Sonucun temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından:
+    /// En azÄ±ndan:
     /// - ResultId
     /// - CommandId
     /// - SourceNodeId
     /// - TargetNodeId
-    /// dolu olmalıdır.
+    /// dolu olmalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(ResultId) &&

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Hydronom.Core.Domain.AI;
 
@@ -6,7 +6,7 @@ namespace Hydronom.AI.Orchestration;
 
 public static class AiContextBuilder
 {
-    // Doğrudan AiMessage içindeki Factory metotları kullanıyoruz
+    // DoÄŸrudan AiMessage iÃ§indeki Factory metotlarÄ± kullanÄ±yoruz
     public static AiMessage System(string text)
         => AiMessage.System(text);
 

@@ -1,10 +1,10 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Yer istasyonu seviyesinde araç bağlantı kalitesini takip eder.
-/// Bu sınıf şimdilik metrik toplar; ileride CommunicationRouter ve Diagnostics bunu karar girdisi olarak kullanacaktır.
+/// Yer istasyonu seviyesinde araÃ§ baÄŸlantÄ± kalitesini takip eder.
+/// Bu sÄ±nÄ±f ÅŸimdilik metrik toplar; ileride CommunicationRouter ve Diagnostics bunu karar girdisi olarak kullanacaktÄ±r.
 /// </summary>
 public sealed class LinkHealthTracker
 {
@@ -15,7 +15,7 @@ public sealed class LinkHealthTracker
     public VehicleLinkHealth GetOrCreateVehicle(string vehicleId)
     {
         if (string.IsNullOrWhiteSpace(vehicleId))
-            throw new ArgumentException("VehicleId boş olamaz.", nameof(vehicleId));
+            throw new ArgumentException("VehicleId boÅŸ olamaz.", nameof(vehicleId));
 
         if (_vehicles.TryGetValue(vehicleId, out var existing))
             return existing;

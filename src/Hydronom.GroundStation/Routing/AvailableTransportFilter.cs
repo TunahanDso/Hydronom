@@ -1,19 +1,19 @@
-namespace Hydronom.GroundStation.Routing;
+﻿namespace Hydronom.GroundStation.Routing;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// TransportRoutingPolicy tarafından üretilen route kararını,
-/// hedef node'un gerçekten kullanılabilir transport listesine göre filtreler.
+/// TransportRoutingPolicy tarafÄ±ndan Ã¼retilen route kararÄ±nÄ±,
+/// hedef node'un gerÃ§ekten kullanÄ±labilir transport listesine gÃ¶re filtreler.
 /// 
-/// Bu sınıfın amacı:
-/// - Teorik route kararını pratik uygulanabilir route kararına çevirmek,
-/// - Araçta olmayan transport'ları elemek,
-/// - Plug-and-play haberleşme mantığını güçlendirmek,
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - Teorik route kararÄ±nÄ± pratik uygulanabilir route kararÄ±na Ã§evirmek,
+/// - AraÃ§ta olmayan transport'larÄ± elemek,
+/// - Plug-and-play haberleÅŸme mantÄ±ÄŸÄ±nÄ± gÃ¼Ã§lendirmek,
 /// - CommunicationRouter'a sadece uygulanabilir transport listesini vermektir.
 /// 
-/// Örnek:
-/// Policy kararı:
+/// Ã–rnek:
+/// Policy kararÄ±:
 /// - Primary: Tcp, RfModem
 /// - Fallback: LoRa
 /// 
@@ -21,25 +21,25 @@ using Hydronom.Core.Communication;
 /// - Tcp
 /// - Mock
 /// 
-/// Filtre sonrası:
+/// Filtre sonrasÄ±:
 /// - Primary: Tcp
-/// - Fallback: boş
+/// - Fallback: boÅŸ
 /// </summary>
 public sealed class AvailableTransportFilter
 {
     /// <summary>
-    /// Route kararını hedef node'un kullanılabilir transport listesine göre filtreler.
+    /// Route kararÄ±nÄ± hedef node'un kullanÄ±labilir transport listesine gÃ¶re filtreler.
     /// 
-    /// Eğer availableTransports boşsa:
-    /// - Mevcut route kararı değiştirilmeden döndürülür.
-    /// - Çünkü bazı durumlarda hedef node bilgisi henüz bilinmeyebilir.
+    /// EÄŸer availableTransports boÅŸsa:
+    /// - Mevcut route kararÄ± deÄŸiÅŸtirilmeden dÃ¶ndÃ¼rÃ¼lÃ¼r.
+    /// - Ã‡Ã¼nkÃ¼ bazÄ± durumlarda hedef node bilgisi henÃ¼z bilinmeyebilir.
     /// 
-    /// Eğer karar BroadcastAllAvailableLinks ise:
-    /// - PrimaryTransports içinde yalnızca hedefte mevcut olanlar bırakılır.
+    /// EÄŸer karar BroadcastAllAvailableLinks ise:
+    /// - PrimaryTransports iÃ§inde yalnÄ±zca hedefte mevcut olanlar bÄ±rakÄ±lÄ±r.
     /// - FallbackTransports temizlenir.
     /// 
-    /// Normal route kararında:
-    /// - Primary ve Fallback ayrı ayrı filtrelenir.
+    /// Normal route kararÄ±nda:
+    /// - Primary ve Fallback ayrÄ± ayrÄ± filtrelenir.
     /// </summary>
     public TransportRouteDecision Filter(
         TransportRouteDecision decision,
@@ -80,11 +80,11 @@ public sealed class AvailableTransportFilter
     }
 
     /// <summary>
-    /// Route kararının filtre sonrası hâlâ uygulanabilir olup olmadığını kontrol eder.
+    /// Route kararÄ±nÄ±n filtre sonrasÄ± hÃ¢lÃ¢ uygulanabilir olup olmadÄ±ÄŸÄ±nÄ± kontrol eder.
     /// 
-    /// Uygulanabilirlik için:
-    /// - Broadcast ise en az bir Primary transport kalmalı,
-    /// - Normal route ise Primary veya Fallback içinde en az bir transport kalmalı.
+    /// Uygulanabilirlik iÃ§in:
+    /// - Broadcast ise en az bir Primary transport kalmalÄ±,
+    /// - Normal route ise Primary veya Fallback iÃ§inde en az bir transport kalmalÄ±.
     /// </summary>
     public bool IsApplicable(TransportRouteDecision decision)
     {

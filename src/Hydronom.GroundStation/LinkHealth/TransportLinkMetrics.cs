@@ -1,10 +1,10 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Belirli bir araç ve belirli bir transport türü için bağlantı metriklerini tutar.
-/// Örn: VEHICLE-ALPHA-001 + WiFi, VEHICLE-ALPHA-001 + LoRa.
+/// Belirli bir araÃ§ ve belirli bir transport tÃ¼rÃ¼ iÃ§in baÄŸlantÄ± metriklerini tutar.
+/// Ã–rn: VEHICLE-ALPHA-001 + WiFi, VEHICLE-ALPHA-001 + LoRa.
 /// </summary>
 public sealed class TransportLinkMetrics
 {
@@ -14,7 +14,7 @@ public sealed class TransportLinkMetrics
         DateTime firstSeenUtc)
     {
         if (string.IsNullOrWhiteSpace(vehicleId))
-            throw new ArgumentException("VehicleId boş olamaz.", nameof(vehicleId));
+            throw new ArgumentException("VehicleId boÅŸ olamaz.", nameof(vehicleId));
 
         VehicleId = vehicleId;
         TransportKind = transportKind;
@@ -91,8 +91,8 @@ public sealed class TransportLinkMetrics
     }
 
     /// <summary>
-    /// 0-100 arası bağlantı kalite skoru.
-    /// 100 mükemmel, 0 kullanılamaz anlamına gelir.
+    /// 0-100 arasÄ± baÄŸlantÄ± kalite skoru.
+    /// 100 mÃ¼kemmel, 0 kullanÄ±lamaz anlamÄ±na gelir.
     /// </summary>
     public double QualityScore { get; private set; } = 100.0;
 
@@ -191,8 +191,8 @@ public sealed class TransportLinkMetrics
             return;
         }
 
-        // Basit hareketli ortalama yaklaşımı.
-        // İleride EWMA parametresi konfigürasyona alınabilir.
+        // Basit hareketli ortalama yaklaÅŸÄ±mÄ±.
+        // Ä°leride EWMA parametresi konfigÃ¼rasyona alÄ±nabilir.
         AverageLatencyMs = (AverageLatencyMs.Value * 0.8) + (latencyMs * 0.2);
     }
 

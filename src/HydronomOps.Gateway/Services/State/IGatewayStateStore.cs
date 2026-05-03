@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.Contracts.Actuators;
+﻿using HydronomOps.Gateway.Contracts.Actuators;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Mission;
 using HydronomOps.Gateway.Contracts.Sensors;
@@ -8,7 +8,7 @@ using HydronomOps.Gateway.Domain;
 namespace HydronomOps.Gateway.Services.State;
 
 /// <summary>
-/// Gateway'in tuttuğu birleşik araç durumuna erişim sağlar.
+/// Gateway'in tuttuÄŸu birleÅŸik araÃ§ durumuna eriÅŸim saÄŸlar.
 /// </summary>
 public interface IGatewayStateStore
 {

@@ -1,20 +1,20 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// Platform bağımsız 6-DoF fizik yürütücüsü.
+    /// Platform baÄŸÄ±msÄ±z 6-DoF fizik yÃ¼rÃ¼tÃ¼cÃ¼sÃ¼.
     ///
-    /// Bu sınıfın görevi:
-    /// - Araç durumunu tek merkezde tutmak
-    /// - Body frame'de gelen kuvvet/momentleri doğru frame sözleşmesine çevirmek
+    /// Bu sÄ±nÄ±fÄ±n gÃ¶revi:
+    /// - AraÃ§ durumunu tek merkezde tutmak
+    /// - Body frame'de gelen kuvvet/momentleri doÄŸru frame sÃ¶zleÅŸmesine Ã§evirmek
     /// - Rijit cisim parametreleriyle fizik entegrasyonu yapmak
-    /// - Her fizik adımı için açıklanabilir PhysicsStepReport üretmek
+    /// - Her fizik adÄ±mÄ± iÃ§in aÃ§Ä±klanabilir PhysicsStepReport Ã¼retmek
     ///
-    /// Bu sınıf deniz, kara, hava veya sualtı ortamına özel fizik yazmaz.
-    /// Platforma özel etkiler ayrı force/environment modellerinde hesaplanmalı ve
-    /// ApplyWorldLoads / ApplyBodyLoads üzerinden buraya verilmelidir.
+    /// Bu sÄ±nÄ±f deniz, kara, hava veya sualtÄ± ortamÄ±na Ã¶zel fizik yazmaz.
+    /// Platforma Ã¶zel etkiler ayrÄ± force/environment modellerinde hesaplanmalÄ± ve
+    /// ApplyWorldLoads / ApplyBodyLoads Ã¼zerinden buraya verilmelidir.
     /// </summary>
     public class PhysicsIntegrator
     {
@@ -24,21 +24,21 @@ namespace Hydronom.Core.Modules
         private PhysicsLoads _pendingLoads = PhysicsLoads.Zero;
 
         /// <summary>
-        /// Şu anki 6-DoF araç durumu.
+        /// Åu anki 6-DoF araÃ§ durumu.
         /// </summary>
         public VehicleState State { get; private set; } = VehicleState.Zero;
 
         /// <summary>
-        /// Son fizik adımının açıklanabilir raporu.
-        /// Analysis, Safety, Replay ve Diagnostics katmanları bunu okuyabilir.
+        /// Son fizik adÄ±mÄ±nÄ±n aÃ§Ä±klanabilir raporu.
+        /// Analysis, Safety, Replay ve Diagnostics katmanlarÄ± bunu okuyabilir.
         /// </summary>
         public PhysicsStepReport LastStepReport { get; private set; } =
             PhysicsStepReport.NoStep(VehicleState.Zero, 0.0, "NOT_STARTED");
 
         /// <summary>
-        /// [kg] Toplam kütle.
-        /// Geriye dönük uyumluluk için korunur.
-        /// Yeni kodlarda BodyProperties üzerinden okunur.
+        /// [kg] Toplam kÃ¼tle.
+        /// Geriye dÃ¶nÃ¼k uyumluluk iÃ§in korunur.
+        /// Yeni kodlarda BodyProperties Ã¼zerinden okunur.
         /// </summary>
         public double Mass
         {
@@ -47,9 +47,9 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// [kg·m²] Body frame diagonal atalet momenti.
-        /// Geriye dönük uyumluluk için korunur.
-        /// Yeni kodlarda BodyProperties üzerinden okunur.
+        /// [kgÂ·mÂ²] Body frame diagonal atalet momenti.
+        /// Geriye dÃ¶nÃ¼k uyumluluk iÃ§in korunur.
+        /// Yeni kodlarda BodyProperties Ã¼zerinden okunur.
         /// </summary>
         public Vec3 Inertia
         {
@@ -58,41 +58,41 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// [s] Varsayılan entegrasyon zaman adımı.
+        /// [s] VarsayÄ±lan entegrasyon zaman adÄ±mÄ±.
         /// </summary>
         public double TimeStep { get; set; } = 0.01;
 
         /// <summary>
-        /// Platform bağımsız rijit cisim parametreleri.
-        /// Tekne, denizaltı, İHA, kara robotu veya AGV aynı sözleşmeyi kullanır.
+        /// Platform baÄŸÄ±msÄ±z rijit cisim parametreleri.
+        /// Tekne, denizaltÄ±, Ä°HA, kara robotu veya AGV aynÄ± sÃ¶zleÅŸmeyi kullanÄ±r.
         /// </summary>
         public RigidBodyProperties BodyProperties { get; private set; }
 
         /// <summary>
-        /// Entegrasyon yöntemi ve sayısal güvenlik ayarları.
+        /// Entegrasyon yÃ¶ntemi ve sayÄ±sal gÃ¼venlik ayarlarÄ±.
         /// </summary>
         public PhysicsIntegrationOptions IntegrationOptions { get; set; } =
             PhysicsIntegrationOptions.Default;
 
         /// <summary>
-        /// Basit sönümleme modu.
+        /// Basit sÃ¶nÃ¼mleme modu.
         ///
-        /// Varsayılan olarak kapalıdır.
-        /// Çünkü platform bağımsız çekirdekte sürüklenme/sürtünme bu sınıfa gömülmemelidir.
-        /// Eski davranışı kabaca korumak istenirse true yapılabilir.
-        /// Gerçek yükseltme için ayrı force model dosyaları kullanılmalıdır.
+        /// VarsayÄ±lan olarak kapalÄ±dÄ±r.
+        /// Ã‡Ã¼nkÃ¼ platform baÄŸÄ±msÄ±z Ã§ekirdekte sÃ¼rÃ¼klenme/sÃ¼rtÃ¼nme bu sÄ±nÄ±fa gÃ¶mÃ¼lmemelidir.
+        /// Eski davranÄ±ÅŸÄ± kabaca korumak istenirse true yapÄ±labilir.
+        /// GerÃ§ek yÃ¼kseltme iÃ§in ayrÄ± force model dosyalarÄ± kullanÄ±lmalÄ±dÄ±r.
         /// </summary>
         public bool EnableLegacyDamping { get; set; } = false;
 
         /// <summary>
-        /// [1/s] Eski basit lineer sönüm katsayısı.
-        /// Sadece EnableLegacyDamping true ise uygulanır.
+        /// [1/s] Eski basit lineer sÃ¶nÃ¼m katsayÄ±sÄ±.
+        /// Sadece EnableLegacyDamping true ise uygulanÄ±r.
         /// </summary>
         public double LegacyLinearDamping { get; set; } = 0.2;
 
         /// <summary>
-        /// [1/s] Eski basit açısal sönüm katsayısı.
-        /// Sadece EnableLegacyDamping true ise uygulanır.
+        /// [1/s] Eski basit aÃ§Ä±sal sÃ¶nÃ¼m katsayÄ±sÄ±.
+        /// Sadece EnableLegacyDamping true ise uygulanÄ±r.
         /// </summary>
         public double LegacyAngularDamping { get; set; } = 0.5;
 
@@ -107,7 +107,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Rijit cisim parametrelerini tek seferde günceller.
+        /// Rijit cisim parametrelerini tek seferde gÃ¼nceller.
         /// </summary>
         public void ConfigureBody(RigidBodyProperties bodyProperties)
         {
@@ -115,7 +115,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Entegrasyon seçeneklerini tek seferde günceller.
+        /// Entegrasyon seÃ§eneklerini tek seferde gÃ¼nceller.
         /// </summary>
         public void ConfigureIntegration(PhysicsIntegrationOptions options)
         {
@@ -123,8 +123,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Dış bir modülden gelen durumu doğrudan set eder.
-        /// Estimator, replay, digital twin veya external pose correction için kullanılabilir.
+        /// DÄ±ÅŸ bir modÃ¼lden gelen durumu doÄŸrudan set eder.
+        /// Estimator, replay, digital twin veya external pose correction iÃ§in kullanÄ±labilir.
         /// </summary>
         public void ResetState(VehicleState newState, bool clearForces = true)
         {
@@ -139,9 +139,9 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Yalnızca konum ve oryantasyonu günceller.
-        /// Hızlar korunur.
-        /// GPS/SLAM/vision pose correction gibi durumlarda kullanılır.
+        /// YalnÄ±zca konum ve oryantasyonu gÃ¼nceller.
+        /// HÄ±zlar korunur.
+        /// GPS/SLAM/vision pose correction gibi durumlarda kullanÄ±lÄ±r.
         /// </summary>
         public void SetPose(Vec3 position, Orientation orientation)
         {
@@ -155,7 +155,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Harici pose kaynağı ile güvenli pose düzeltmesi yapar.
+        /// Harici pose kaynaÄŸÄ± ile gÃ¼venli pose dÃ¼zeltmesi yapar.
         /// </summary>
         public void SetExternalPose(
             double x,
@@ -185,9 +185,9 @@ namespace Hydronom.Core.Modules
         ///
         /// Beklenen:
         /// - totalForceBody: body frame [N]
-        /// - totalTorqueBody: body frame [N·m]
+        /// - totalTorqueBody: body frame [NÂ·m]
         ///
-        /// Kuvvet dünya frame'e dönüştürülür.
+        /// Kuvvet dÃ¼nya frame'e dÃ¶nÃ¼ÅŸtÃ¼rÃ¼lÃ¼r.
         /// Tork body frame'de tutulur.
         /// </summary>
         public void ApplyForces(Vec3 totalForceBody, Vec3 totalTorqueBody)
@@ -196,9 +196,9 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Body frame'de yük uygular.
-        /// replaceExisting true ise önceki pending load ezilir.
-        /// false ise mevcut yüklerin üzerine eklenir.
+        /// Body frame'de yÃ¼k uygular.
+        /// replaceExisting true ise Ã¶nceki pending load ezilir.
+        /// false ise mevcut yÃ¼klerin Ã¼zerine eklenir.
         /// </summary>
         public void ApplyBodyLoads(Vec3 forceBody, Vec3 torqueBody, bool replaceExisting = false)
         {
@@ -223,8 +223,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Dünya frame'de kuvvet ve body frame'de tork uygular.
-        /// Çevresel modeller, global rüzgar/akıntı veya dış kuvvetler için uygundur.
+        /// DÃ¼nya frame'de kuvvet ve body frame'de tork uygular.
+        /// Ã‡evresel modeller, global rÃ¼zgar/akÄ±ntÄ± veya dÄ±ÅŸ kuvvetler iÃ§in uygundur.
         /// </summary>
         public void ApplyWorldLoads(Vec3 forceWorld, Vec3 torqueBody, bool replaceExisting = false)
         {
@@ -247,7 +247,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Daha önce uygulanmış bekleyen kuvvet/tork yüklerini temizler.
+        /// Daha Ã¶nce uygulanmÄ±ÅŸ bekleyen kuvvet/tork yÃ¼klerini temizler.
         /// </summary>
         public void ClearPendingLoads()
         {
@@ -256,11 +256,11 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Zaman adımı kadar fiziksel entegrasyon gerçekleştirir.
+        /// Zaman adÄ±mÄ± kadar fiziksel entegrasyon gerÃ§ekleÅŸtirir.
         ///
-        /// Bu metot artık eski sabit damping yaklaşımını merkeze almaz.
-        /// Sınıfın ana sorumluluğu pending load -> rigid body integration -> report üretimidir.
-        /// Platforma özel direnç/sürtünme/sürüklenme modelleri dışarıdan yük olarak verilmelidir.
+        /// Bu metot artÄ±k eski sabit damping yaklaÅŸÄ±mÄ±nÄ± merkeze almaz.
+        /// SÄ±nÄ±fÄ±n ana sorumluluÄŸu pending load -> rigid body integration -> report Ã¼retimidir.
+        /// Platforma Ã¶zel direnÃ§/sÃ¼rtÃ¼nme/sÃ¼rÃ¼klenme modelleri dÄ±ÅŸarÄ±dan yÃ¼k olarak verilmelidir.
         /// </summary>
         public void Step(double? dtOverride = null)
         {
@@ -299,8 +299,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Dışarıdan doğrudan yük verilerek tek adımlık entegrasyon yapar.
-        /// Simülasyon, replay ve test senaryolarında kullanışlıdır.
+        /// DÄ±ÅŸarÄ±dan doÄŸrudan yÃ¼k verilerek tek adÄ±mlÄ±k entegrasyon yapar.
+        /// SimÃ¼lasyon, replay ve test senaryolarÄ±nda kullanÄ±ÅŸlÄ±dÄ±r.
         /// </summary>
         public PhysicsStepReport StepWithLoads(
             double dt,
@@ -327,8 +327,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Body frame'de verilen yüklerle tek adımlık entegrasyon yapar.
-        /// Thruster allocation testleri için uygundur.
+        /// Body frame'de verilen yÃ¼klerle tek adÄ±mlÄ±k entegrasyon yapar.
+        /// Thruster allocation testleri iÃ§in uygundur.
         /// </summary>
         public PhysicsStepReport StepWithBodyLoads(
             double dt,
@@ -347,10 +347,10 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Eski davranışa yakın basit hız sönümlemesi.
+        /// Eski davranÄ±ÅŸa yakÄ±n basit hÄ±z sÃ¶nÃ¼mlemesi.
         ///
-        /// Bu yöntem platform bağımsız ana fizik modeli değildir.
-        /// Sadece geçici simülasyon uyumluluğu için korunur.
+        /// Bu yÃ¶ntem platform baÄŸÄ±msÄ±z ana fizik modeli deÄŸildir.
+        /// Sadece geÃ§ici simÃ¼lasyon uyumluluÄŸu iÃ§in korunur.
         /// </summary>
         private void ApplyLegacyDamping(double dt)
         {
@@ -378,7 +378,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Simülasyonun o anki temel parametrelerini konsola yazar.
+        /// SimÃ¼lasyonun o anki temel parametrelerini konsola yazar.
         /// </summary>
         public void PrintStatus()
         {
@@ -386,7 +386,7 @@ namespace Hydronom.Core.Modules
                 $"[Physics] Pos={Fmt(State.Position)} " +
                 $"Vel={Fmt(State.LinearVelocity)} " +
                 $"AngVel={Fmt(State.AngularVelocity)} " +
-                $"Yaw={State.Orientation.YawDeg:F1}° " +
+                $"Yaw={State.Orientation.YawDeg:F1}Â° " +
                 $"F={Fmt(State.LinearForce)} " +
                 $"T={Fmt(State.AngularTorque)} " +
                 $"Last={LastStepReport.Reason}"
@@ -394,7 +394,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Son fizik adımını kısa, log dostu formatta döndürür.
+        /// Son fizik adÄ±mÄ±nÄ± kÄ±sa, log dostu formatta dÃ¶ndÃ¼rÃ¼r.
         /// </summary>
         public string GetLastStepSummary()
         {
@@ -408,7 +408,7 @@ namespace Hydronom.Core.Modules
                 $"linAcc={Fmt(r.LinearAccelerationWorld)} " +
                 $"angAccRad={Fmt(r.AngularAccelerationBodyRad)} " +
                 $"speed={r.LinearSpeed:F2}m/s " +
-                $"yaw={State.Orientation.YawDeg:F1}°";
+                $"yaw={State.Orientation.YawDeg:F1}Â°";
         }
 
         private static string Fmt(Vec3 v) => $"({v.X:F2},{v.Y:F2},{v.Z:F2})";

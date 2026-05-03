@@ -1,25 +1,25 @@
-namespace Hydronom.GroundStation.Telemetry;
+﻿namespace Hydronom.GroundStation.Telemetry;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 
 /// <summary>
-/// CommunicationRouter tarafından üretilen route sonucuna göre
-/// seçilmiş telemetry planını temsil eder.
+/// CommunicationRouter tarafÄ±ndan Ã¼retilen route sonucuna gÃ¶re
+/// seÃ§ilmiÅŸ telemetry planÄ±nÄ± temsil eder.
 /// 
-/// Bu model şu sorulara cevap verir:
-/// - Mesaj/araç route edilebilir mi?
-/// - Hangi telemetry profili seçildi?
-/// - Hangi transport'lar üzerinden telemetry mantıklı?
+/// Bu model ÅŸu sorulara cevap verir:
+/// - Mesaj/araÃ§ route edilebilir mi?
+/// - Hangi telemetry profili seÃ§ildi?
+/// - Hangi transport'lar Ã¼zerinden telemetry mantÄ±klÄ±?
 /// - Bu karar neden verildi?
 /// 
-/// İlk fazda gerçek telemetry payload üretmez.
-/// Sadece Ground Station tarafında telemetry yoğunluğu kararını route sonucuyla birleştirir.
+/// Ä°lk fazda gerÃ§ek telemetry payload Ã¼retmez.
+/// Sadece Ground Station tarafÄ±nda telemetry yoÄŸunluÄŸu kararÄ±nÄ± route sonucuyla birleÅŸtirir.
 /// </summary>
 public sealed record TelemetryRoutePlan
 {
     /// <summary>
-    /// Route edilen mesaj kimliği.
+    /// Route edilen mesaj kimliÄŸi.
     /// </summary>
     public string MessageId { get; init; } = string.Empty;
 
@@ -29,22 +29,22 @@ public sealed record TelemetryRoutePlan
     public string MessageType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Hedef node kimliği.
+    /// Hedef node kimliÄŸi.
     /// </summary>
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
     /// Route edilebilir mi?
     /// 
-    /// false ise telemetry profili yine güvenli varsayılan olarak Light olabilir;
+    /// false ise telemetry profili yine gÃ¼venli varsayÄ±lan olarak Light olabilir;
     /// fakat plan uygulanabilir kabul edilmez.
     /// </summary>
     public bool CanRoute { get; init; }
 
     /// <summary>
-    /// Seçilen telemetry profili.
+    /// SeÃ§ilen telemetry profili.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Light
     /// - Normal
     /// - Full
@@ -52,34 +52,34 @@ public sealed record TelemetryRoutePlan
     public TelemetryProfile Profile { get; init; } = TelemetryProfile.Unknown;
 
     /// <summary>
-    /// Profile kararının açıklaması.
+    /// Profile kararÄ±nÄ±n aÃ§Ä±klamasÄ±.
     /// </summary>
     public string ProfileReason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Route kararının açıklaması.
+    /// Route kararÄ±nÄ±n aÃ§Ä±klamasÄ±.
     /// </summary>
     public string RouteReason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Telemetry için kullanılabilir birincil transport'lar.
+    /// Telemetry iÃ§in kullanÄ±labilir birincil transport'lar.
     /// </summary>
     public IReadOnlyList<TransportKind> PrimaryTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Telemetry için kullanılabilir fallback transport'lar.
+    /// Telemetry iÃ§in kullanÄ±labilir fallback transport'lar.
     /// </summary>
     public IReadOnlyList<TransportKind> FallbackTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Planın üretildiği UTC zaman.
+    /// PlanÄ±n Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Route sonucundan telemetry planı üretir.
+    /// Route sonucundan telemetry planÄ± Ã¼retir.
     /// </summary>
     public static TelemetryRoutePlan FromRoute(
         CommunicationRouteResult route,

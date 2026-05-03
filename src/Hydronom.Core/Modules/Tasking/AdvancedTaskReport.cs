@@ -1,10 +1,10 @@
-using Hydronom.Core.Domain;
+﻿using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// AdvancedTaskManager son görev raporu.
-    /// Mission journal, diagnostics, Hydronom Ops ve test sistemleri için açıklanabilir görev durumu sağlar.
+    /// AdvancedTaskManager son gÃ¶rev raporu.
+    /// Mission journal, diagnostics, Hydronom Ops ve test sistemleri iÃ§in aÃ§Ä±klanabilir gÃ¶rev durumu saÄŸlar.
     /// </summary>
     public readonly record struct AdvancedTaskReport(
         TaskPhase Phase,

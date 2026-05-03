@@ -1,74 +1,74 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 /// <summary>
-/// Hydronom sisteminde taşınan tüm üst seviye mesajların ortak zarfıdır.
+/// Hydronom sisteminde taÅŸÄ±nan tÃ¼m Ã¼st seviye mesajlarÄ±n ortak zarfÄ±dÄ±r.
 /// 
-/// Fleet & Ground Station mimarisinde mesajın TCP, WebSocket, LoRa, RF modem,
-/// Serial veya başka bir transport üzerinden taşınması üst seviye sistemi ilgilendirmemelidir.
+/// Fleet & Ground Station mimarisinde mesajÄ±n TCP, WebSocket, LoRa, RF modem,
+/// Serial veya baÅŸka bir transport Ã¼zerinden taÅŸÄ±nmasÄ± Ã¼st seviye sistemi ilgilendirmemelidir.
 /// 
-/// Bu sınıfın amacı:
-/// - Mesajın kimden geldiğini belirtmek.
-/// - Mesajın kime gittiğini belirtmek.
-/// - Mesaj tipini standartlaştırmak.
-/// - Öncelik bilgisini taşımak.
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - MesajÄ±n kimden geldiÄŸini belirtmek.
+/// - MesajÄ±n kime gittiÄŸini belirtmek.
+/// - Mesaj tipini standartlaÅŸtÄ±rmak.
+/// - Ã–ncelik bilgisini taÅŸÄ±mak.
 /// - Transport tercihlerini belirtmek.
-/// - Gerçek mesaj içeriğini Payload içinde taşımaktır.
+/// - GerÃ§ek mesaj iÃ§eriÄŸini Payload iÃ§inde taÅŸÄ±maktÄ±r.
 /// 
-/// Böylece Hydronom mimarisinde şu prensip korunur:
-/// "Hydronom mesaj üretir, transport katmanı mesajı taşır."
+/// BÃ¶ylece Hydronom mimarisinde ÅŸu prensip korunur:
+/// "Hydronom mesaj Ã¼retir, transport katmanÄ± mesajÄ± taÅŸÄ±r."
 /// </summary>
 public sealed record HydronomEnvelope
 {
     /// <summary>
-    /// Mesaj zarfı şema adı.
+    /// Mesaj zarfÄ± ÅŸema adÄ±.
     /// 
-    /// Bu alan ileride farklı envelope sürümleri oluşursa geriye dönük uyumluluk
-    /// ve mesaj doğrulama için kullanılabilir.
+    /// Bu alan ileride farklÄ± envelope sÃ¼rÃ¼mleri oluÅŸursa geriye dÃ¶nÃ¼k uyumluluk
+    /// ve mesaj doÄŸrulama iÃ§in kullanÄ±labilir.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// "hydronom.envelope.v1"
     /// </summary>
     public string Schema { get; init; } = "hydronom.envelope.v1";
 
     /// <summary>
-    /// Mesajın benzersiz kimliği.
+    /// MesajÄ±n benzersiz kimliÄŸi.
     /// 
-    /// ACK, tekrar gönderim, loglama, replay ve debugging işlemlerinde kullanılır.
+    /// ACK, tekrar gÃ¶nderim, loglama, replay ve debugging iÅŸlemlerinde kullanÄ±lÄ±r.
     /// 
-    /// Varsayılan olarak GUID tabanlı üretilir.
-    /// İleride yarışma/operasyon logları için daha okunabilir ID formatı da eklenebilir.
+    /// VarsayÄ±lan olarak GUID tabanlÄ± Ã¼retilir.
+    /// Ä°leride yarÄ±ÅŸma/operasyon loglarÄ± iÃ§in daha okunabilir ID formatÄ± da eklenebilir.
     /// </summary>
     public string MessageId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Mesajı üreten düğümün kimliği.
+    /// MesajÄ± Ã¼reten dÃ¼ÄŸÃ¼mÃ¼n kimliÄŸi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "VEHICLE-ALPHA"
     /// - "VEHICLE-BETA"
     /// - "GROUND-001"
     /// - "OPS-GATEWAY-001"
     /// 
-    /// Bu alan FleetRegistry ve güvenlik/yetki kontrolü için kritiktir.
+    /// Bu alan FleetRegistry ve gÃ¼venlik/yetki kontrolÃ¼ iÃ§in kritiktir.
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın hedef düğüm kimliği.
+    /// MesajÄ±n hedef dÃ¼ÄŸÃ¼m kimliÄŸi.
     /// 
-    /// Örnekler:
-    /// - Belirli bir araç için: "VEHICLE-ALPHA"
-    /// - Yer istasyonu için: "GROUND-001"
-    /// - Tüm filo için: "BROADCAST"
+    /// Ã–rnekler:
+    /// - Belirli bir araÃ§ iÃ§in: "VEHICLE-ALPHA"
+    /// - Yer istasyonu iÃ§in: "GROUND-001"
+    /// - TÃ¼m filo iÃ§in: "BROADCAST"
     /// 
-    /// Broadcast mesajları ileride CommunicationRouter tarafından çoklu hedefe yönlendirilebilir.
+    /// Broadcast mesajlarÄ± ileride CommunicationRouter tarafÄ±ndan Ã§oklu hedefe yÃ¶nlendirilebilir.
     /// </summary>
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın mantıksal tipi.
+    /// MesajÄ±n mantÄ±ksal tipi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "FleetHeartbeat"
     /// - "FleetStatus"
     /// - "MissionCommand"
@@ -76,59 +76,59 @@ public sealed record HydronomEnvelope
     /// - "EmergencyStop"
     /// - "TelemetryFrame"
     /// 
-    /// Bu alan, alıcı tarafta payload'ın hangi modele parse edileceğini belirlemek için kullanılır.
+    /// Bu alan, alÄ±cÄ± tarafta payload'Ä±n hangi modele parse edileceÄŸini belirlemek iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public string MessageType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın öncelik seviyesi.
+    /// MesajÄ±n Ã¶ncelik seviyesi.
     /// 
-    /// CommunicationRouter bu bilgiye göre mesajı sıraya alabilir,
-    /// kritik mesajları tüm kanallardan yayınlayabilir veya ACK zorunluluğu getirebilir.
+    /// CommunicationRouter bu bilgiye gÃ¶re mesajÄ± sÄ±raya alabilir,
+    /// kritik mesajlarÄ± tÃ¼m kanallardan yayÄ±nlayabilir veya ACK zorunluluÄŸu getirebilir.
     /// </summary>
     public MessagePriority Priority { get; init; } = MessagePriority.Normal;
 
     /// <summary>
-    /// Mesajın oluşturulduğu UTC zaman damgası.
+    /// MesajÄ±n oluÅŸturulduÄŸu UTC zaman damgasÄ±.
     /// 
-    /// Kullanım alanları:
-    /// - Eski mesajları reddetme
-    /// - Replay attack kontrolü
-    /// - Telemetry sıralama
-    /// - Gecikme ölçümü
+    /// KullanÄ±m alanlarÄ±:
+    /// - Eski mesajlarÄ± reddetme
+    /// - Replay attack kontrolÃ¼
+    /// - Telemetry sÄ±ralama
+    /// - Gecikme Ã¶lÃ§Ã¼mÃ¼
     /// - Log/replay sistemi
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Mesajın hangi transport tercihleriyle gönderilmesi gerektiğini belirtir.
+    /// MesajÄ±n hangi transport tercihleriyle gÃ¶nderilmesi gerektiÄŸini belirtir.
     /// 
-    /// Örneğin EmergencyStop mesajı tüm bağlantılardan yayınlanmak isteyebilir.
-    /// Full telemetry ise yüksek bant genişlikli bağlantıları tercih edebilir.
+    /// Ã–rneÄŸin EmergencyStop mesajÄ± tÃ¼m baÄŸlantÄ±lardan yayÄ±nlanmak isteyebilir.
+    /// Full telemetry ise yÃ¼ksek bant geniÅŸlikli baÄŸlantÄ±larÄ± tercih edebilir.
     /// </summary>
     public TransportHints TransportHints { get; init; } = TransportHints.None;
 
     /// <summary>
-    /// Mesajın gerçek içeriği.
+    /// MesajÄ±n gerÃ§ek iÃ§eriÄŸi.
     /// 
     /// Not:
-    /// Bu alanı object olarak bırakıyoruz çünkü HydronomEnvelope farklı mesaj türlerini
-    /// tek ortak zarf içinde taşıyacak.
+    /// Bu alanÄ± object olarak bÄ±rakÄ±yoruz Ã§Ã¼nkÃ¼ HydronomEnvelope farklÄ± mesaj tÃ¼rlerini
+    /// tek ortak zarf iÃ§inde taÅŸÄ±yacak.
     /// 
-    /// Örnek payload modelleri:
+    /// Ã–rnek payload modelleri:
     /// - FleetHeartbeat
     /// - FleetCommand
     /// - FleetCommandResult
     /// - VehicleNodeStatus
     /// 
-    /// İleride JSON serialization tarafında type-safe yardımcı metotlar eklenebilir.
+    /// Ä°leride JSON serialization tarafÄ±nda type-safe yardÄ±mcÄ± metotlar eklenebilir.
     /// </summary>
     public object? Payload { get; init; }
 
     /// <summary>
-    /// Mesajın broadcast olup olmadığını hızlı kontrol etmek için yardımcı özellik.
+    /// MesajÄ±n broadcast olup olmadÄ±ÄŸÄ±nÄ± hÄ±zlÄ± kontrol etmek iÃ§in yardÄ±mcÄ± Ã¶zellik.
     /// 
-    /// TargetNodeId alanı "BROADCAST" ise bu mesaj tüm uygun düğümlere gönderilebilir.
+    /// TargetNodeId alanÄ± "BROADCAST" ise bu mesaj tÃ¼m uygun dÃ¼ÄŸÃ¼mlere gÃ¶nderilebilir.
     /// </summary>
     public bool IsBroadcast =>
         string.Equals(TargetNodeId, "BROADCAST", StringComparison.OrdinalIgnoreCase);

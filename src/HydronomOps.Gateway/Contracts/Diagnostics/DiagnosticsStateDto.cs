@@ -1,65 +1,65 @@
-using System;
+﻿using System;
 using HydronomOps.Gateway.Contracts.Common;
 
 namespace HydronomOps.Gateway.Contracts.Diagnostics;
 
 /// <summary>
-/// Gateway ve runtime hattının sağlık/teşhis özetini taşır.
+/// Gateway ve runtime hattÄ±nÄ±n saÄŸlÄ±k/teÅŸhis Ã¶zetini taÅŸÄ±r.
 /// </summary>
 public sealed class DiagnosticsStateDto
 {
     /// <summary>
-    /// Tanı paketinin üretim zamanı.
+    /// TanÄ± paketinin Ã¼retim zamanÄ±.
     /// </summary>
     public DateTime TimestampUtc { get; set; }
 
     /// <summary>
-    /// Gateway prosesinin genel sağlık durumu.
+    /// Gateway prosesinin genel saÄŸlÄ±k durumu.
     /// </summary>
     public string GatewayStatus { get; set; } = "starting";
 
     /// <summary>
-    /// Runtime TCP hattının bağlı olup olmadığı.
+    /// Runtime TCP hattÄ±nÄ±n baÄŸlÄ± olup olmadÄ±ÄŸÄ±.
     /// </summary>
     public bool RuntimeConnected { get; set; }
 
     /// <summary>
-    /// WebSocket tarafında en az bir istemci bağlı mı.
+    /// WebSocket tarafÄ±nda en az bir istemci baÄŸlÄ± mÄ±.
     /// </summary>
     public bool HasWebSocketClients { get; set; }
 
     /// <summary>
-    /// Aktif WebSocket istemci sayısı.
+    /// Aktif WebSocket istemci sayÄ±sÄ±.
     /// </summary>
     public int ConnectedWebSocketClients { get; set; }
 
     /// <summary>
-    /// Runtime tarafından en son veri alınan zaman.
+    /// Runtime tarafÄ±ndan en son veri alÄ±nan zaman.
     /// </summary>
     public DateTime? LastRuntimeMessageUtc { get; set; }
 
     /// <summary>
-    /// Runtime veri tazelik özeti.
+    /// Runtime veri tazelik Ã¶zeti.
     /// </summary>
     public FreshnessDto? RuntimeFreshness { get; set; }
 
     /// <summary>
-    /// Son hata mesajı.
+    /// Son hata mesajÄ±.
     /// </summary>
     public string? LastError { get; set; }
 
     /// <summary>
-    /// Son hata zamanı.
+    /// Son hata zamanÄ±.
     /// </summary>
     public DateTime? LastErrorUtc { get; set; }
 
     /// <summary>
-    /// Gateway'in toplam aldığı frame sayısı.
+    /// Gateway'in toplam aldÄ±ÄŸÄ± frame sayÄ±sÄ±.
     /// </summary>
     public long IngressMessageCount { get; set; }
 
     /// <summary>
-    /// Gateway'in toplam yayınladığı mesaj sayısı.
+    /// Gateway'in toplam yayÄ±nladÄ±ÄŸÄ± mesaj sayÄ±sÄ±.
     /// </summary>
     public long BroadcastMessageCount { get; set; }
 }

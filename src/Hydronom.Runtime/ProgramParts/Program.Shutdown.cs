@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Hydronom.Core.Interfaces;
@@ -7,12 +7,12 @@ using Hydronom.Runtime.Actuators;
 partial class Program
 {
     /// <summary>
-    /// Runtime kapanış temizliğini merkezi olarak yapar.
+    /// Runtime kapanÄ±ÅŸ temizliÄŸini merkezi olarak yapar.
     ///
-    /// Kapanış sırası:
-    /// 1. Native sensor bridge kapatılır.
+    /// KapanÄ±ÅŸ sÄ±rasÄ±:
+    /// 1. Native sensor bridge kapatÄ±lÄ±r.
     /// 2. Frame source async dispose edilir.
-    /// 3. Python sensor hub süreci varsa sonlandırılır.
+    /// 3. Python sensor hub sÃ¼reci varsa sonlandÄ±rÄ±lÄ±r.
     /// 4. ActuatorManager dispose edilir.
     /// </summary>
     private static async Task ShutdownRuntimeAsync(
@@ -49,7 +49,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Python sensor hub sürecini güvenli şekilde sonlandırır.
+    /// Python sensor hub sÃ¼recini gÃ¼venli ÅŸekilde sonlandÄ±rÄ±r.
     /// </summary>
     private static void ShutdownPythonProcess(Process? pythonProc)
     {
@@ -60,7 +60,7 @@ partial class Program
         {
             if (!pythonProc.HasExited)
             {
-                Console.WriteLine("[PY] python main.py sonlandırılıyor...");
+                Console.WriteLine("[PY] python main.py sonlandÄ±rÄ±lÄ±yor...");
 
 #if NET6_0_OR_GREATER
                 pythonProc.Kill(entireProcessTree: true);
@@ -71,7 +71,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PY] python süreci sonlandırılırken hata: {ex.Message}");
+            Console.WriteLine($"[PY] python sÃ¼reci sonlandÄ±rÄ±lÄ±rken hata: {ex.Message}");
         }
         finally
         {

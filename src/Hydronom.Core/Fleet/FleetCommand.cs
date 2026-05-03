@@ -1,76 +1,76 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Yer istasyonu, gateway, operatör paneli veya başka bir yetkili node tarafından
-/// bir Hydronom aracına gönderilen filo/görev/operatör komutunu temsil eder.
+/// Yer istasyonu, gateway, operatÃ¶r paneli veya baÅŸka bir yetkili node tarafÄ±ndan
+/// bir Hydronom aracÄ±na gÃ¶nderilen filo/gÃ¶rev/operatÃ¶r komutunu temsil eder.
 /// 
-/// Bu model HydronomEnvelope.Payload içinde taşınır.
-/// MessageType örneği:
+/// Bu model HydronomEnvelope.Payload iÃ§inde taÅŸÄ±nÄ±r.
+/// MessageType Ã¶rneÄŸi:
 /// - "FleetCommand"
 /// - "MissionCommand"
 /// - "ControlCommand"
 /// - "EmergencyCommand"
 /// 
-/// Önemli mimari kural:
-/// FleetCommand asla doğrudan motora gitmemelidir.
-/// Araç tarafında şu zincirden geçmelidir:
+/// Ã–nemli mimari kural:
+/// FleetCommand asla doÄŸrudan motora gitmemelidir.
+/// AraÃ§ tarafÄ±nda ÅŸu zincirden geÃ§melidir:
 /// 
 /// CommandValidator
 /// -> AuthorityManager
 /// -> SafetyGate
 /// -> Decision/Task/Actuation
 /// 
-/// Yani yer istasyonu güçlüdür ama araç üstü Safety katmanını ezemez.
+/// Yani yer istasyonu gÃ¼Ã§lÃ¼dÃ¼r ama araÃ§ Ã¼stÃ¼ Safety katmanÄ±nÄ± ezemez.
 /// </summary>
 public sealed record FleetCommand
 {
     /// <summary>
-    /// Komutun benzersiz kimliği.
+    /// Komutun benzersiz kimliÄŸi.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - Komut takibi
-    /// - ACK / result eşleştirme
-    /// - Replay kayıtları
-    /// - Operatör geçmişi
+    /// - ACK / result eÅŸleÅŸtirme
+    /// - Replay kayÄ±tlarÄ±
+    /// - OperatÃ¶r geÃ§miÅŸi
     /// - Debugging
     /// 
-    /// Varsayılan olarak GUID tabanlı üretilir.
+    /// VarsayÄ±lan olarak GUID tabanlÄ± Ã¼retilir.
     /// </summary>
     public string CommandId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Komutu gönderen node kimliği.
+    /// Komutu gÃ¶nderen node kimliÄŸi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "GROUND-001"
     /// - "OPS-GATEWAY-001"
     /// - "VEHICLE-ALPHA-001"
     /// 
-    /// Araç tarafındaki AuthorityManager bu alanı kullanarak:
-    /// - Bu komutu kim gönderdi?
-    /// - Bu kaynağın yetkisi var mı?
-    /// sorularını cevaplayabilir.
+    /// AraÃ§ tarafÄ±ndaki AuthorityManager bu alanÄ± kullanarak:
+    /// - Bu komutu kim gÃ¶nderdi?
+    /// - Bu kaynaÄŸÄ±n yetkisi var mÄ±?
+    /// sorularÄ±nÄ± cevaplayabilir.
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Komutun hedef node kimliği.
+    /// Komutun hedef node kimliÄŸi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "VEHICLE-ALPHA-001"
     /// - "VEHICLE-BETA-001"
     /// - "BROADCAST"
     /// 
-    /// Broadcast komutlar özellikle EmergencyStop gibi durumlarda kullanılabilir.
+    /// Broadcast komutlar Ã¶zellikle EmergencyStop gibi durumlarda kullanÄ±labilir.
     /// </summary>
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Komutun mantıksal türü.
+    /// Komutun mantÄ±ksal tÃ¼rÃ¼.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "AssignMission"
     /// - "CancelMission"
     /// - "PauseMission"
@@ -81,14 +81,14 @@ public sealed record FleetCommand
     /// - "ManualControl"
     /// - "EmergencyStop"
     /// 
-    /// Alıcı taraf bu tipe göre Args alanını yorumlar.
+    /// AlÄ±cÄ± taraf bu tipe gÃ¶re Args alanÄ±nÄ± yorumlar.
     /// </summary>
     public string CommandType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Komutun yetki/güvenlik seviyesi.
+    /// Komutun yetki/gÃ¼venlik seviyesi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Info"
     /// - "Suggestion"
     /// - "MissionCommand"
@@ -96,43 +96,43 @@ public sealed record FleetCommand
     /// - "CriticalCommand"
     /// - "EmergencyCommand"
     /// 
-    /// Bu alan araç tarafındaki AuthorityManager ve SafetyGate için önemlidir.
-    /// Örneğin EmergencyCommand daha yüksek doğrulama veya özel işleme gerektirebilir.
+    /// Bu alan araÃ§ tarafÄ±ndaki AuthorityManager ve SafetyGate iÃ§in Ã¶nemlidir.
+    /// Ã–rneÄŸin EmergencyCommand daha yÃ¼ksek doÄŸrulama veya Ã¶zel iÅŸleme gerektirebilir.
     /// </summary>
     public string AuthorityLevel { get; init; } = "MissionCommand";
 
     /// <summary>
-    /// Komutun öncelik seviyesi.
+    /// Komutun Ã¶ncelik seviyesi.
     /// 
-    /// CommunicationRouter ve araç tarafındaki command queue bu alanı kullanabilir.
-    /// EmergencyStop gibi komutlar Emergency seviyesinde olmalıdır.
+    /// CommunicationRouter ve araÃ§ tarafÄ±ndaki command queue bu alanÄ± kullanabilir.
+    /// EmergencyStop gibi komutlar Emergency seviyesinde olmalÄ±dÄ±r.
     /// </summary>
     public MessagePriority Priority { get; init; } = MessagePriority.Normal;
 
     /// <summary>
-    /// Komutun oluşturulduğu UTC zaman damgası.
+    /// Komutun oluÅŸturulduÄŸu UTC zaman damgasÄ±.
     /// 
-    /// Araç tarafında stale/eski komutları reddetmek için kullanılabilir.
-    /// Örneğin çok eski bir manuel kontrol komutu uygulanmamalıdır.
+    /// AraÃ§ tarafÄ±nda stale/eski komutlarÄ± reddetmek iÃ§in kullanÄ±labilir.
+    /// Ã–rneÄŸin Ã§ok eski bir manuel kontrol komutu uygulanmamalÄ±dÄ±r.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Komutun maksimum geçerlilik süresi.
+    /// Komutun maksimum geÃ§erlilik sÃ¼resi.
     /// 
-    /// null ise sistem varsayılan komut geçerlilik politikasını kullanabilir.
+    /// null ise sistem varsayÄ±lan komut geÃ§erlilik politikasÄ±nÄ± kullanabilir.
     /// 
-    /// Örnek:
-    /// - ManualControl için çok kısa olabilir.
-    /// - AssignMission için daha uzun olabilir.
-    /// - EmergencyStop için özel politika uygulanabilir.
+    /// Ã–rnek:
+    /// - ManualControl iÃ§in Ã§ok kÄ±sa olabilir.
+    /// - AssignMission iÃ§in daha uzun olabilir.
+    /// - EmergencyStop iÃ§in Ã¶zel politika uygulanabilir.
     /// </summary>
     public TimeSpan? TimeToLive { get; init; }
 
     /// <summary>
     /// Komutun parametreleri.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// AssignMission:
     /// - "missionId": "MISSION-2026-001"
     /// - "areaId": "AREA-A"
@@ -145,62 +145,62 @@ public sealed record FleetCommand
     /// - "throttle": "0.20"
     /// - "rudder": "-0.10"
     /// 
-    /// Şimdilik string/string dictionary kullanıyoruz.
-    /// Böylece ilk fazda esneklik sağlanır.
-    /// İleride belirli komut tipleri için güçlü typed payload modelleri oluşturulabilir.
+    /// Åimdilik string/string dictionary kullanÄ±yoruz.
+    /// BÃ¶ylece ilk fazda esneklik saÄŸlanÄ±r.
+    /// Ä°leride belirli komut tipleri iÃ§in gÃ¼Ã§lÃ¼ typed payload modelleri oluÅŸturulabilir.
     /// </summary>
     public IReadOnlyDictionary<string, string> Args { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Komutun operatör tarafından mı üretildiğini belirtir.
+    /// Komutun operatÃ¶r tarafÄ±ndan mÄ± Ã¼retildiÄŸini belirtir.
     /// 
     /// true:
-    /// - Komut doğrudan insan operatör etkileşiminden gelmiştir.
+    /// - Komut doÄŸrudan insan operatÃ¶r etkileÅŸiminden gelmiÅŸtir.
     /// 
     /// false:
     /// - Komut GroundStation Engine, AI Orchestrator, MissionAllocator
-    ///   veya başka bir otomatik sistem tarafından üretilebilir.
+    ///   veya baÅŸka bir otomatik sistem tarafÄ±ndan Ã¼retilebilir.
     /// </summary>
     public bool IsOperatorIssued { get; init; }
 
     /// <summary>
-    /// Komut için ACK / sonuç cevabı beklenip beklenmediğini belirtir.
+    /// Komut iÃ§in ACK / sonuÃ§ cevabÄ± beklenip beklenmediÄŸini belirtir.
     /// 
-    /// true ise araç tarafı FleetCommandResult üretmelidir.
+    /// true ise araÃ§ tarafÄ± FleetCommandResult Ã¼retmelidir.
     /// 
-    /// Özellikle:
+    /// Ã–zellikle:
     /// - MissionCommand
     /// - ControlCommand
     /// - CriticalCommand
     /// - EmergencyCommand
-    /// için genellikle true olmalıdır.
+    /// iÃ§in genellikle true olmalÄ±dÄ±r.
     /// </summary>
     public bool RequiresResult { get; init; } = true;
 
     /// <summary>
     /// Komutla ilgili ek metadata bilgileri.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "uiAction": "mission_panel_assign"
     /// - "operatorName": "Tunahan"
     /// - "sourceScreen": "FleetDashboard"
     /// - "reason": "manual_test"
     /// 
-    /// İlk fazda esneklik sağlar.
+    /// Ä°lk fazda esneklik saÄŸlar.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Komutun temel olarak geçerli olup olmadığını döndürür.
+    /// Komutun temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından:
+    /// En azÄ±ndan:
     /// - CommandId
     /// - SourceNodeId
     /// - TargetNodeId
     /// - CommandType
-    /// dolu olmalıdır.
+    /// dolu olmalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(CommandId) &&
@@ -209,12 +209,12 @@ public sealed record FleetCommand
         !string.IsNullOrWhiteSpace(CommandType);
 
     /// <summary>
-    /// Komutun zaman aşımına uğrayıp uğramadığını kontrol eder.
+    /// Komutun zaman aÅŸÄ±mÄ±na uÄŸrayÄ±p uÄŸramadÄ±ÄŸÄ±nÄ± kontrol eder.
     /// 
-    /// nowUtc verilmezse DateTimeOffset.UtcNow kullanılır.
+    /// nowUtc verilmezse DateTimeOffset.UtcNow kullanÄ±lÄ±r.
     /// 
-    /// TimeToLive null ise komut bu metoda göre expired kabul edilmez.
-    /// Daha gelişmiş sistemlerde komut tipine göre varsayılan TTL politikası ayrıca eklenebilir.
+    /// TimeToLive null ise komut bu metoda gÃ¶re expired kabul edilmez.
+    /// Daha geliÅŸmiÅŸ sistemlerde komut tipine gÃ¶re varsayÄ±lan TTL politikasÄ± ayrÄ±ca eklenebilir.
     /// </summary>
     public bool IsExpired(DateTimeOffset? nowUtc = null)
     {

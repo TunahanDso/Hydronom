@@ -1,17 +1,17 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace Hydronom.Core.Interfaces.AI;
 
-// Tool'ların runtime'a erişmesi için güvenli bağlam.
-// Burayı zamanla genişleteceğiz (TaskManager, CommandServer, Telemetry, vs.)
+// Tool'larÄ±n runtime'a eriÅŸmesi iÃ§in gÃ¼venli baÄŸlam.
+// BurayÄ± zamanla geniÅŸleteceÄŸiz (TaskManager, CommandServer, Telemetry, vs.)
 public sealed class AiToolContext
 {
     public string RuntimeInstanceId { get; }
     public IReadOnlyDictionary<string, object?> Capabilities { get; }
 
-    // Runtime sırasında güncellenebilir snapshot.
+    // Runtime sÄ±rasÄ±nda gÃ¼ncellenebilir snapshot.
     public IReadOnlyDictionary<string, object?> TelemetrySnapshot { get; private set; }
 
     public AiToolContext(
@@ -32,7 +32,7 @@ public sealed class AiToolContext
     private static string RequireText(string? value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Alan boş olamaz.", paramName);
+            throw new ArgumentException("Alan boÅŸ olamaz.", paramName);
 
         return value.Trim();
     }

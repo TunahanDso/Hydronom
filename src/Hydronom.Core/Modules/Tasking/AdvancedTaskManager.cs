@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
@@ -8,19 +8,19 @@ namespace Hydronom.Core.Modules
     /// <summary>
     /// AdvancedTaskManager v4.1
     /// ------------------------------------------------------------
-    /// Mission execution / görev yönetim katmanı.
+    /// Mission execution / gÃ¶rev yÃ¶netim katmanÄ±.
     ///
     /// Ana sorumluluklar:
-    /// - Aktif görev yönetimi
-    /// - Görev kuyruğu
-    /// - Waypoint rota yürütme
-    /// - Hız bağımlı varış zarfı
-    /// - Monotonic clock tabanlı süre ölçümü
+    /// - Aktif gÃ¶rev yÃ¶netimi
+    /// - GÃ¶rev kuyruÄŸu
+    /// - Waypoint rota yÃ¼rÃ¼tme
+    /// - HÄ±z baÄŸÄ±mlÄ± varÄ±ÅŸ zarfÄ±
+    /// - Monotonic clock tabanlÄ± sÃ¼re Ã¶lÃ§Ã¼mÃ¼
     /// - No-progress / obstacle hold / timeout tespiti
-    /// - Açıklanabilir AdvancedTaskReport üretimi
+    /// - AÃ§Ä±klanabilir AdvancedTaskReport Ã¼retimi
     ///
-    /// Bu dosya sadece public API ve ana Update akışını taşır.
-    /// Geçişler, raporlama ve yardımcılar ayrı partial dosyalardadır.
+    /// Bu dosya sadece public API ve ana Update akÄ±ÅŸÄ±nÄ± taÅŸÄ±r.
+    /// GeÃ§iÅŸler, raporlama ve yardÄ±mcÄ±lar ayrÄ± partial dosyalardadÄ±r.
     /// </summary>
     public partial class AdvancedTaskManager : ITaskManager
     {
@@ -94,7 +94,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Yeni görev yükler. Aktif görevin yerine geçer, mevcut kuyruk korunur.
+        /// Yeni gÃ¶rev yÃ¼kler. Aktif gÃ¶revin yerine geÃ§er, mevcut kuyruk korunur.
         /// </summary>
         public void SetTask(TaskDefinition task)
         {
@@ -105,7 +105,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Görevi kuyruğa ekler. Aktif görev yoksa hemen başlatır.
+        /// GÃ¶revi kuyruÄŸa ekler. Aktif gÃ¶rev yoksa hemen baÅŸlatÄ±r.
         /// </summary>
         public void EnqueueTask(TaskDefinition task)
         {
@@ -132,7 +132,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Birden fazla görevi sırayla kuyruğa ekler.
+        /// Birden fazla gÃ¶revi sÄ±rayla kuyruÄŸa ekler.
         /// </summary>
         public void EnqueueTasks(IEnumerable<TaskDefinition> tasks)
         {
@@ -144,7 +144,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Bekleyen görev kuyruğunu temizler. Aktif görev etkilenmez.
+        /// Bekleyen gÃ¶rev kuyruÄŸunu temizler. Aktif gÃ¶rev etkilenmez.
         /// </summary>
         public void ClearQueue()
         {
@@ -162,7 +162,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Her runtime döngüsünde çağrılır.
+        /// Her runtime dÃ¶ngÃ¼sÃ¼nde Ã§aÄŸrÄ±lÄ±r.
         /// </summary>
         public void Update(Insights insights, VehicleState? state = null)
         {
@@ -190,7 +190,7 @@ namespace Hydronom.Core.Modules
             if (_taskStartTicks is long t0 &&
                 ElapsedSeconds(t0, nowTicks) > _maxTaskDurationSeconds)
             {
-                AbortInternal("Görev zaman aşımına uğradı.", state, insights);
+                AbortInternal("GÃ¶rev zaman aÅŸÄ±mÄ±na uÄŸradÄ±.", state, insights);
                 return;
             }
 

@@ -1,4 +1,4 @@
-// File: Hydronom.Core/Domain/DiscoveryReport.cs
+﻿// File: Hydronom.Core/Domain/DiscoveryReport.cs
 
 using System;
 using System.Collections.Generic;
@@ -7,66 +7,66 @@ using System.Text.Json.Serialization;
 namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// Otomatik motor keşfi (AutoDiscovery) sonucu oluşturulan "Araç Kimlik Kartı".
-    /// Bu rapor, aracın fiziksel karakteristiğini ve motor yerleşimini belgeler.
+    /// Otomatik motor keÅŸfi (AutoDiscovery) sonucu oluÅŸturulan "AraÃ§ Kimlik KartÄ±".
+    /// Bu rapor, aracÄ±n fiziksel karakteristiÄŸini ve motor yerleÅŸimini belgeler.
     /// </summary>
     public record DiscoveryReport
     {
-        // --- BAŞLIK BİLGİLERİ ---
+        // --- BAÅLIK BÄ°LGÄ°LERÄ° ---
 
         /// <summary>
-        /// Raporun benzersiz kimliği (UUID).
+        /// Raporun benzersiz kimliÄŸi (UUID).
         /// </summary>
         public string ReportId { get; init; } = Guid.NewGuid().ToString("N");
 
         /// <summary>
-        /// Raporun oluşturulduğu tarih (UTC).
+        /// Raporun oluÅŸturulduÄŸu tarih (UTC).
         /// </summary>
         public DateTime CreatedUtc { get; init; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Keşifin yapıldığı platform/cihaz adı (Hostname).
+        /// KeÅŸifin yapÄ±ldÄ±ÄŸÄ± platform/cihaz adÄ± (Hostname).
         /// </summary>
         public string PlatformId { get; init; } = Environment.MachineName;
 
         /// <summary>
-        /// Kullanılan yazılım sürümü.
+        /// KullanÄ±lan yazÄ±lÄ±m sÃ¼rÃ¼mÃ¼.
         /// </summary>
         public string SoftwareVersion { get; init; } = "Hydronom.Discovery v2.1-Physics";
 
         /// <summary>
-        /// Keşfi başlatan operatör.
+        /// KeÅŸfi baÅŸlatan operatÃ¶r.
         /// </summary>
         public string Operator { get; init; } = Environment.UserName;
 
 
-        // --- SONUÇLAR ---
+        // --- SONUÃ‡LAR ---
 
         /// <summary>
-        /// Tespit edilen kanal profilleri (Motorların haritası).
+        /// Tespit edilen kanal profilleri (MotorlarÄ±n haritasÄ±).
         /// </summary>
         public List<ChannelProfile> Channels { get; init; } = new();
 
         /// <summary>
-        /// Keşif süreci istatistikleri ve kalite metrikleri.
+        /// KeÅŸif sÃ¼reci istatistikleri ve kalite metrikleri.
         /// </summary>
         public DiscoveryStats Stats { get; init; } = new();
 
         /// <summary>
-        /// Aracın tespit edilen fiziksel imzası (Simetri, Atalet vb.).
+        /// AracÄ±n tespit edilen fiziksel imzasÄ± (Simetri, Atalet vb.).
         /// </summary>
         public VehicleSignature Signature { get; init; } = new();
 
         /// <summary>
-        /// Kullanılan konfigürasyonun bir kopyası (Tekrarlanabilirlik için).
+        /// KullanÄ±lan konfigÃ¼rasyonun bir kopyasÄ± (Tekrarlanabilirlik iÃ§in).
         /// </summary>
         public DiscoveryConfig Config { get; init; } = new();
 
 
-        // --- HAM VERİ (Opsiyonel Debug İçin) ---
+        // --- HAM VERÄ° (Opsiyonel Debug Ä°Ã§in) ---
 
         /// <summary>
-        /// Analiz için kaydedilen ham IMU verileri (Json'da şişkinlik yapmasın diye null olabilir).
+        /// Analiz iÃ§in kaydedilen ham IMU verileri (Json'da ÅŸiÅŸkinlik yapmasÄ±n diye null olabilir).
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<ImuSample>? SampleLog { get; init; }
@@ -81,7 +81,7 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// Keşif sürecinin teknik başarısını ölçen istatistikler.
+    /// KeÅŸif sÃ¼recinin teknik baÅŸarÄ±sÄ±nÄ± Ã¶lÃ§en istatistikler.
     /// </summary>
     public record DiscoveryStats
     {
@@ -92,14 +92,14 @@ namespace Hydronom.Core.Domain
         public int ErrorCount { get; init; } = 0;
 
         /// <summary>
-        /// Sistemin fiziksel hesaplama (Gyro/Tork) kullanma oranı.
-        /// 1.0 = Tüm motorlar fiziksel olarak doğrulandı.
-        /// 0.0 = Tamamen varsayımlara (Assumption) dayanıldı.
+        /// Sistemin fiziksel hesaplama (Gyro/Tork) kullanma oranÄ±.
+        /// 1.0 = TÃ¼m motorlar fiziksel olarak doÄŸrulandÄ±.
+        /// 0.0 = Tamamen varsayÄ±mlara (Assumption) dayanÄ±ldÄ±.
         /// </summary>
         public double PhysicsSolvabilityScore { get; init; } = 0.0;
 
         /// <summary>
-        /// Ortamın gürültü seviyesi (IMU varyansı).
+        /// OrtamÄ±n gÃ¼rÃ¼ltÃ¼ seviyesi (IMU varyansÄ±).
         /// </summary>
         public double NoiseLevel { get; init; } = 0.0;
 
@@ -108,32 +108,33 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// Aracın keşfedilen genel fiziksel karakteri.
-    /// "Hydronom bu aracı nasıl algıladı?" sorusunun cevabı.
+    /// AracÄ±n keÅŸfedilen genel fiziksel karakteri.
+    /// "Hydronom bu aracÄ± nasÄ±l algÄ±ladÄ±?" sorusunun cevabÄ±.
     /// </summary>
     public record VehicleSignature
     {
         /// <summary>
-        /// Aracın tipi tahmini (Surface, Submersible, Ground).
-        /// Z ekseni hareketine ve sönümlenme süresine göre tahmin edilir.
+        /// AracÄ±n tipi tahmini (Surface, Submersible, Ground).
+        /// Z ekseni hareketine ve sÃ¶nÃ¼mlenme sÃ¼resine gÃ¶re tahmin edilir.
         /// </summary>
         public string EstimatedVehicleType { get; init; } = "Unknown";
 
         /// <summary>
-        /// İtki simetrisi skoru (0–1).
-        /// Motorlar merkeze göre dengeli mi dağılmış?
+        /// Ä°tki simetrisi skoru (0â€“1).
+        /// Motorlar merkeze gÃ¶re dengeli mi daÄŸÄ±lmÄ±ÅŸ?
         /// </summary>
         public double SymmetryScore { get; init; } = 1.0;
 
         /// <summary>
-        /// Dönüş tepkisi (Yaw Authority).
-        /// Araç ne kadar çevik dönüyor? (Yüksek değer = Çevik).
+        /// DÃ¶nÃ¼ÅŸ tepkisi (Yaw Authority).
+        /// AraÃ§ ne kadar Ã§evik dÃ¶nÃ¼yor? (YÃ¼ksek deÄŸer = Ã‡evik).
         /// </summary>
         public double RotationalAgility { get; init; } = 0.0;
 
         /// <summary>
-        /// Gözlemlenen sönümlenme katsayısı (Ortamın su mu hava mı olduğunu anlamaya yarar).
+        /// GÃ¶zlemlenen sÃ¶nÃ¼mlenme katsayÄ±sÄ± (OrtamÄ±n su mu hava mÄ± olduÄŸunu anlamaya yarar).
         /// </summary>
         public double DampingFactorObserved { get; init; } = 0.0;
     }
 }
+

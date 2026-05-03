@@ -1,87 +1,87 @@
-namespace Hydronom.GroundStation.Coordination;
+﻿namespace Hydronom.GroundStation.Coordination;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// FleetCoordinator tarafından üretilen koordinasyon sonucunu temsil eder.
+/// FleetCoordinator tarafÄ±ndan Ã¼retilen koordinasyon sonucunu temsil eder.
 /// 
-/// MissionAllocator sadece şu soruya cevap verir:
-/// - Bu göreve en uygun araç hangisi?
+/// MissionAllocator sadece ÅŸu soruya cevap verir:
+/// - Bu gÃ¶reve en uygun araÃ§ hangisi?
 /// 
-/// FleetCoordinator ise bir adım daha ileri gider:
-/// - Görev atanabildi mi?
-/// - Hangi araç seçildi?
-/// - Seçilen araca gönderilecek FleetCommand üretildi mi?
-/// - Bu komut HydronomEnvelope içine sarıldı mı?
-/// - Operatör/Gateway/CommunicationRouter bu sonucu kullanabilir mi?
+/// FleetCoordinator ise bir adÄ±m daha ileri gider:
+/// - GÃ¶rev atanabildi mi?
+/// - Hangi araÃ§ seÃ§ildi?
+/// - SeÃ§ilen araca gÃ¶nderilecek FleetCommand Ã¼retildi mi?
+/// - Bu komut HydronomEnvelope iÃ§ine sarÄ±ldÄ± mÄ±?
+/// - OperatÃ¶r/Gateway/CommunicationRouter bu sonucu kullanabilir mi?
 /// 
-/// Bu model, görev atama kararını komut üretimiyle birleştiren ilk koordinasyon çıktısıdır.
+/// Bu model, gÃ¶rev atama kararÄ±nÄ± komut Ã¼retimiyle birleÅŸtiren ilk koordinasyon Ã§Ä±ktÄ±sÄ±dÄ±r.
 /// </summary>
 public sealed record FleetCoordinationResult
 {
     /// <summary>
-    /// İlgili görev atama isteği.
+    /// Ä°lgili gÃ¶rev atama isteÄŸi.
     /// 
-    /// Bu alan, koordinasyon sonucunun hangi görev isteğinden üretildiğini takip etmeyi sağlar.
+    /// Bu alan, koordinasyon sonucunun hangi gÃ¶rev isteÄŸinden Ã¼retildiÄŸini takip etmeyi saÄŸlar.
     /// </summary>
     public MissionRequest? Request { get; init; }
 
     /// <summary>
-    /// MissionAllocator tarafından üretilen atama sonucu.
+    /// MissionAllocator tarafÄ±ndan Ã¼retilen atama sonucu.
     /// 
-    /// Bu sonuç:
-    /// - Hangi aracın seçildiğini,
-    /// - Adayları,
+    /// Bu sonuÃ§:
+    /// - Hangi aracÄ±n seÃ§ildiÄŸini,
+    /// - AdaylarÄ±,
     /// - Ret sebeplerini,
     /// - Skoru
-    /// içerir.
+    /// iÃ§erir.
     /// </summary>
     public MissionAllocationResult? Allocation { get; init; }
 
     /// <summary>
-    /// Koordinasyon işlemi başarılı mı?
+    /// Koordinasyon iÅŸlemi baÅŸarÄ±lÄ± mÄ±?
     /// 
     /// true ise:
-    /// - Görev için uygun araç bulunmuştur.
-    /// - FleetCommand üretilmiştir.
-    /// - Envelope üretilmiştir.
+    /// - GÃ¶rev iÃ§in uygun araÃ§ bulunmuÅŸtur.
+    /// - FleetCommand Ã¼retilmiÅŸtir.
+    /// - Envelope Ã¼retilmiÅŸtir.
     /// 
     /// false ise:
-    /// - Görev isteği geçersiz olabilir.
-    /// - Uygun araç bulunamamış olabilir.
-    /// - Komut üretimi başarısız olmuş olabilir.
+    /// - GÃ¶rev isteÄŸi geÃ§ersiz olabilir.
+    /// - Uygun araÃ§ bulunamamÄ±ÅŸ olabilir.
+    /// - Komut Ã¼retimi baÅŸarÄ±sÄ±z olmuÅŸ olabilir.
     /// </summary>
     public bool Success { get; init; }
 
     /// <summary>
-    /// Başarı veya başarısızlık sebebinin kısa açıklaması.
+    /// BaÅŸarÄ± veya baÅŸarÄ±sÄ±zlÄ±k sebebinin kÄ±sa aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops üzerinde operatöre gösterilebilir.
+    /// Hydronom Ops Ã¼zerinde operatÃ¶re gÃ¶sterilebilir.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Seçilen araca gönderilmek üzere üretilen FleetCommand.
+    /// SeÃ§ilen araca gÃ¶nderilmek Ã¼zere Ã¼retilen FleetCommand.
     /// 
     /// Success false ise null olabilir.
     /// </summary>
     public FleetCommand? Command { get; init; }
 
     /// <summary>
-    /// Üretilen FleetCommand'ın HydronomEnvelope içine sarılmış hâli.
+    /// Ãœretilen FleetCommand'Ä±n HydronomEnvelope iÃ§ine sarÄ±lmÄ±ÅŸ hÃ¢li.
     /// 
-    /// CommunicationRouter ileride bu envelope'u alıp uygun transport üzerinden gönderecektir.
+    /// CommunicationRouter ileride bu envelope'u alÄ±p uygun transport Ã¼zerinden gÃ¶nderecektir.
     /// </summary>
     public HydronomEnvelope? Envelope { get; init; }
 
     /// <summary>
-    /// Koordinasyon sonucunun üretildiği UTC zaman.
+    /// Koordinasyon sonucunun Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Başarısız koordinasyon sonucu üretir.
+    /// BaÅŸarÄ±sÄ±z koordinasyon sonucu Ã¼retir.
     /// </summary>
     public static FleetCoordinationResult Failed(
         MissionRequest? request,
@@ -98,7 +98,7 @@ public sealed record FleetCoordinationResult
     }
 
     /// <summary>
-    /// Başarılı koordinasyon sonucu üretir.
+    /// BaÅŸarÄ±lÄ± koordinasyon sonucu Ã¼retir.
     /// </summary>
     public static FleetCoordinationResult Succeeded(
         MissionRequest request,

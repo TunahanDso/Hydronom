@@ -1,24 +1,23 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// 6-DoF platform bağımsız araç durum modeli.
+    /// 6-DoF platform baÄŸÄ±msÄ±z araÃ§ durum modeli.
     ///
-    /// Bu model Hydronom çekirdeğinde tek bir platforma bağlı değildir.
-    /// Kara, deniz, hava, sualtı, fabrika içi AGV, paletli araç veya simülasyon
-    /// platformları aynı temel fiziksel durum temsilini kullanabilir.
+    /// Bu model mevcut runtime ve fizik entegrasyonu iÃ§in korunur.
+    /// Yeni authoritative operasyonel state modeli ayrÄ±ca Hydronom.Core.State.Models
+    /// altÄ±nda tanÄ±mlanÄ±r.
     ///
-    /// Önemli frame sözleşmesi:
-    /// - Position: dünya frame
-    /// - Orientation: body frame'in dünya frame'e göre yönelimi
-    /// - LinearVelocity: dünya frame [m/s]
-    /// - AngularVelocity: body frame [deg/s], geriye dönük uyumluluk için derece/saniye tutulur
-    /// - LinearForce: dünya frame [N]
-    /// - AngularTorque: body frame [N·m]
+    /// Frame sÃ¶zleÅŸmesi:
+    /// - Position: dÃ¼nya frame
+    /// - Orientation: body frame'in dÃ¼nya frame'e gÃ¶re yÃ¶nelimi
+    /// - LinearVelocity: dÃ¼nya frame [m/s]
+    /// - AngularVelocity: body frame [deg/s]
+    /// - LinearForce: dÃ¼nya frame [N]
+    /// - AngularTorque: body frame [NÂ·m]
     ///
-    /// Not:
-    /// Açısal hız dış arayüzde deg/s kalır. Fizik hesabı içeride rad/s ile yapılır.
+    /// AÃ§Ä±sal hÄ±z dÄ±ÅŸ arayÃ¼zde deg/s kalÄ±r. Fizik hesabÄ± iÃ§eride rad/s ile yapÄ±lÄ±r.
     /// </summary>
     public readonly record struct VehicleState(
         Vec3 Position,
@@ -35,7 +34,7 @@ namespace Hydronom.Core.Domain
         private const double DefaultMassKg = 1.0;
         private const double MinPositive = 1e-12;
 
-        /// <summary>Başlangıçta tüm bileşenleri sıfır olan varsayılan durum.</summary>
+        /// <summary>BaÅŸlangÄ±Ã§ta tÃ¼m bileÅŸenleri sÄ±fÄ±r olan varsayÄ±lan durum.</summary>
         public static VehicleState Zero => new(
             Vec3.Zero,
             Orientation.Zero,
@@ -45,27 +44,27 @@ namespace Hydronom.Core.Domain
             Vec3.Zero
         );
 
-        /// <summary>Geriye dönük uyumluluk için X konum alias'ı.</summary>
+        /// <summary>Geriye dÃ¶nÃ¼k uyumluluk iÃ§in X konum alias'Ä±.</summary>
         public double X => Position.X;
 
-        /// <summary>Geriye dönük uyumluluk için Y konum alias'ı.</summary>
+        /// <summary>Geriye dÃ¶nÃ¼k uyumluluk iÃ§in Y konum alias'Ä±.</summary>
         public double Y => Position.Y;
 
-        /// <summary>Geriye dönük uyumluluk için Z konum alias'ı.</summary>
+        /// <summary>Geriye dÃ¶nÃ¼k uyumluluk iÃ§in Z konum alias'Ä±.</summary>
         public double Z => Position.Z;
 
-        /// <summary>Planar modüller için X-Y düzlemi konum yardımcısı.</summary>
+        /// <summary>Planar modÃ¼ller iÃ§in X-Y dÃ¼zlemi konum yardÄ±mcÄ±sÄ±.</summary>
         public Vec2 Position2D => new(Position.X, Position.Y);
 
-        /// <summary>Geriye dönük uyumluluk için Velocity alias'ı.</summary>
+        /// <summary>Geriye dÃ¶nÃ¼k uyumluluk iÃ§in Velocity alias'Ä±.</summary>
         public Vec3 Velocity => LinearVelocity;
 
-        /// <summary>Geriye dönük uyumluluk için AngularRate alias'ı.</summary>
+        /// <summary>Geriye dÃ¶nÃ¼k uyumluluk iÃ§in AngularRate alias'Ä±.</summary>
         public Vec3 AngularRate => AngularVelocity;
 
         /// <summary>
-        /// Durumun temel sayısal sağlığını kontrol eder.
-        /// NaN veya Infinity içeren state fizik çekirdeğine girmemelidir.
+        /// Durumun temel sayÄ±sal saÄŸlÄ±ÄŸÄ±nÄ± kontrol eder.
+        /// NaN veya Infinity iÃ§eren state fizik Ã§ekirdeÄŸine girmemelidir.
         /// </summary>
         public bool IsFinite =>
             IsFiniteVec(Position) &&
@@ -76,8 +75,8 @@ namespace Hydronom.Core.Domain
             IsFiniteVec(AngularTorque);
 
         /// <summary>
-        /// Kuvvet ve moment bileşenlerini sıfırlar.
-        /// Konum, yönelim ve hızlar korunur.
+        /// Kuvvet ve moment bileÅŸenlerini sÄ±fÄ±rlar.
+        /// Konum, yÃ¶nelim ve hÄ±zlar korunur.
         /// </summary>
         public VehicleState ClearForces() =>
             this with
@@ -87,9 +86,7 @@ namespace Hydronom.Core.Domain
             };
 
         /// <summary>
-        /// NaN / Infinity gibi sayısal bozulmaları temizler.
-        /// Bu metot özellikle replay, simülasyon, sensör hatası veya dış pose override sonrası
-        /// güvenli çalışma için kullanılabilir.
+        /// NaN / Infinity gibi sayÄ±sal bozulmalarÄ± temizler.
         /// </summary>
         public VehicleState Sanitized()
         {
@@ -104,8 +101,11 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Dış bir pose kaynağından durum ezmesi yapılırken kullanılan yardımcı metot.
-        /// GPS, SLAM, external tracker veya twin senkronizasyonu gibi kaynaklar için uygundur.
+        /// DÄ±ÅŸ pose kaynaÄŸÄ±ndan durum gÃ¼ncellemesi iÃ§in yardÄ±mcÄ± metot.
+        ///
+        /// Bu metot geriye dÃ¶nÃ¼k uyumluluk iÃ§in korunur.
+        /// Yeni authoritative pipeline'da dÄ±ÅŸ kaynaklar doÄŸrudan bu metodu Ã§aÄŸÄ±rmak yerine
+        /// StateUpdateCandidate Ã¼retip StateAuthorityManager Ã¼zerinden geÃ§melidir.
         /// </summary>
         public VehicleState WithExternalPose(
             double x,
@@ -138,14 +138,10 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Eski runtime akışını bozmayan temel entegrasyon metodu.
+        /// Eski runtime akÄ±ÅŸÄ±nÄ± bozmayan temel entegrasyon metodu.
         ///
-        /// Geriye dönük uyumluluk için korunur.
-        /// Yeni kullanımda IntegrateAdvanced / IntegrateWithReport tercih edilmelidir.
+        /// Yeni kullanÄ±mda IntegrateAdvanced / IntegrateWithReport tercih edilmelidir.
         /// </summary>
-        /// <param name="dt">Zaman adımı [s]</param>
-        /// <param name="mass">Kütle [kg]</param>
-        /// <param name="inertia">Body frame diagonal atalet momenti [kg·m²]</param>
         public VehicleState Integrate(double dt, double mass, Vec3 inertia)
         {
             var body = new RigidBodyProperties(
@@ -166,11 +162,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Rapor üreten genel amaçlı 6-DoF entegrasyon metodu.
-        ///
-        /// Bu metot platform bağımsızdır. Deniz, kara, hava veya fabrika aracı fark etmez.
-        /// Platforma özel sürüklenme, kaldırma, yer teması, akıntı, rüzgar gibi etkiler
-        /// dışarıda PhysicsLoads olarak hesaplanıp bu metoda verilmelidir.
+        /// Rapor Ã¼reten genel amaÃ§lÄ± 6-DoF entegrasyon metodu.
         /// </summary>
         public VehicleState IntegrateWithReport(
             double dt,
@@ -183,16 +175,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Platform bağımsız gelişmiş 6-DoF entegrasyon metodu.
-        ///
-        /// Bu metot:
-        /// - Sayısal güvenlik uygular.
-        /// - dt değerini güvenli aralıkta sınırlar.
-        /// - Lineer ve açısal ivmeleri hesaplar.
-        /// - İsteğe bağlı gyroscopic coupling uygular.
-        /// - Semi-implicit Euler veya explicit Euler ile ilerler.
-        /// - Quaternion tabanlı yönelim günceller.
-        /// - Sonucu PhysicsStepReport ile açıklanabilir hale getirir.
+        /// Platform baÄŸÄ±msÄ±z geliÅŸmiÅŸ 6-DoF entegrasyon metodu.
         /// </summary>
         public VehicleState IntegrateAdvanced(
             double dt,
@@ -215,9 +198,6 @@ namespace Hydronom.Core.Domain
             double safeDt = Math.Min(dt, safeOptions.MaxTimeStep);
             var current = Sanitized();
 
-            // -----------------------------------------------------------------
-            // 1) Lineer dinamik
-            // -----------------------------------------------------------------
             double invMass = 1.0 / Math.Max(safeBody.MassKg, DefaultMassKg);
 
             var forceWorld = ClampMagnitude(safeLoads.ForceWorld, safeOptions.MaxForceMagnitude);
@@ -242,9 +222,6 @@ namespace Hydronom.Core.Domain
 
             newVelWorld = ClampMagnitude(newVelWorld, safeBody.MaxLinearSpeed);
 
-            // -----------------------------------------------------------------
-            // 2) Açısal dinamik
-            // -----------------------------------------------------------------
             var inertia = safeBody.InertiaBody;
             var oldOmegaRad = current.AngularVelocity * DegToRad;
 
@@ -253,9 +230,6 @@ namespace Hydronom.Core.Domain
 
             if (safeOptions.EnableGyroscopicTerm)
             {
-                // Rijit cisim rotasyon denklemi:
-                // I * omegaDot + omega x (I * omega) = tau
-                // omegaDot = I^-1 * (tau - omega x (I * omega))
                 var iOmega = ComponentMultiply(inertia, oldOmegaRad);
                 var gyro = Cross(oldOmegaRad, iOmega);
                 effectiveTorqueBody = torqueBody - gyro;
@@ -319,11 +293,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Deniz / sualtı akışkan ortamları için geriye dönük uyumluluk metodu.
-        ///
-        /// Bu metot korunur; fakat yeni mimaride deniz ortamına özel drag/akıntı/batmazlık
-        /// etkilerinin ayrı force model dosyalarında hesaplanıp IntegrateAdvanced metoduna
-        /// PhysicsLoads olarak verilmesi önerilir.
+        /// Deniz / sualtÄ± akÄ±ÅŸkan ortamlarÄ± iÃ§in geriye dÃ¶nÃ¼k uyumluluk metodu.
         /// </summary>
         public VehicleState IntegrateMarine(
             double dt,
@@ -342,8 +312,6 @@ namespace Hydronom.Core.Domain
 
             var current = Sanitized();
 
-            // State içindeki kuvvet dünya frame'de taşınır.
-            // Marine drag body frame'de hesaplanır.
             var externalForceBody = current.Orientation.WorldToBody(current.LinearForce);
             var bodyVelocity = current.Orientation.WorldToBody(current.LinearVelocity);
 
@@ -486,513 +454,6 @@ namespace Hydronom.Core.Domain
         private static double SafeAbs(double value)
         {
             return double.IsFinite(value) ? Math.Abs(value) : 0.0;
-        }
-
-        private static double NormalizeDeg(double deg)
-        {
-            if (!double.IsFinite(deg))
-                return 0.0;
-
-            deg %= 360.0;
-
-            if (deg > 180.0)
-                deg -= 360.0;
-
-            if (deg < -180.0)
-                deg += 360.0;
-
-            return deg;
-        }
-
-        private static double Clamp(double value, double min, double max)
-        {
-            if (!double.IsFinite(value))
-                return 0.0;
-
-            if (value < min)
-                return min;
-
-            if (value > max)
-                return max;
-
-            return value;
-        }
-    }
-
-    /// <summary>
-    /// Rijit cisim fizik parametreleri.
-    ///
-    /// Platform bağımsızdır:
-    /// - Tekne
-    /// - Denizaltı
-    /// - Paletli araç
-    /// - İHA
-    /// - AGV
-    /// - Endüstriyel makine
-    ///
-    /// aynı parametre sözleşmesini kullanabilir.
-    /// </summary>
-    public readonly record struct RigidBodyProperties(
-        double MassKg,
-        Vec3 InertiaBody,
-        double MaxLinearSpeed = 100.0,
-        double MaxAngularSpeedDeg = 720.0
-    )
-    {
-        public static RigidBodyProperties Default => new(
-            MassKg: 1.0,
-            InertiaBody: new Vec3(1.0, 1.0, 1.0),
-            MaxLinearSpeed: 100.0,
-            MaxAngularSpeedDeg: 720.0
-        );
-
-        public RigidBodyProperties Sanitized()
-        {
-            return new RigidBodyProperties(
-                MassKg: SafePositive(MassKg, 1.0),
-                InertiaBody: new Vec3(
-                    SafePositive(InertiaBody.X, 1.0),
-                    SafePositive(InertiaBody.Y, 1.0),
-                    SafePositive(InertiaBody.Z, 1.0)
-                ),
-                MaxLinearSpeed: SafePositive(MaxLinearSpeed, 100.0),
-                MaxAngularSpeedDeg: SafePositive(MaxAngularSpeedDeg, 720.0)
-            );
-        }
-
-        private static double SafePositive(double value, double fallback)
-        {
-            if (!double.IsFinite(value))
-                return fallback;
-
-            return Math.Abs(value) < 1e-12 ? fallback : Math.Abs(value);
-        }
-    }
-
-    /// <summary>
-    /// Bir fizik adımında uygulanacak dış yükler.
-    ///
-    /// ForceWorld dünya frame'de, TorqueBody body frame'de tutulur.
-    /// Platforma özel modeller toplam yükleri hesaplayıp buraya aktarır.
-    /// </summary>
-    public readonly record struct PhysicsLoads(
-        Vec3 ForceWorld,
-        Vec3 TorqueBody
-    )
-    {
-        public static PhysicsLoads Zero => new(Vec3.Zero, Vec3.Zero);
-
-        public PhysicsLoads Sanitized()
-        {
-            return new PhysicsLoads(
-                SanitizeVec(ForceWorld),
-                SanitizeVec(TorqueBody)
-            );
-        }
-
-        public static PhysicsLoads operator +(PhysicsLoads a, PhysicsLoads b)
-        {
-            return new PhysicsLoads(
-                a.ForceWorld + b.ForceWorld,
-                a.TorqueBody + b.TorqueBody
-            );
-        }
-
-        private static Vec3 SanitizeVec(Vec3 v)
-        {
-            return new Vec3(
-                double.IsFinite(v.X) ? v.X : 0.0,
-                double.IsFinite(v.Y) ? v.Y : 0.0,
-                double.IsFinite(v.Z) ? v.Z : 0.0
-            );
-        }
-    }
-
-    /// <summary>
-    /// Entegrasyon yöntemi.
-    /// SemiImplicitEuler varsayılan olarak daha kararlı olduğu için tercih edilir.
-    /// </summary>
-    public enum PhysicsIntegrationMode
-    {
-        ExplicitEuler = 0,
-        SemiImplicitEuler = 1
-    }
-
-    /// <summary>
-    /// Fizik entegrasyonu için güvenlik ve yöntem ayarları.
-    /// </summary>
-    public readonly record struct PhysicsIntegrationOptions(
-        PhysicsIntegrationMode IntegrationMode,
-        bool EnableGyroscopicTerm,
-        double MaxTimeStep,
-        double MaxForceMagnitude,
-        double MaxTorqueMagnitude
-    )
-    {
-        public static PhysicsIntegrationOptions Default => new(
-            IntegrationMode: PhysicsIntegrationMode.SemiImplicitEuler,
-            EnableGyroscopicTerm: true,
-            MaxTimeStep: 0.05,
-            MaxForceMagnitude: 1_000_000.0,
-            MaxTorqueMagnitude: 1_000_000.0
-        );
-
-        public PhysicsIntegrationOptions Sanitized()
-        {
-            return new PhysicsIntegrationOptions(
-                IntegrationMode,
-                EnableGyroscopicTerm,
-                MaxTimeStep: SafePositive(MaxTimeStep, 0.05),
-                MaxForceMagnitude: SafePositive(MaxForceMagnitude, 1_000_000.0),
-                MaxTorqueMagnitude: SafePositive(MaxTorqueMagnitude, 1_000_000.0)
-            );
-        }
-
-        private static double SafePositive(double value, double fallback)
-        {
-            if (!double.IsFinite(value))
-                return fallback;
-
-            return value <= 0.0 ? fallback : value;
-        }
-    }
-
-    /// <summary>
-    /// Bir fizik entegrasyon adımının açıklanabilir raporu.
-    ///
-    /// Bu yapı Analysis, Safety, Replay, Simulation ve Diagnostics katmanlarının
-    /// "araç neden böyle hareket etti?" sorusunu cevaplamasını sağlar.
-    /// </summary>
-    public readonly record struct PhysicsStepReport(
-        bool WasIntegrated,
-        string Reason,
-        double DtRequested,
-        double DtUsed,
-        VehicleState StateBefore,
-        VehicleState StateAfter,
-        Vec3 ForceWorld,
-        Vec3 TorqueBody,
-        Vec3 EffectiveTorqueBody,
-        Vec3 LinearAccelerationWorld,
-        Vec3 AngularAccelerationBodyRad,
-        double LinearSpeed,
-        double AngularSpeedDeg,
-        bool LinearSpeedLimited,
-        bool AngularSpeedLimited,
-        bool UsedGyroscopicTerm,
-        PhysicsIntegrationMode IntegrationMode
-    )
-    {
-        public static PhysicsStepReport NoStep(VehicleState state, double dtRequested, string reason)
-        {
-            return new PhysicsStepReport(
-                WasIntegrated: false,
-                Reason: reason,
-                DtRequested: dtRequested,
-                DtUsed: 0.0,
-                StateBefore: state,
-                StateAfter: state,
-                ForceWorld: Vec3.Zero,
-                TorqueBody: Vec3.Zero,
-                EffectiveTorqueBody: Vec3.Zero,
-                LinearAccelerationWorld: Vec3.Zero,
-                AngularAccelerationBodyRad: Vec3.Zero,
-                LinearSpeed: 0.0,
-                AngularSpeedDeg: 0.0,
-                LinearSpeedLimited: false,
-                AngularSpeedLimited: false,
-                UsedGyroscopicTerm: false,
-                IntegrationMode: PhysicsIntegrationMode.SemiImplicitEuler
-            );
-        }
-    }
-
-    /// <summary>
-    /// 6-DoF yönelim modeli.
-    ///
-    /// Dışarıya Euler açıları derece cinsinden verilir.
-    /// İçeride quaternion tek gerçek yönelim kaynağı olarak tutulur.
-    /// </summary>
-    public readonly record struct Orientation
-    {
-        private const double DegToRad = Math.PI / 180.0;
-        private const double RadToDeg = 180.0 / Math.PI;
-
-        public double RollDeg { get; init; }
-        public double PitchDeg { get; init; }
-        public double YawDeg { get; init; }
-
-        public double Qw { get; init; }
-        public double Qx { get; init; }
-        public double Qy { get; init; }
-        public double Qz { get; init; }
-
-        public static Orientation Zero => new(0.0, 0.0, 0.0);
-
-        public bool IsFinite =>
-            double.IsFinite(RollDeg) &&
-            double.IsFinite(PitchDeg) &&
-            double.IsFinite(YawDeg) &&
-            double.IsFinite(Qw) &&
-            double.IsFinite(Qx) &&
-            double.IsFinite(Qy) &&
-            double.IsFinite(Qz);
-
-        /// <summary>
-        /// Euler açılarıyla yönelim oluşturur.
-        /// </summary>
-        public Orientation(double rollDeg, double pitchDeg, double yawDeg)
-        {
-            rollDeg = SanitizeScalar(rollDeg);
-            pitchDeg = SanitizeScalar(pitchDeg);
-            yawDeg = SanitizeScalar(yawDeg);
-
-            RollDeg = NormalizeDeg(rollDeg);
-            PitchDeg = Clamp(pitchDeg, -90.0, 90.0);
-            YawDeg = NormalizeDeg(yawDeg);
-
-            (Qw, Qx, Qy, Qz) = FromEuler(RollDeg, PitchDeg, YawDeg);
-        }
-
-        /// <summary>
-        /// Quaternion ile yönelim oluşturur.
-        /// </summary>
-        public Orientation(double qw, double qx, double qy, double qz, bool fromQuaternion)
-        {
-            qw = SanitizeScalar(qw, 1.0);
-            qx = SanitizeScalar(qx);
-            qy = SanitizeScalar(qy);
-            qz = SanitizeScalar(qz);
-
-            NormalizeQuaternion(ref qw, ref qx, ref qy, ref qz);
-
-            Qw = qw;
-            Qx = qx;
-            Qy = qy;
-            Qz = qz;
-
-            (var rollDeg, var pitchDeg, var yawDeg) = ToEuler(qw, qx, qy, qz);
-
-            RollDeg = NormalizeDeg(rollDeg);
-            PitchDeg = Clamp(pitchDeg, -90.0, 90.0);
-            YawDeg = NormalizeDeg(yawDeg);
-        }
-
-        /// <summary>
-        /// Sayısal olarak bozulmuş orientation değerlerini temizler.
-        /// </summary>
-        public Orientation Sanitized()
-        {
-            if (!IsFinite)
-                return Zero;
-
-            return new Orientation(Qw, Qx, Qy, Qz, fromQuaternion: true);
-        }
-
-        /// <summary>
-        /// Vektörü dünya frame'den body frame'e döndürür.
-        /// </summary>
-        public Vec3 WorldToBody(Vec3 worldVector)
-        {
-            var safe = Sanitized();
-            return RotateByQuaternion(safe.Qw, -safe.Qx, -safe.Qy, -safe.Qz, SanitizeVec(worldVector));
-        }
-
-        /// <summary>
-        /// Vektörü body frame'den dünya frame'e döndürür.
-        /// </summary>
-        public Vec3 BodyToWorld(Vec3 bodyVector)
-        {
-            var safe = Sanitized();
-            return RotateByQuaternion(safe.Qw, safe.Qx, safe.Qy, safe.Qz, SanitizeVec(bodyVector));
-        }
-
-        /// <summary>
-        /// Body frame açısal hız ile quaternion yönelimi entegre eder.
-        /// angularVelocityRad body frame'de [rad/s] kabul edilir.
-        /// </summary>
-        public Orientation IntegrateBodyAngularVelocityRad(Vec3 angularVelocityRad, double dt)
-        {
-            if (dt <= 0.0 || !double.IsFinite(dt))
-                return this;
-
-            var safe = Sanitized();
-            var omega = SanitizeVec(angularVelocityRad);
-
-            double omegaMag = Math.Sqrt(
-                omega.X * omega.X +
-                omega.Y * omega.Y +
-                omega.Z * omega.Z
-            );
-
-            if (omegaMag < 1e-12)
-                return safe;
-
-            double angle = omegaMag * dt;
-            double half = angle * 0.5;
-
-            double sinHalf = Math.Sin(half);
-            double cosHalf = Math.Cos(half);
-
-            double invOmega = 1.0 / omegaMag;
-
-            var delta = new Orientation(
-                cosHalf,
-                omega.X * invOmega * sinHalf,
-                omega.Y * invOmega * sinHalf,
-                omega.Z * invOmega * sinHalf,
-                fromQuaternion: true
-            );
-
-            return safe.Combine(delta);
-        }
-
-        /// <summary>
-        /// İki orientation değerini birleştirir.
-        /// Sonuç: this ⊗ other
-        /// </summary>
-        public Orientation Combine(Orientation other)
-        {
-            var a = Sanitized();
-            var b = other.Sanitized();
-
-            double qw = a.Qw * b.Qw - a.Qx * b.Qx - a.Qy * b.Qy - a.Qz * b.Qz;
-            double qx = a.Qw * b.Qx + a.Qx * b.Qw + a.Qy * b.Qz - a.Qz * b.Qy;
-            double qy = a.Qw * b.Qy - a.Qx * b.Qz + a.Qy * b.Qw + a.Qz * b.Qx;
-            double qz = a.Qw * b.Qz + a.Qx * b.Qy - a.Qy * b.Qx + a.Qz * b.Qw;
-
-            return new Orientation(qw, qx, qy, qz, fromQuaternion: true);
-        }
-
-        /// <summary>
-        /// Body frame ileri ekseninin dünya frame karşılığı.
-        /// </summary>
-        public Vec3 ForwardWorld => BodyToWorld(new Vec3(1.0, 0.0, 0.0));
-
-        /// <summary>
-        /// Body frame sağ ekseninin dünya frame karşılığı.
-        /// </summary>
-        public Vec3 RightWorld => BodyToWorld(new Vec3(0.0, 1.0, 0.0));
-
-        /// <summary>
-        /// Body frame yukarı/aşağı ekseninin dünya frame karşılığı.
-        /// </summary>
-        public Vec3 UpWorld => BodyToWorld(new Vec3(0.0, 0.0, 1.0));
-
-        public override string ToString()
-        {
-            return $"R={RollDeg:F1}°, P={PitchDeg:F1}°, Y={YawDeg:F1}°";
-        }
-
-        public static (double qw, double qx, double qy, double qz) FromEuler(
-            double rollDeg,
-            double pitchDeg,
-            double yawDeg
-        )
-        {
-            double r = SanitizeScalar(rollDeg) * DegToRad;
-            double p = SanitizeScalar(pitchDeg) * DegToRad;
-            double y = SanitizeScalar(yawDeg) * DegToRad;
-
-            double cy = Math.Cos(y * 0.5);
-            double sy = Math.Sin(y * 0.5);
-            double cp = Math.Cos(p * 0.5);
-            double sp = Math.Sin(p * 0.5);
-            double cr = Math.Cos(r * 0.5);
-            double sr = Math.Sin(r * 0.5);
-
-            double qw = cr * cp * cy + sr * sp * sy;
-            double qx = sr * cp * cy - cr * sp * sy;
-            double qy = cr * sp * cy + sr * cp * sy;
-            double qz = cr * cp * sy - sr * sp * cy;
-
-            NormalizeQuaternion(ref qw, ref qx, ref qy, ref qz);
-            return (qw, qx, qy, qz);
-        }
-
-        public static (double rollDeg, double pitchDeg, double yawDeg) ToEuler(
-            double qw,
-            double qx,
-            double qy,
-            double qz
-        )
-        {
-            NormalizeQuaternion(ref qw, ref qx, ref qy, ref qz);
-
-            double sinrCosp = 2.0 * (qw * qx + qy * qz);
-            double cosrCosp = 1.0 - 2.0 * (qx * qx + qy * qy);
-            double roll = Math.Atan2(sinrCosp, cosrCosp);
-
-            double sinp = 2.0 * (qw * qy - qz * qx);
-            double pitch = Math.Abs(sinp) >= 1.0
-                ? Math.CopySign(Math.PI / 2.0, sinp)
-                : Math.Asin(sinp);
-
-            double sinyCosp = 2.0 * (qw * qz + qx * qy);
-            double cosyCosp = 1.0 - 2.0 * (qy * qy + qz * qz);
-            double yaw = Math.Atan2(sinyCosp, cosyCosp);
-
-            return (
-                roll * RadToDeg,
-                pitch * RadToDeg,
-                yaw * RadToDeg
-            );
-        }
-
-        private static Vec3 RotateByQuaternion(double qw, double qx, double qy, double qz, Vec3 v)
-        {
-            NormalizeQuaternion(ref qw, ref qx, ref qy, ref qz);
-
-            double vx = v.X;
-            double vy = v.Y;
-            double vz = v.Z;
-
-            double tx = 2.0 * (qy * vz - qz * vy);
-            double ty = 2.0 * (qz * vx - qx * vz);
-            double tz = 2.0 * (qx * vy - qy * vx);
-
-            double cx = qy * tz - qz * ty;
-            double cy = qz * tx - qx * tz;
-            double cz = qx * ty - qy * tx;
-
-            return new Vec3(
-                vx + qw * tx + cx,
-                vy + qw * ty + cy,
-                vz + qw * tz + cz
-            );
-        }
-
-        private static void NormalizeQuaternion(ref double qw, ref double qx, ref double qy, ref double qz)
-        {
-            double norm = Math.Sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
-
-            if (!double.IsFinite(norm) || norm < 1e-12)
-            {
-                qw = 1.0;
-                qx = 0.0;
-                qy = 0.0;
-                qz = 0.0;
-                return;
-            }
-
-            qw /= norm;
-            qx /= norm;
-            qy /= norm;
-            qz /= norm;
-        }
-
-        private static Vec3 SanitizeVec(Vec3 v)
-        {
-            return new Vec3(
-                SanitizeScalar(v.X),
-                SanitizeScalar(v.Y),
-                SanitizeScalar(v.Z)
-            );
-        }
-
-        private static double SanitizeScalar(double value, double fallback = 0.0)
-        {
-            return double.IsFinite(value) ? value : fallback;
         }
 
         private static double NormalizeDeg(double deg)

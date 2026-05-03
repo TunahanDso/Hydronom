@@ -1,36 +1,36 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Interfaces
 {
     /// <summary>
-    /// Tek bir sensör için temel meta bilgiler.
+    /// Tek bir sensÃ¶r iÃ§in temel meta bilgiler.
     /// 
     /// Notlar:
-    ///   - Bu meta bilgiler FusedFrame üreticisi (FrameSource) tarafından da
-    ///     Capability mesajlarında gösterilir.
-    ///   - Donanım/sim ayrımı yapılmaz; sadece kimlik + sağlık bilgisi.
+    ///   - Bu meta bilgiler FusedFrame Ã¼reticisi (FrameSource) tarafÄ±ndan da
+    ///     Capability mesajlarÄ±nda gÃ¶sterilir.
+    ///   - DonanÄ±m/sim ayrÄ±mÄ± yapÄ±lmaz; sadece kimlik + saÄŸlÄ±k bilgisi.
     /// </summary>
     public interface ISensor
     {
-        /// <summary>Sensör adı (örn. "IMU", "GPS", "LiDAR", "Camera").</summary>
+        /// <summary>SensÃ¶r adÄ± (Ã¶rn. "IMU", "GPS", "LiDAR", "Camera").</summary>
         string Name { get; }
 
-        /// <summary>Bu sensörün yayın yaptığı frame id (örn. "imu_link").</summary>
+        /// <summary>Bu sensÃ¶rÃ¼n yayÄ±n yaptÄ±ÄŸÄ± frame id (Ã¶rn. "imu_link").</summary>
         string FrameId { get; }
 
-        /// <summary>Nominal yayın oranı (Hz).</summary>
+        /// <summary>Nominal yayÄ±n oranÄ± (Hz).</summary>
         double RateHz { get; }
 
-        /// <summary>Sağlık durumu (örn. bağlantı var mı?).</summary>
+        /// <summary>SaÄŸlÄ±k durumu (Ã¶rn. baÄŸlantÄ± var mÄ±?).</summary>
         bool IsHealthy { get; }
 
-        /// <summary>Son gelen örnek zaman damgası.</summary>
+        /// <summary>Son gelen Ã¶rnek zaman damgasÄ±.</summary>
         DateTime? LastStamp { get; }
 
         /// <summary>
-        /// Son örneğin tazeliği (ms).
-        /// LastStamp yoksa null döner.
-        /// FrameSource ve Diagnostik için önemlidir.
+        /// Son Ã¶rneÄŸin tazeliÄŸi (ms).
+        /// LastStamp yoksa null dÃ¶ner.
+        /// FrameSource ve Diagnostik iÃ§in Ã¶nemlidir.
         /// </summary>
         double? AgeMs
         {
@@ -42,9 +42,10 @@ namespace Hydronom.Core.Interfaces
         }
 
         /// <summary>
-        /// Sensör kategorisi (IMU/GPS/LiDAR/Kamera vb.).
-        /// Konsol ve UI tarafındaki Capability listesinde kullanılır.
+        /// SensÃ¶r kategorisi (IMU/GPS/LiDAR/Kamera vb.).
+        /// Konsol ve UI tarafÄ±ndaki Capability listesinde kullanÄ±lÄ±r.
         /// </summary>
         string Type { get; }
     }
 }
+

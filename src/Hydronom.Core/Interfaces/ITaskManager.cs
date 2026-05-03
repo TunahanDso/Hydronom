@@ -23,3 +23,4 @@ namespace Hydronom.Core.Interfaces
         void ClearTask();
     }
 }
+

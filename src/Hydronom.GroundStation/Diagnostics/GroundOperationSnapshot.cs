@@ -1,4 +1,4 @@
-namespace Hydronom.GroundStation.Diagnostics;
+﻿namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.LinkHealth;
@@ -7,527 +7,527 @@ using Hydronom.GroundStation.TransportExecution;
 using Hydronom.GroundStation.Transports.Receive;
 
 /// <summary>
-/// Ground Station tarafının tek bakışta okunabilir operasyon özetini temsil eder.
+/// Ground Station tarafÄ±nÄ±n tek bakÄ±ÅŸta okunabilir operasyon Ã¶zetini temsil eder.
 /// 
-/// Bu model, Hydronom Ops veya diagnostics ekranı için tek çağrıda genel durum bilgisi sağlar.
-/// Amaç, farklı modüllerden gelen bilgileri sade bir snapshot halinde toplamaktır.
+/// Bu model, Hydronom Ops veya diagnostics ekranÄ± iÃ§in tek Ã§aÄŸrÄ±da genel durum bilgisi saÄŸlar.
+/// AmaÃ§, farklÄ± modÃ¼llerden gelen bilgileri sade bir snapshot halinde toplamaktÄ±r.
 /// 
-/// Örnek olarak şunları özetler:
+/// Ã–rnek olarak ÅŸunlarÄ± Ã¶zetler:
 /// - Filo durumu,
-/// - Komut geçmişi,
-/// - Ortak dünya modeli,
-/// - Bağlantı/link sağlığı,
-/// - Route execution / transport gönderim durumu,
-/// - Gerçek command ACK/result korelasyon durumu,
-/// - Inbound receive / gelen mesaj trafiği durumu,
-/// - Command safety/security değerlendirme durumu,
-/// - Mission allocation / görev atama karar durumu,
-/// - Genel health değerlendirmesi,
-/// - Kısa açıklama.
+/// - Komut geÃ§miÅŸi,
+/// - Ortak dÃ¼nya modeli,
+/// - BaÄŸlantÄ±/link saÄŸlÄ±ÄŸÄ±,
+/// - Route execution / transport gÃ¶nderim durumu,
+/// - GerÃ§ek command ACK/result korelasyon durumu,
+/// - Inbound receive / gelen mesaj trafiÄŸi durumu,
+/// - Command safety/security deÄŸerlendirme durumu,
+/// - Mission allocation / gÃ¶rev atama karar durumu,
+/// - Genel health deÄŸerlendirmesi,
+/// - KÄ±sa aÃ§Ä±klama.
 /// </summary>
 public sealed record GroundOperationSnapshot
 {
     /// <summary>
-    /// Snapshot'ın üretildiği UTC zaman.
+    /// Snapshot'Ä±n Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Toplam kayıtlı araç/node sayısı.
+    /// Toplam kayÄ±tlÄ± araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int TotalNodeCount { get; init; }
 
     /// <summary>
-    /// Online durumdaki araç/node sayısı.
+    /// Online durumdaki araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int OnlineNodeCount { get; init; }
 
     /// <summary>
-    /// Offline durumdaki araç/node sayısı.
+    /// Offline durumdaki araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int OfflineNodeCount { get; init; }
 
     /// <summary>
-    /// Health değeri OK olan araç/node sayısı.
+    /// Health deÄŸeri OK olan araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int HealthyNodeCount { get; init; }
 
     /// <summary>
-    /// Health değeri Warning olan araç/node sayısı.
+    /// Health deÄŸeri Warning olan araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int WarningNodeCount { get; init; }
 
     /// <summary>
-    /// Health değeri Critical veya Fault olan araç/node sayısı.
+    /// Health deÄŸeri Critical veya Fault olan araÃ§/node sayÄ±sÄ±.
     /// </summary>
     public int CriticalNodeCount { get; init; }
 
     /// <summary>
-    /// Ortalama batarya yüzdesi.
+    /// Ortalama batarya yÃ¼zdesi.
     /// 
-    /// Batarya bilgisi olmayan araçlar ortalamaya dahil edilmez.
-    /// Hiç batarya bilgisi yoksa null kalır.
+    /// Batarya bilgisi olmayan araÃ§lar ortalamaya dahil edilmez.
+    /// HiÃ§ batarya bilgisi yoksa null kalÄ±r.
     /// </summary>
     public double? AverageBatteryPercent { get; init; }
 
     /// <summary>
-    /// Kayıtlı toplam komut sayısı.
+    /// KayÄ±tlÄ± toplam komut sayÄ±sÄ±.
     /// </summary>
     public int TotalCommandCount { get; init; }
 
     /// <summary>
-    /// Henüz sonuç bekleyen komut sayısı.
+    /// HenÃ¼z sonuÃ§ bekleyen komut sayÄ±sÄ±.
     /// </summary>
     public int PendingCommandCount { get; init; }
 
     /// <summary>
-    /// Tamamlanmış komut sayısı.
+    /// TamamlanmÄ±ÅŸ komut sayÄ±sÄ±.
     /// </summary>
     public int CompletedCommandCount { get; init; }
 
     /// <summary>
-    /// Başarılı komut sayısı.
+    /// BaÅŸarÄ±lÄ± komut sayÄ±sÄ±.
     /// </summary>
     public int SuccessfulCommandCount { get; init; }
 
     /// <summary>
-    /// Başarısız veya expired komut sayısı.
+    /// BaÅŸarÄ±sÄ±z veya expired komut sayÄ±sÄ±.
     /// </summary>
     public int FailedCommandCount { get; init; }
 
     /// <summary>
-    /// GroundWorldModel içindeki toplam dünya nesnesi sayısı.
+    /// GroundWorldModel iÃ§indeki toplam dÃ¼nya nesnesi sayÄ±sÄ±.
     /// </summary>
     public int TotalWorldObjectCount { get; init; }
 
     /// <summary>
-    /// GroundWorldModel içindeki aktif dünya nesnesi sayısı.
+    /// GroundWorldModel iÃ§indeki aktif dÃ¼nya nesnesi sayÄ±sÄ±.
     /// </summary>
     public int ActiveWorldObjectCount { get; init; }
 
     /// <summary>
-    /// Aktif obstacle sayısı.
+    /// Aktif obstacle sayÄ±sÄ±.
     /// </summary>
     public int ActiveObstacleCount { get; init; }
 
     /// <summary>
-    /// Aktif target sayısı.
+    /// Aktif target sayÄ±sÄ±.
     /// </summary>
     public int ActiveTargetCount { get; init; }
 
     /// <summary>
-    /// Aktif no-go zone sayısı.
+    /// Aktif no-go zone sayÄ±sÄ±.
     /// </summary>
     public int ActiveNoGoZoneCount { get; init; }
 
     /// <summary>
-    /// LinkHealthTracker tarafından takip edilen toplam araç bağlantı grubu sayısı.
+    /// LinkHealthTracker tarafÄ±ndan takip edilen toplam araÃ§ baÄŸlantÄ± grubu sayÄ±sÄ±.
     /// 
-    /// Bu değer araç bazlıdır.
-    /// Örneğin Alpha için WiFi + LoRa takip ediliyorsa bu alan yine 1 olur.
+    /// Bu deÄŸer araÃ§ bazlÄ±dÄ±r.
+    /// Ã–rneÄŸin Alpha iÃ§in WiFi + LoRa takip ediliyorsa bu alan yine 1 olur.
     /// </summary>
     public int LinkVehicleCount { get; init; }
 
     /// <summary>
-    /// Takip edilen toplam transport link sayısı.
+    /// Takip edilen toplam transport link sayÄ±sÄ±.
     /// 
-    /// Örneğin Alpha/WiFi, Alpha/LoRa, Beta/RF toplam 3 link sayılır.
+    /// Ã–rneÄŸin Alpha/WiFi, Alpha/LoRa, Beta/RF toplam 3 link sayÄ±lÄ±r.
     /// </summary>
     public int TotalLinkCount { get; init; }
 
     /// <summary>
-    /// Good durumundaki link sayısı.
+    /// Good durumundaki link sayÄ±sÄ±.
     /// </summary>
     public int GoodLinkCount { get; init; }
 
     /// <summary>
-    /// Degraded durumundaki link sayısı.
+    /// Degraded durumundaki link sayÄ±sÄ±.
     /// </summary>
     public int DegradedLinkCount { get; init; }
 
     /// <summary>
-    /// Critical durumundaki link sayısı.
+    /// Critical durumundaki link sayÄ±sÄ±.
     /// </summary>
     public int CriticalLinkCount { get; init; }
 
     /// <summary>
-    /// Lost durumundaki link sayısı.
+    /// Lost durumundaki link sayÄ±sÄ±.
     /// </summary>
     public int LostLinkCount { get; init; }
 
     /// <summary>
-    /// Unknown durumundaki link sayısı.
+    /// Unknown durumundaki link sayÄ±sÄ±.
     /// </summary>
     public int UnknownLinkCount { get; init; }
 
     /// <summary>
-    /// Araçlar arasındaki en iyi linklerin ortalama kalite skoru.
+    /// AraÃ§lar arasÄ±ndaki en iyi linklerin ortalama kalite skoru.
     /// 
-    /// Araç başına OverallQualityScore değerlerinin ortalamasıdır.
-    /// Link verisi yoksa null kalır.
+    /// AraÃ§ baÅŸÄ±na OverallQualityScore deÄŸerlerinin ortalamasÄ±dÄ±r.
+    /// Link verisi yoksa null kalÄ±r.
     /// </summary>
     public double? AverageVehicleLinkQualityScore { get; init; }
 
     /// <summary>
-    /// Tüm transport linklerinin ortalama kalite skoru.
+    /// TÃ¼m transport linklerinin ortalama kalite skoru.
     /// 
-    /// Link verisi yoksa null kalır.
+    /// Link verisi yoksa null kalÄ±r.
     /// </summary>
     public double? AverageTransportLinkQualityScore { get; init; }
 
     /// <summary>
-    /// En düşük araç bağlantı kalite skoru.
+    /// En dÃ¼ÅŸÃ¼k araÃ§ baÄŸlantÄ± kalite skoru.
     /// 
-    /// Filodaki zayıf halkayı hızlı görmek için kullanılır.
-    /// Link verisi yoksa null kalır.
+    /// Filodaki zayÄ±f halkayÄ± hÄ±zlÄ± gÃ¶rmek iÃ§in kullanÄ±lÄ±r.
+    /// Link verisi yoksa null kalÄ±r.
     /// </summary>
     public double? WorstVehicleLinkQualityScore { get; init; }
 
     /// <summary>
-    /// En düşük transport bağlantı kalite skoru.
+    /// En dÃ¼ÅŸÃ¼k transport baÄŸlantÄ± kalite skoru.
     /// 
-    /// Tekil transport seviyesindeki en kötü linki gösterir.
-    /// Link verisi yoksa null kalır.
+    /// Tekil transport seviyesindeki en kÃ¶tÃ¼ linki gÃ¶sterir.
+    /// Link verisi yoksa null kalÄ±r.
     /// </summary>
     public double? WorstTransportLinkQualityScore { get; init; }
 
     /// <summary>
-    /// Link health durumunun kısa insan-okunabilir açıklaması.
+    /// Link health durumunun kÄ±sa insan-okunabilir aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops Communication Links panelinde veya diagnostics özetinde gösterilebilir.
+    /// Hydronom Ops Communication Links panelinde veya diagnostics Ã¶zetinde gÃ¶sterilebilir.
     /// </summary>
     public string LinkHealthSummary { get; init; } = "No link health data.";
 
     /// <summary>
-    /// Araç bazlı link health snapshot listesi.
+    /// AraÃ§ bazlÄ± link health snapshot listesi.
     /// 
-    /// Bu alan Hydronom Ops tarafında araç kartları, link health paneli,
-    /// communication diagnostics ekranı ve ileride route karar izleme için kullanılabilir.
+    /// Bu alan Hydronom Ops tarafÄ±nda araÃ§ kartlarÄ±, link health paneli,
+    /// communication diagnostics ekranÄ± ve ileride route karar izleme iÃ§in kullanÄ±labilir.
     /// </summary>
     public IReadOnlyList<VehicleLinkHealthSnapshot> LinkHealth { get; init; } =
         Array.Empty<VehicleLinkHealthSnapshot>();
 
     /// <summary>
-    /// Toplam route execution kaydı sayısı.
+    /// Toplam route execution kaydÄ± sayÄ±sÄ±.
     /// 
-    /// Bu değer GroundTransportExecutionTracker içinde başlatılmış route/gönderim takip kayıtlarını gösterir.
+    /// Bu deÄŸer GroundTransportExecutionTracker iÃ§inde baÅŸlatÄ±lmÄ±ÅŸ route/gÃ¶nderim takip kayÄ±tlarÄ±nÄ± gÃ¶sterir.
     /// </summary>
     public int TotalRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// Henüz tamamlanmamış route execution sayısı.
+    /// HenÃ¼z tamamlanmamÄ±ÅŸ route execution sayÄ±sÄ±.
     /// </summary>
     public int PendingRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// Tamamlanmış route execution sayısı.
+    /// TamamlanmÄ±ÅŸ route execution sayÄ±sÄ±.
     /// </summary>
     public int CompletedRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// En az bir başarılı gönderim sonucu olan route execution sayısı.
+    /// En az bir baÅŸarÄ±lÄ± gÃ¶nderim sonucu olan route execution sayÄ±sÄ±.
     /// </summary>
     public int SuccessfulRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// ACK alınmış route execution sayısı.
+    /// ACK alÄ±nmÄ±ÅŸ route execution sayÄ±sÄ±.
     /// </summary>
     public int AckedRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// Timeout yaşamış route execution sayısı.
+    /// Timeout yaÅŸamÄ±ÅŸ route execution sayÄ±sÄ±.
     /// </summary>
     public int TimeoutRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// Başarısız route execution sayısı.
+    /// BaÅŸarÄ±sÄ±z route execution sayÄ±sÄ±.
     /// </summary>
     public int FailedRouteExecutionCount { get; init; }
 
     /// <summary>
-    /// Route edilemeyen execution sayısı.
+    /// Route edilemeyen execution sayÄ±sÄ±.
     /// 
-    /// CanRoute false olan route kayıtlarını sayar.
+    /// CanRoute false olan route kayÄ±tlarÄ±nÄ± sayar.
     /// </summary>
     public int RouteUnavailableExecutionCount { get; init; }
 
     /// <summary>
-    /// Transport gönderim sonuçlarının toplam sayısı.
+    /// Transport gÃ¶nderim sonuÃ§larÄ±nÄ±n toplam sayÄ±sÄ±.
     /// 
-    /// Bir route execution içinde birden fazla transport denemesi olabilir.
+    /// Bir route execution iÃ§inde birden fazla transport denemesi olabilir.
     /// </summary>
     public int TotalTransportSendResultCount { get; init; }
 
     /// <summary>
-    /// Başarılı transport send sonucu sayısı.
-    /// Sent veya Acked durumları başarılı kabul edilir.
+    /// BaÅŸarÄ±lÄ± transport send sonucu sayÄ±sÄ±.
+    /// Sent veya Acked durumlarÄ± baÅŸarÄ±lÄ± kabul edilir.
     /// </summary>
     public int SuccessfulTransportSendResultCount { get; init; }
 
     /// <summary>
-    /// ACK alınmış transport send sonucu sayısı.
+    /// ACK alÄ±nmÄ±ÅŸ transport send sonucu sayÄ±sÄ±.
     /// </summary>
     public int AckedTransportSendResultCount { get; init; }
 
     /// <summary>
-    /// Timeout transport send sonucu sayısı.
+    /// Timeout transport send sonucu sayÄ±sÄ±.
     /// </summary>
     public int TimeoutTransportSendResultCount { get; init; }
 
     /// <summary>
-    /// Başarısız transport send sonucu sayısı.
+    /// BaÅŸarÄ±sÄ±z transport send sonucu sayÄ±sÄ±.
     /// </summary>
     public int FailedTransportSendResultCount { get; init; }
 
     /// <summary>
-    /// Route execution kayıtlarında ölçülen ortalama en iyi latency.
+    /// Route execution kayÄ±tlarÄ±nda Ã¶lÃ§Ã¼len ortalama en iyi latency.
     /// 
-    /// Her execution için BestLatencyMs değerlerinin ortalamasıdır.
-    /// Veri yoksa null kalır.
+    /// Her execution iÃ§in BestLatencyMs deÄŸerlerinin ortalamasÄ±dÄ±r.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? AverageRouteExecutionLatencyMs { get; init; }
 
     /// <summary>
-    /// Route execution kayıtlarında görülen en iyi latency değeri.
-    /// Veri yoksa null kalır.
+    /// Route execution kayÄ±tlarÄ±nda gÃ¶rÃ¼len en iyi latency deÄŸeri.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? BestRouteExecutionLatencyMs { get; init; }
 
     /// <summary>
-    /// Route execution kayıtlarında görülen en kötü latency değeri.
-    /// Veri yoksa null kalır.
+    /// Route execution kayÄ±tlarÄ±nda gÃ¶rÃ¼len en kÃ¶tÃ¼ latency deÄŸeri.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? WorstRouteExecutionLatencyMs { get; init; }
 
     /// <summary>
-    /// Route execution / transport send durumunun kısa insan-okunabilir açıklaması.
+    /// Route execution / transport send durumunun kÄ±sa insan-okunabilir aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops diagnostics panelinde, command route ekranında veya iletişim geçmişinde gösterilebilir.
+    /// Hydronom Ops diagnostics panelinde, command route ekranÄ±nda veya iletiÅŸim geÃ§miÅŸinde gÃ¶sterilebilir.
     /// </summary>
     public string RouteExecutionSummary { get; init; } = "No route execution data.";
 
     /// <summary>
     /// Route execution snapshot listesi.
     /// 
-    /// Bu alan Hydronom Ops tarafında:
+    /// Bu alan Hydronom Ops tarafÄ±nda:
     /// - route history,
     /// - command delivery trace,
     /// - transport send result history,
     /// - ACK / timeout izleme
-    /// ekranlarını besleyebilir.
+    /// ekranlarÄ±nÄ± besleyebilir.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> RouteExecutions { get; init; } =
         Array.Empty<RouteExecutionSnapshot>();
 
     /// <summary>
-    /// Toplam command ACK correlation kaydı sayısı.
+    /// Toplam command ACK correlation kaydÄ± sayÄ±sÄ±.
     /// 
-    /// Bu değer CommandAckCorrelator içinde takip edilen CommandId → RouteExecution bağlantılarını gösterir.
+    /// Bu deÄŸer CommandAckCorrelator iÃ§inde takip edilen CommandId â†’ RouteExecution baÄŸlantÄ±larÄ±nÄ± gÃ¶sterir.
     /// </summary>
     public int TotalAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// Henüz gerçek FleetCommandResult almamış correlation sayısı.
+    /// HenÃ¼z gerÃ§ek FleetCommandResult almamÄ±ÅŸ correlation sayÄ±sÄ±.
     /// </summary>
     public int PendingAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// Gerçek FleetCommandResult ile ACK/result almış correlation sayısı.
+    /// GerÃ§ek FleetCommandResult ile ACK/result almÄ±ÅŸ correlation sayÄ±sÄ±.
     /// </summary>
     public int AckedCorrelationCount { get; init; }
 
     /// <summary>
-    /// Tamamlanmış correlation sayısı.
+    /// TamamlanmÄ±ÅŸ correlation sayÄ±sÄ±.
     /// 
-    /// Applied, Completed, Failed, Rejected, Timeout gibi nihai durumlar burada sayılır.
+    /// Applied, Completed, Failed, Rejected, Timeout gibi nihai durumlar burada sayÄ±lÄ±r.
     /// </summary>
     public int CompletedAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// Başarılı correlation sayısı.
+    /// BaÅŸarÄ±lÄ± correlation sayÄ±sÄ±.
     /// 
-    /// Accepted, Applied veya Completed durumları başarılı kabul edilir.
+    /// Accepted, Applied veya Completed durumlarÄ± baÅŸarÄ±lÄ± kabul edilir.
     /// </summary>
     public int SuccessfulAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// Başarısız correlation sayısı.
+    /// BaÅŸarÄ±sÄ±z correlation sayÄ±sÄ±.
     /// 
-    /// Rejected, Failed, Expired veya Timeout durumları başarısız kabul edilir.
+    /// Rejected, Failed, Expired veya Timeout durumlarÄ± baÅŸarÄ±sÄ±z kabul edilir.
     /// </summary>
     public int FailedAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// Belirli bir süre içinde gerçek ACK/result almamış pending correlation sayısı.
+    /// Belirli bir sÃ¼re iÃ§inde gerÃ§ek ACK/result almamÄ±ÅŸ pending correlation sayÄ±sÄ±.
     /// 
-    /// Diagnostics motoru ilk fazda varsayılan timeout eşiği ile hesaplar.
+    /// Diagnostics motoru ilk fazda varsayÄ±lan timeout eÅŸiÄŸi ile hesaplar.
     /// </summary>
     public int ExpiredPendingAckCorrelationCount { get; init; }
 
     /// <summary>
-    /// ACK/result alınan correlation kayıtları için ortalama ACK gecikmesi.
+    /// ACK/result alÄ±nan correlation kayÄ±tlarÄ± iÃ§in ortalama ACK gecikmesi.
     /// 
-    /// Veri yoksa null kalır.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? AverageAckCorrelationLatencyMs { get; init; }
 
     /// <summary>
-    /// ACK/result alınan correlation kayıtları içinde en iyi gecikme.
+    /// ACK/result alÄ±nan correlation kayÄ±tlarÄ± iÃ§inde en iyi gecikme.
     /// 
-    /// Veri yoksa null kalır.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? BestAckCorrelationLatencyMs { get; init; }
 
     /// <summary>
-    /// ACK/result alınan correlation kayıtları içinde en kötü gecikme.
+    /// ACK/result alÄ±nan correlation kayÄ±tlarÄ± iÃ§inde en kÃ¶tÃ¼ gecikme.
     /// 
-    /// Veri yoksa null kalır.
+    /// Veri yoksa null kalÄ±r.
     /// </summary>
     public double? WorstAckCorrelationLatencyMs { get; init; }
 
     /// <summary>
-    /// Command ACK correlation durumunun kısa insan-okunabilir açıklaması.
+    /// Command ACK correlation durumunun kÄ±sa insan-okunabilir aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops command delivery / ACK diagnostics panelinde gösterilebilir.
+    /// Hydronom Ops command delivery / ACK diagnostics panelinde gÃ¶sterilebilir.
     /// </summary>
     public string AckCorrelationSummary { get; init; } = "No ACK correlation data.";
 
     /// <summary>
     /// Command ACK correlation snapshot listesi.
     /// 
-    /// Bu alan Hydronom Ops tarafında:
-    /// - gerçek ACK izleme,
+    /// Bu alan Hydronom Ops tarafÄ±nda:
+    /// - gerÃ§ek ACK izleme,
     /// - command delivery trace,
-    /// - CommandId → ExecutionId eşleşmesi,
+    /// - CommandId â†’ ExecutionId eÅŸleÅŸmesi,
     /// - ACK latency analizi
-    /// ekranlarını besleyebilir.
+    /// ekranlarÄ±nÄ± besleyebilir.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> AckCorrelations { get; init; } =
         Array.Empty<CommandAckCorrelationSnapshot>();
 
     /// <summary>
-    /// Toplam receive event sayısı.
+    /// Toplam receive event sayÄ±sÄ±.
     /// 
-    /// Bu değer GroundTransportReceiver üzerinden alınan tüm inbound mesaj olaylarını gösterir.
+    /// Bu deÄŸer GroundTransportReceiver Ã¼zerinden alÄ±nan tÃ¼m inbound mesaj olaylarÄ±nÄ± gÃ¶sterir.
     /// </summary>
     public int TotalReceiveEventCount { get; init; }
 
     /// <summary>
-    /// Başarıyla işlenmiş receive event sayısı.
+    /// BaÅŸarÄ±yla iÅŸlenmiÅŸ receive event sayÄ±sÄ±.
     /// 
-    /// HandleEnvelope tarafından kabul edilip ilgili Ground Station modüllerine aktarılmış mesajları sayar.
+    /// HandleEnvelope tarafÄ±ndan kabul edilip ilgili Ground Station modÃ¼llerine aktarÄ±lmÄ±ÅŸ mesajlarÄ± sayar.
     /// </summary>
     public int HandledReceiveEventCount { get; init; }
 
     /// <summary>
-    /// İşlenirken hata oluşmuş receive event sayısı.
+    /// Ä°ÅŸlenirken hata oluÅŸmuÅŸ receive event sayÄ±sÄ±.
     /// 
-    /// Deserialize, dispatch, payload restore veya HandleEnvelope aşamasında hata alan inbound mesajlar burada sayılır.
+    /// Deserialize, dispatch, payload restore veya HandleEnvelope aÅŸamasÄ±nda hata alan inbound mesajlar burada sayÄ±lÄ±r.
     /// </summary>
     public int FailedReceiveEventCount { get; init; }
 
     /// <summary>
-    /// Alınmış fakat anlamlı şekilde işlenememiş receive event sayısı.
+    /// AlÄ±nmÄ±ÅŸ fakat anlamlÄ± ÅŸekilde iÅŸlenememiÅŸ receive event sayÄ±sÄ±.
     /// 
-    /// Mesaj geldiği halde bilinmeyen tip, eksik payload veya handler eksikliği nedeniyle kullanılamayan olaylar için kullanılır.
+    /// Mesaj geldiÄŸi halde bilinmeyen tip, eksik payload veya handler eksikliÄŸi nedeniyle kullanÄ±lamayan olaylar iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public int UnhandledReceiveEventCount { get; init; }
 
     /// <summary>
-    /// Son inbound mesajın alındığı UTC zaman.
+    /// Son inbound mesajÄ±n alÄ±ndÄ±ÄŸÄ± UTC zaman.
     /// 
-    /// Hiç receive event yoksa null kalır.
+    /// HiÃ§ receive event yoksa null kalÄ±r.
     /// </summary>
     public DateTimeOffset? LastReceiveUtc { get; init; }
 
     /// <summary>
-    /// Inbound receive durumunun kısa insan-okunabilir açıklaması.
+    /// Inbound receive durumunun kÄ±sa insan-okunabilir aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops inbound communication panelinde veya diagnostics özetinde gösterilebilir.
+    /// Hydronom Ops inbound communication panelinde veya diagnostics Ã¶zetinde gÃ¶sterilebilir.
     /// </summary>
     public string ReceiveHealthSummary { get; init; } = "No receive data.";
 
     /// <summary>
-    /// Gelen FleetHeartbeat mesajı sayısı.
+    /// Gelen FleetHeartbeat mesajÄ± sayÄ±sÄ±.
     /// </summary>
     public int InboundFleetHeartbeatCount { get; init; }
 
     /// <summary>
-    /// Gelen FleetCommandResult mesajı sayısı.
+    /// Gelen FleetCommandResult mesajÄ± sayÄ±sÄ±.
     /// </summary>
     public int InboundFleetCommandResultCount { get; init; }
 
     /// <summary>
-    /// Gelen FleetCommand mesajı sayısı.
+    /// Gelen FleetCommand mesajÄ± sayÄ±sÄ±.
     /// 
-    /// Ground Station tarafında genelde araçtan komut gelmesi beklenmez;
-    /// ama peer/relay veya test senaryolarında anlamlı olabilir.
+    /// Ground Station tarafÄ±nda genelde araÃ§tan komut gelmesi beklenmez;
+    /// ama peer/relay veya test senaryolarÄ±nda anlamlÄ± olabilir.
     /// </summary>
     public int InboundFleetCommandCount { get; init; }
 
     /// <summary>
-    /// Gelen VehicleNodeStatus mesajı sayısı.
+    /// Gelen VehicleNodeStatus mesajÄ± sayÄ±sÄ±.
     /// </summary>
     public int InboundVehicleNodeStatusCount { get; init; }
 
     /// <summary>
-    /// Bilinmeyen veya sınıflandırılamayan inbound mesaj sayısı.
+    /// Bilinmeyen veya sÄ±nÄ±flandÄ±rÄ±lamayan inbound mesaj sayÄ±sÄ±.
     /// </summary>
     public int InboundUnknownMessageCount { get; init; }
 
     /// <summary>
     /// Receive event snapshot listesi.
     /// 
-    /// Bu alan Hydronom Ops tarafında:
+    /// Bu alan Hydronom Ops tarafÄ±nda:
     /// - inbound message history,
-    /// - heartbeat geçmişi,
-    /// - command result geçmişi,
-    /// - receive hata geçmişi,
-    /// - transport bazlı gelen trafik ekranlarını besleyebilir.
+    /// - heartbeat geÃ§miÅŸi,
+    /// - command result geÃ§miÅŸi,
+    /// - receive hata geÃ§miÅŸi,
+    /// - transport bazlÄ± gelen trafik ekranlarÄ±nÄ± besleyebilir.
     /// </summary>
     public IReadOnlyList<GroundTransportReceiveEvent> ReceiveEvents { get; init; } =
         Array.Empty<GroundTransportReceiveEvent>();
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde komut izinli miydi?
+    /// Son command safety/security deÄŸerlendirmesinde komut izinli miydi?
     /// 
-    /// Hiç komut safety değerlendirmesi yapılmadıysa null kalır.
+    /// HiÃ§ komut safety deÄŸerlendirmesi yapÄ±lmadÄ±ysa null kalÄ±r.
     /// </summary>
     public bool? LastCommandSafetyAllowed { get; init; }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde komut reddedildi mi?
+    /// Son command safety/security deÄŸerlendirmesinde komut reddedildi mi?
     /// 
-    /// Hiç komut safety değerlendirmesi yapılmadıysa null kalır.
+    /// HiÃ§ komut safety deÄŸerlendirmesi yapÄ±lmadÄ±ysa null kalÄ±r.
     /// </summary>
     public bool? LastCommandSafetyRejected { get; init; }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinin kısa açıklaması.
+    /// Son command safety/security deÄŸerlendirmesinin kÄ±sa aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops Command Safety panelinde gösterilebilir.
+    /// Hydronom Ops Command Safety panelinde gÃ¶sterilebilir.
     /// </summary>
     public string LastCommandSafetyReason { get; init; } = "No command safety evaluation.";
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde tespit edilen toplam issue sayısı.
+    /// Son command safety/security deÄŸerlendirmesinde tespit edilen toplam issue sayÄ±sÄ±.
     /// </summary>
     public int LastCommandSafetyIssueCount { get; init; }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde tespit edilen blocking issue sayısı.
+    /// Son command safety/security deÄŸerlendirmesinde tespit edilen blocking issue sayÄ±sÄ±.
     /// </summary>
     public int LastCommandSafetyBlockingIssueCount { get; init; }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde tespit edilen warning issue sayısı.
+    /// Son command safety/security deÄŸerlendirmesinde tespit edilen warning issue sayÄ±sÄ±.
     /// </summary>
     public int LastCommandSafetyWarningIssueCount { get; init; }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde üretilen issue kodları.
+    /// Son command safety/security deÄŸerlendirmesinde Ã¼retilen issue kodlarÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - TARGET_UNKNOWN
     /// - TARGET_OFFLINE
     /// - DUPLICATE_COMMAND_ID
@@ -537,71 +537,71 @@ public sealed record GroundOperationSnapshot
         Array.Empty<string>();
 
     /// <summary>
-    /// Son command safety/security değerlendirmesinde üretilen issue detayları.
+    /// Son command safety/security deÄŸerlendirmesinde Ã¼retilen issue detaylarÄ±.
     /// 
-    /// Bu alan Hydronom Ops tarafında command safety detay ekranını besleyebilir.
+    /// Bu alan Hydronom Ops tarafÄ±nda command safety detay ekranÄ±nÄ± besleyebilir.
     /// </summary>
     public IReadOnlyList<CommandValidationIssue> LastCommandSafetyIssues { get; init; } =
         Array.Empty<CommandValidationIssue>();
 
     /// <summary>
-    /// Son görev atama kararının MissionId değeri.
+    /// Son gÃ¶rev atama kararÄ±nÄ±n MissionId deÄŸeri.
     /// 
-    /// Hiç görev ataması yapılmadıysa boş kalır.
+    /// HiÃ§ gÃ¶rev atamasÄ± yapÄ±lmadÄ±ysa boÅŸ kalÄ±r.
     /// </summary>
     public string LastMissionAllocationMissionId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Son görev atama başarılı mı?
+    /// Son gÃ¶rev atama baÅŸarÄ±lÄ± mÄ±?
     /// 
-    /// Hiç görev ataması yapılmadıysa null kalır.
+    /// HiÃ§ gÃ¶rev atamasÄ± yapÄ±lmadÄ±ysa null kalÄ±r.
     /// </summary>
     public bool? LastMissionAllocationSuccess { get; init; }
 
     /// <summary>
-    /// Son görev atamada seçilen node id.
+    /// Son gÃ¶rev atamada seÃ§ilen node id.
     /// 
-    /// Atama başarısızsa veya hiç atama yapılmadıysa boş kalır.
+    /// Atama baÅŸarÄ±sÄ±zsa veya hiÃ§ atama yapÄ±lmadÄ±ysa boÅŸ kalÄ±r.
     /// </summary>
     public string LastMissionAllocationSelectedNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Son görev atamada seçilen node display name.
+    /// Son gÃ¶rev atamada seÃ§ilen node display name.
     /// 
-    /// Atama başarısızsa veya hiç atama yapılmadıysa boş kalır.
+    /// Atama baÅŸarÄ±sÄ±zsa veya hiÃ§ atama yapÄ±lmadÄ±ysa boÅŸ kalÄ±r.
     /// </summary>
     public string LastMissionAllocationSelectedDisplayName { get; init; } = string.Empty;
 
     /// <summary>
-    /// Son görev atama açıklaması.
+    /// Son gÃ¶rev atama aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops Mission Allocation panelinde gösterilebilir.
+    /// Hydronom Ops Mission Allocation panelinde gÃ¶sterilebilir.
     /// </summary>
     public string LastMissionAllocationReason { get; init; } = "No mission allocation.";
 
     /// <summary>
-    /// Son görev atamada seçilen adayın final skoru.
+    /// Son gÃ¶rev atamada seÃ§ilen adayÄ±n final skoru.
     /// 
-    /// Atama yapılmadıysa null kalır.
+    /// Atama yapÄ±lmadÄ±ysa null kalÄ±r.
     /// </summary>
     public double? LastMissionAllocationScore { get; init; }
 
     /// <summary>
-    /// Son görev atamadaki aday node id listesi.
+    /// Son gÃ¶rev atamadaki aday node id listesi.
     /// </summary>
     public IReadOnlyList<string> LastMissionAllocationCandidateNodeIds { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Son görev atamada reddedilen node id → sebep eşleşmeleri.
+    /// Son gÃ¶rev atamada reddedilen node id â†’ sebep eÅŸleÅŸmeleri.
     /// </summary>
     public IReadOnlyDictionary<string, string> LastMissionAllocationRejectedNodeReasons { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Ground Station genel health değerlendirmesi.
+    /// Ground Station genel health deÄŸerlendirmesi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - OK
     /// - Warning
     /// - Critical
@@ -609,20 +609,20 @@ public sealed record GroundOperationSnapshot
     public string OverallHealth { get; init; } = "Unknown";
 
     /// <summary>
-    /// Genel durumun kısa insan-okunabilir açıklaması.
+    /// Genel durumun kÄ±sa insan-okunabilir aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops üst panelinde veya log ekranında gösterilebilir.
+    /// Hydronom Ops Ã¼st panelinde veya log ekranÄ±nda gÃ¶sterilebilir.
     /// </summary>
     public string Summary { get; init; } = string.Empty;
 
     /// <summary>
-    /// Snapshot üzerinde kritik durum olup olmadığını hızlıca döndürür.
+    /// Snapshot Ã¼zerinde kritik durum olup olmadÄ±ÄŸÄ±nÄ± hÄ±zlÄ±ca dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool HasCriticalIssues =>
         string.Equals(OverallHealth, "Critical", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Snapshot üzerinde uyarı durumu olup olmadığını hızlıca döndürür.
+    /// Snapshot Ã¼zerinde uyarÄ± durumu olup olmadÄ±ÄŸÄ±nÄ± hÄ±zlÄ±ca dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool HasWarnings =>
         string.Equals(OverallHealth, "Warning", StringComparison.OrdinalIgnoreCase);

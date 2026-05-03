@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Buses;
@@ -9,8 +9,8 @@ partial class Program
     ///
     /// Not:
     /// - Sim/Hybrid modda Simulation:AllowExternalPoseOverride=false ise external pose uygulanmaz.
-    /// - External pose taze değilse uygulanmaz.
-    /// - Önceki external pose varsa velocity ve yaw-rate tahmini yapılır.
+    /// - External pose taze deÄŸilse uygulanmaz.
+    /// - Ã–nceki external pose varsa velocity ve yaw-rate tahmini yapÄ±lÄ±r.
     /// - Teleport tespit edilirse opsiyonel olarak velocity resetlenir.
     /// </summary>
     private static bool TryApplyExternalPose(

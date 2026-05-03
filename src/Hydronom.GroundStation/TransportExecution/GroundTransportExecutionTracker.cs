@@ -1,23 +1,23 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.LinkHealth;
 
 namespace Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// Ground Station tarafında route execution / gönderim sonucu takibi yapan çekirdek sınıftır.
+/// Ground Station tarafÄ±nda route execution / gÃ¶nderim sonucu takibi yapan Ã§ekirdek sÄ±nÄ±ftÄ±r.
 /// 
-/// Bu sınıf gerçek transport gönderimi yapmaz.
-/// Görevi:
-/// - CommunicationRouter tarafından üretilmiş route sonucunu kaydetmek,
-/// - Seçilen transport üzerinden gönderim denemesini takip etmek,
-/// - TransportSendResult sonuçlarını saklamak,
-/// - LinkHealthTracker'ı otomatik güncellemek,
-/// - Diagnostics ve smoke test için snapshot üretmektir.
+/// Bu sÄ±nÄ±f gerÃ§ek transport gÃ¶nderimi yapmaz.
+/// GÃ¶revi:
+/// - CommunicationRouter tarafÄ±ndan Ã¼retilmiÅŸ route sonucunu kaydetmek,
+/// - SeÃ§ilen transport Ã¼zerinden gÃ¶nderim denemesini takip etmek,
+/// - TransportSendResult sonuÃ§larÄ±nÄ± saklamak,
+/// - LinkHealthTracker'Ä± otomatik gÃ¼ncellemek,
+/// - Diagnostics ve smoke test iÃ§in snapshot Ã¼retmektir.
 /// 
-/// Gerçek ITransport implementasyonları geldiğinde bu sınıf:
-/// router → transport send → result → link health
-/// zincirinin merkezi olacaktır.
+/// GerÃ§ek ITransport implementasyonlarÄ± geldiÄŸinde bu sÄ±nÄ±f:
+/// router â†’ transport send â†’ result â†’ link health
+/// zincirinin merkezi olacaktÄ±r.
 /// </summary>
 public sealed class GroundTransportExecutionTracker
 {
@@ -32,15 +32,15 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Kayıtlı route execution sayısı.
+    /// KayÄ±tlÄ± route execution sayÄ±sÄ±.
     /// </summary>
     public int Count => _recordsByExecutionId.Count;
 
     /// <summary>
-    /// Verilen route sonucundan execution kaydı başlatır.
+    /// Verilen route sonucundan execution kaydÄ± baÅŸlatÄ±r.
     /// 
-    /// Route edilemeyen sonuçlar da kaydedilir.
-    /// Böylece diagnostics tarafında başarısız route kararları da görülebilir.
+    /// Route edilemeyen sonuÃ§lar da kaydedilir.
+    /// BÃ¶ylece diagnostics tarafÄ±nda baÅŸarÄ±sÄ±z route kararlarÄ± da gÃ¶rÃ¼lebilir.
     /// </summary>
     public RouteExecutionRecord BeginExecution(
         HydronomEnvelope envelope,
@@ -79,9 +79,9 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Belirli execution için gönderim denemesi başladığını kaydeder.
+    /// Belirli execution iÃ§in gÃ¶nderim denemesi baÅŸladÄ±ÄŸÄ±nÄ± kaydeder.
     /// 
-    /// Bu metot LinkHealthTracker üzerinde send sayacını artırır.
+    /// Bu metot LinkHealthTracker Ã¼zerinde send sayacÄ±nÄ± artÄ±rÄ±r.
     /// </summary>
     public bool RecordSendAttempt(
         string executionId,
@@ -104,9 +104,9 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Başarılı gönderim sonucunu kaydeder.
+    /// BaÅŸarÄ±lÄ± gÃ¶nderim sonucunu kaydeder.
     /// 
-    /// Bu metot aynı zamanda LinkHealthTracker üzerinde route success metriğini günceller.
+    /// Bu metot aynÄ± zamanda LinkHealthTracker Ã¼zerinde route success metriÄŸini gÃ¼nceller.
     /// </summary>
     public bool RecordSent(
         string executionId,
@@ -142,9 +142,9 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// ACK alınmış gönderim sonucunu kaydeder.
+    /// ACK alÄ±nmÄ±ÅŸ gÃ¶nderim sonucunu kaydeder.
     /// 
-    /// Bu metot LinkHealthTracker üzerinde hem route success hem ACK metriğini günceller.
+    /// Bu metot LinkHealthTracker Ã¼zerinde hem route success hem ACK metriÄŸini gÃ¼nceller.
     /// </summary>
     public bool RecordAcked(
         string executionId,
@@ -188,7 +188,7 @@ public sealed class GroundTransportExecutionTracker
     /// <summary>
     /// Timeout sonucunu kaydeder.
     /// 
-    /// Bu metot LinkHealthTracker üzerinde timeout metriğini günceller.
+    /// Bu metot LinkHealthTracker Ã¼zerinde timeout metriÄŸini gÃ¼nceller.
     /// </summary>
     public bool RecordTimeout(
         string executionId,
@@ -221,9 +221,9 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Başarısız gönderim sonucunu kaydeder.
+    /// BaÅŸarÄ±sÄ±z gÃ¶nderim sonucunu kaydeder.
     /// 
-    /// Bu metot LinkHealthTracker üzerinde route failure metriğini günceller.
+    /// Bu metot LinkHealthTracker Ã¼zerinde route failure metriÄŸini gÃ¼nceller.
     /// </summary>
     public bool RecordFailure(
         string executionId,
@@ -260,7 +260,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Execution ID ile kayıt döndürür.
+    /// Execution ID ile kayÄ±t dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public RouteExecutionRecord? GetRecord(string executionId)
     {
@@ -273,7 +273,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// MessageId ile kayıt döndürür.
+    /// MessageId ile kayÄ±t dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public RouteExecutionRecord? GetRecordByMessageId(string messageId)
     {
@@ -286,7 +286,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Tüm route execution kayıtlarının snapshot listesini döndürür.
+    /// TÃ¼m route execution kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetSnapshot()
     {
@@ -297,7 +297,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Pending durumdaki execution kayıtlarını döndürür.
+    /// Pending durumdaki execution kayÄ±tlarÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetPendingSnapshot()
     {
@@ -309,7 +309,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Başarısız execution kayıtlarını döndürür.
+    /// BaÅŸarÄ±sÄ±z execution kayÄ±tlarÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetFailedSnapshot()
     {
@@ -321,7 +321,7 @@ public sealed class GroundTransportExecutionTracker
     }
 
     /// <summary>
-    /// Route execution kaydını snapshot'a dönüştürür.
+    /// Route execution kaydÄ±nÄ± snapshot'a dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
     /// </summary>
     private static RouteExecutionSnapshot ToSnapshot(RouteExecutionRecord record)
     {

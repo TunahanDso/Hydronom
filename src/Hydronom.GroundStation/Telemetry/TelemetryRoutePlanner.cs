@@ -1,26 +1,26 @@
-namespace Hydronom.GroundStation.Telemetry;
+﻿namespace Hydronom.GroundStation.Telemetry;
 
 using Hydronom.GroundStation.Communication;
 
 /// <summary>
-/// CommunicationRouter route sonucuna göre telemetry profil planı üreten sınıftır.
+/// CommunicationRouter route sonucuna gÃ¶re telemetry profil planÄ± Ã¼reten sÄ±nÄ±ftÄ±r.
 /// 
-/// Bu sınıf iki parçayı birleştirir:
-/// - CommunicationRouteResult: Mesaj/araç hangi transport'larla route edilebilir?
-/// - AdaptiveTelemetryProfileSelector: Bu transport seviyesine göre Light/Normal/Full telemetry seçimi
+/// Bu sÄ±nÄ±f iki parÃ§ayÄ± birleÅŸtirir:
+/// - CommunicationRouteResult: Mesaj/araÃ§ hangi transport'larla route edilebilir?
+/// - AdaptiveTelemetryProfileSelector: Bu transport seviyesine gÃ¶re Light/Normal/Full telemetry seÃ§imi
 /// 
-/// İlk fazda gerçek telemetry payload üretmez.
-/// Sadece "bu route için hangi telemetry yoğunluğu mantıklı?" kararını verir.
+/// Ä°lk fazda gerÃ§ek telemetry payload Ã¼retmez.
+/// Sadece "bu route iÃ§in hangi telemetry yoÄŸunluÄŸu mantÄ±klÄ±?" kararÄ±nÄ± verir.
 /// </summary>
 public sealed class TelemetryRoutePlanner
 {
     /// <summary>
-    /// Transport listesine göre telemetry profilini seçen yardımcı sınıf.
+    /// Transport listesine gÃ¶re telemetry profilini seÃ§en yardÄ±mcÄ± sÄ±nÄ±f.
     /// </summary>
     private readonly AdaptiveTelemetryProfileSelector _profileSelector;
 
     /// <summary>
-    /// TelemetryRoutePlanner oluşturur.
+    /// TelemetryRoutePlanner oluÅŸturur.
     /// </summary>
     public TelemetryRoutePlanner(
         AdaptiveTelemetryProfileSelector? profileSelector = null)
@@ -29,14 +29,14 @@ public sealed class TelemetryRoutePlanner
     }
 
     /// <summary>
-    /// Route sonucundan telemetry planı üretir.
+    /// Route sonucundan telemetry planÄ± Ã¼retir.
     /// 
-    /// Profil seçimi için öncelikle route içindeki uygulanabilir Primary + Fallback
-    /// transport listesi kullanılır.
+    /// Profil seÃ§imi iÃ§in Ã¶ncelikle route iÃ§indeki uygulanabilir Primary + Fallback
+    /// transport listesi kullanÄ±lÄ±r.
     /// 
-    /// Eğer route edilemiyorsa veya uygulanabilir transport yoksa:
-    /// - Güvenli varsayılan olarak Light telemetry seçilir.
-    /// - Plan CanRoute=false kalır.
+    /// EÄŸer route edilemiyorsa veya uygulanabilir transport yoksa:
+    /// - GÃ¼venli varsayÄ±lan olarak Light telemetry seÃ§ilir.
+    /// - Plan CanRoute=false kalÄ±r.
     /// </summary>
     public TelemetryRoutePlan Plan(CommunicationRouteResult route)
     {

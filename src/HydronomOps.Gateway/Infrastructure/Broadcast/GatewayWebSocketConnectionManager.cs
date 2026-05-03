@@ -1,18 +1,18 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using HydronomOps.Gateway.Domain;
 
 namespace HydronomOps.Gateway.Infrastructure.Broadcast;
 
 /// <summary>
-/// Aktif websocket istemcilerini thread-safe biçimde yönetir.
+/// Aktif websocket istemcilerini thread-safe biÃ§imde yÃ¶netir.
 /// </summary>
 public sealed class GatewayWebSocketConnectionManager
 {
     private readonly ConcurrentDictionary<Guid, GatewayClientConnection> _connections = new();
 
     /// <summary>
-    /// Yeni bağlantı ekler.
+    /// Yeni baÄŸlantÄ± ekler.
     /// </summary>
     public Task<GatewayClientConnection> AddAsync(
         WebSocket socket,
@@ -36,7 +36,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Remote IP vermeden çağrılan eski kullanım için uyumluluk metodu.
+    /// Remote IP vermeden Ã§aÄŸrÄ±lan eski kullanÄ±m iÃ§in uyumluluk metodu.
     /// </summary>
     public Task<GatewayClientConnection> AddAsync(
         WebSocket socket,
@@ -46,7 +46,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Eski çağrılar için senkron ekleme uyumluluğu.
+    /// Eski Ã§aÄŸrÄ±lar iÃ§in senkron ekleme uyumluluÄŸu.
     /// </summary>
     public GatewayClientConnection AddConnection(WebSocket socket, string? remoteIp = null)
     {
@@ -54,12 +54,12 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Bağlantı sayısı.
+    /// BaÄŸlantÄ± sayÄ±sÄ±.
     /// </summary>
     public int Count => _connections.Count;
 
     /// <summary>
-    /// Tüm bağlantıları döner.
+    /// TÃ¼m baÄŸlantÄ±larÄ± dÃ¶ner.
     /// </summary>
     public IReadOnlyList<GatewayClientConnection> GetAllConnections()
     {
@@ -67,7 +67,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Eski isimlendirme için uyumluluk metodu.
+    /// Eski isimlendirme iÃ§in uyumluluk metodu.
     /// </summary>
     public IReadOnlyList<GatewayClientConnection> GetAllSockets()
     {
@@ -75,7 +75,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Canlı bağlantıları döner.
+    /// CanlÄ± baÄŸlantÄ±larÄ± dÃ¶ner.
     /// </summary>
     public IReadOnlyList<GatewayClientConnection> GetAliveConnections()
     {
@@ -83,7 +83,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Belirli bağlantıyı bulur.
+    /// Belirli baÄŸlantÄ±yÄ± bulur.
     /// </summary>
     public bool TryGet(Guid connectionId, out GatewayClientConnection? connection)
     {
@@ -93,7 +93,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Eski isimlendirme için uyumluluk metodu.
+    /// Eski isimlendirme iÃ§in uyumluluk metodu.
     /// </summary>
     public bool TryGetConnection(Guid connectionId, out GatewayClientConnection connection)
     {
@@ -103,7 +103,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Bağlantı sayısını döner.
+    /// BaÄŸlantÄ± sayÄ±sÄ±nÄ± dÃ¶ner.
     /// </summary>
     public int GetConnectionCount()
     {
@@ -111,7 +111,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Son görülme zamanını günceller.
+    /// Son gÃ¶rÃ¼lme zamanÄ±nÄ± gÃ¼nceller.
     /// </summary>
     public bool MarkSeen(Guid connectionId)
     {
@@ -125,7 +125,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Tek bağlantıyı kapatır ve siler.
+    /// Tek baÄŸlantÄ±yÄ± kapatÄ±r ve siler.
     /// </summary>
     public async Task RemoveAsync(
         Guid connectionId,
@@ -159,7 +159,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Eski çağrılar için uyumluluk.
+    /// Eski Ã§aÄŸrÄ±lar iÃ§in uyumluluk.
     /// </summary>
     public Task RemoveConnectionAsync(
         Guid connectionId,
@@ -169,7 +169,7 @@ public sealed class GatewayWebSocketConnectionManager
     }
 
     /// <summary>
-    /// Ölü bağlantıları temizler.
+    /// Ã–lÃ¼ baÄŸlantÄ±larÄ± temizler.
     /// </summary>
     public async Task RemoveDeadConnectionsAsync(CancellationToken cancellationToken = default)
     {

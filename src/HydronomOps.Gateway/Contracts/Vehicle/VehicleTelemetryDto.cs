@@ -1,27 +1,27 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HydronomOps.Gateway.Contracts.Common;
 
 namespace HydronomOps.Gateway.Contracts.Vehicle;
 
 /// <summary>
-/// Harita üzerinde çizilecek 2D nokta verisi.
+/// Harita Ã¼zerinde Ã§izilecek 2D nokta verisi.
 /// </summary>
 public sealed class ObstaclePointDto
 {
     /// <summary>
-    /// Dünya ekseninde X konumu.
+    /// DÃ¼nya ekseninde X konumu.
     /// </summary>
     public double X { get; set; }
 
     /// <summary>
-    /// Dünya ekseninde Y konumu.
+    /// DÃ¼nya ekseninde Y konumu.
     /// </summary>
     public double Y { get; set; }
 }
 
 /// <summary>
-/// Runtime tarafından üretilen dairesel engel özeti.
+/// Runtime tarafÄ±ndan Ã¼retilen dairesel engel Ã¶zeti.
 /// </summary>
 public sealed class ObstacleDto
 {
@@ -36,14 +36,14 @@ public sealed class ObstacleDto
     public double Y { get; set; }
 
     /// <summary>
-    /// Engel yarıçapı.
+    /// Engel yarÄ±Ã§apÄ±.
     /// </summary>
     public double R { get; set; }
 }
 
 /// <summary>
 /// Landmark stil bilgisi.
-/// Frontend tarafında çizim ipucu olarak kullanılır.
+/// Frontend tarafÄ±nda Ã§izim ipucu olarak kullanÄ±lÄ±r.
 /// </summary>
 public sealed class LandmarkStyleDto
 {
@@ -53,12 +53,12 @@ public sealed class LandmarkStyleDto
     public string? Color { get; set; }
 
     /// <summary>
-    /// Çizgi kalınlığı.
+    /// Ã‡izgi kalÄ±nlÄ±ÄŸÄ±.
     /// </summary>
     public double? Width { get; set; }
 
     /// <summary>
-    /// Nokta yarıçapı.
+    /// Nokta yarÄ±Ã§apÄ±.
     /// </summary>
     public double? Radius { get; set; }
 
@@ -68,31 +68,31 @@ public sealed class LandmarkStyleDto
     public string? Label { get; set; }
 
     /// <summary>
-    /// Ek stil alanları.
+    /// Ek stil alanlarÄ±.
     /// </summary>
     public Dictionary<string, string> Fields { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>
-/// FusedState içindeki landmark verisini taşır.
-/// Örnek: lidar taramasından üretilen polyline.
+/// FusedState iÃ§indeki landmark verisini taÅŸÄ±r.
+/// Ã–rnek: lidar taramasÄ±ndan Ã¼retilen polyline.
 /// </summary>
 public sealed class LandmarkDto
 {
     /// <summary>
-    /// Landmark kimliği.
+    /// Landmark kimliÄŸi.
     /// </summary>
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// Landmark tipi.
-    /// Örnek: occupancy_preview, occupancy_cells, trail_ekf, ekf_pose, odometry.
+    /// Ã–rnek: occupancy_preview, occupancy_cells, trail_ekf, ekf_pose, odometry.
     /// </summary>
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Landmark şekli.
-    /// Örnek: polyline, points, point.
+    /// Landmark ÅŸekli.
+    /// Ã–rnek: polyline, points, point.
     /// </summary>
     public string Shape { get; set; } = string.Empty;
 
@@ -107,28 +107,28 @@ public sealed class LandmarkDto
     public LandmarkStyleDto? Style { get; set; }
 
     /// <summary>
-    /// Landmark sayısal ek alanları.
+    /// Landmark sayÄ±sal ek alanlarÄ±.
     /// </summary>
     public Dictionary<string, double> Metrics { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Landmark metinsel ek alanları.
+    /// Landmark metinsel ek alanlarÄ±.
     /// </summary>
     public Dictionary<string, string> Fields { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>
-/// Araç telemetri özetini taşır.
+/// AraÃ§ telemetri Ã¶zetini taÅŸÄ±r.
 /// </summary>
 public sealed class VehicleTelemetryDto
 {
     /// <summary>
-    /// Paket zamanı.
+    /// Paket zamanÄ±.
     /// </summary>
     public DateTime TimestampUtc { get; set; }
 
     /// <summary>
-    /// Araç kimliği.
+    /// AraÃ§ kimliÄŸi.
     /// </summary>
     public string VehicleId { get; set; } = "hydronom-main";
 
@@ -148,62 +148,62 @@ public sealed class VehicleTelemetryDto
     public double Z { get; set; }
 
     /// <summary>
-    /// Roll açısı (derece).
+    /// Roll aÃ§Ä±sÄ± (derece).
     /// </summary>
     public double RollDeg { get; set; }
 
     /// <summary>
-    /// Pitch açısı (derece).
+    /// Pitch aÃ§Ä±sÄ± (derece).
     /// </summary>
     public double PitchDeg { get; set; }
 
     /// <summary>
-    /// Yaw / heading açısı (derece).
+    /// Yaw / heading aÃ§Ä±sÄ± (derece).
     /// </summary>
     public double YawDeg { get; set; }
 
     /// <summary>
-    /// Heading için alternatif alan.
+    /// Heading iÃ§in alternatif alan.
     /// </summary>
     public double HeadingDeg { get; set; }
 
     /// <summary>
-    /// Gövde eksenindeki ileri hız.
+    /// GÃ¶vde eksenindeki ileri hÄ±z.
     /// </summary>
     public double Vx { get; set; }
 
     /// <summary>
-    /// Gövde eksenindeki yan hız.
+    /// GÃ¶vde eksenindeki yan hÄ±z.
     /// </summary>
     public double Vy { get; set; }
 
     /// <summary>
-    /// Gövde eksenindeki dikey hız.
+    /// GÃ¶vde eksenindeki dikey hÄ±z.
     /// </summary>
     public double Vz { get; set; }
 
     /// <summary>
-    /// Roll hızı.
+    /// Roll hÄ±zÄ±.
     /// </summary>
     public double RollRateDeg { get; set; }
 
     /// <summary>
-    /// Pitch hızı.
+    /// Pitch hÄ±zÄ±.
     /// </summary>
     public double PitchRateDeg { get; set; }
 
     /// <summary>
-    /// Yaw hızı.
+    /// Yaw hÄ±zÄ±.
     /// </summary>
     public double YawRateDeg { get; set; }
 
     /// <summary>
-    /// Dünya ekseninde hedef X.
+    /// DÃ¼nya ekseninde hedef X.
     /// </summary>
     public double? TargetX { get; set; }
 
     /// <summary>
-    /// Dünya ekseninde hedef Y.
+    /// DÃ¼nya ekseninde hedef Y.
     /// </summary>
     public double? TargetY { get; set; }
 
@@ -213,46 +213,46 @@ public sealed class VehicleTelemetryDto
     public double? DistanceToGoalM { get; set; }
 
     /// <summary>
-    /// Heading hatası.
+    /// Heading hatasÄ±.
     /// </summary>
     public double? HeadingErrorDeg { get; set; }
 
     /// <summary>
-    /// Ön bölgede engel var mı.
+    /// Ã–n bÃ¶lgede engel var mÄ±.
     /// </summary>
     public bool ObstacleAhead { get; set; }
 
     /// <summary>
-    /// Toplam engel sayısı.
+    /// Toplam engel sayÄ±sÄ±.
     /// </summary>
     public int ObstacleCount { get; set; }
 
     /// <summary>
     /// Runtime obstacle listesi.
-    /// Harita üzerinde dairesel engel çizimi için kullanılır.
+    /// Harita Ã¼zerinde dairesel engel Ã§izimi iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public List<ObstacleDto> Obstacles { get; set; } = new();
 
     /// <summary>
     /// FusedState landmark listesi.
-    /// Örnek olarak lidar taramasından gelen polyline verisi burada taşınır.
+    /// Ã–rnek olarak lidar taramasÄ±ndan gelen polyline verisi burada taÅŸÄ±nÄ±r.
     /// </summary>
     public List<LandmarkDto> Landmarks { get; set; } = new();
 
     /// <summary>
-    /// Yardımcı sayısal ek alanlar.
-    /// Örnek: ekf covariance, occupancy export count, slam düzeltme büyüklükleri.
+    /// YardÄ±mcÄ± sayÄ±sal ek alanlar.
+    /// Ã–rnek: ekf covariance, occupancy export count, slam dÃ¼zeltme bÃ¼yÃ¼klÃ¼kleri.
     /// </summary>
     public Dictionary<string, double> Metrics { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Yardımcı metinsel alanlar.
-    /// Örnek: origin, mapper bilgileri, landmark etiketleri.
+    /// YardÄ±mcÄ± metinsel alanlar.
+    /// Ã–rnek: origin, mapper bilgileri, landmark etiketleri.
     /// </summary>
     public Dictionary<string, string> Fields { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Veri tazelik özeti.
+    /// Veri tazelik Ã¶zeti.
     /// </summary>
     public FreshnessDto? Freshness { get; set; }
 }

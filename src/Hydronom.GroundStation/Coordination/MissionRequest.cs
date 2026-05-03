@@ -1,23 +1,23 @@
-namespace Hydronom.GroundStation.Coordination;
+﻿namespace Hydronom.GroundStation.Coordination;
 
 /// <summary>
-/// Ground Station tarafından bir görevin filo içindeki uygun araca atanması için kullanılan görev isteği modelidir.
+/// Ground Station tarafÄ±ndan bir gÃ¶revin filo iÃ§indeki uygun araca atanmasÄ± iÃ§in kullanÄ±lan gÃ¶rev isteÄŸi modelidir.
 /// 
-/// MissionRequest, MissionAllocator'a şunu anlatır:
-/// - Ne tür bir görev istiyoruz?
+/// MissionRequest, MissionAllocator'a ÅŸunu anlatÄ±r:
+/// - Ne tÃ¼r bir gÃ¶rev istiyoruz?
 /// - Hangi kabiliyetler gerekli?
-/// - Hangi araç tipleri uygun?
-/// - Görev ne kadar öncelikli?
-/// - Hangi alanda veya hedefte çalışılacak?
+/// - Hangi araÃ§ tipleri uygun?
+/// - GÃ¶rev ne kadar Ã¶ncelikli?
+/// - Hangi alanda veya hedefte Ã§alÄ±ÅŸÄ±lacak?
 /// 
-/// Bu model PDF'deki MissionPlanner / MissionAllocator mantığının ilk küçük çekirdeğidir.
+/// Bu model PDF'deki MissionPlanner / MissionAllocator mantÄ±ÄŸÄ±nÄ±n ilk kÃ¼Ã§Ã¼k Ã§ekirdeÄŸidir.
 /// </summary>
 public sealed record MissionRequest
 {
     /// <summary>
-    /// Görev isteğinin benzersiz kimliği.
+    /// GÃ¶rev isteÄŸinin benzersiz kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "MISSION-SEARCH-001"
     /// - "MISSION-MAP-AREA-A"
     /// - "MISSION-INSPECT-BUOY-01"
@@ -25,16 +25,16 @@ public sealed record MissionRequest
     public string MissionId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Görevin insan tarafından okunabilir adı.
+    /// GÃ¶revin insan tarafÄ±ndan okunabilir adÄ±.
     /// 
-    /// Hydronom Ops üzerinde görev listesinde gösterilebilir.
+    /// Hydronom Ops Ã¼zerinde gÃ¶rev listesinde gÃ¶sterilebilir.
     /// </summary>
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
-    /// Görev tipi.
+    /// GÃ¶rev tipi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Search"
     /// - "Mapping"
     /// - "InspectTarget"
@@ -45,15 +45,15 @@ public sealed record MissionRequest
     public string MissionType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Bu görevi yapabilmek için gerekli kabiliyet adları.
+    /// Bu gÃ¶revi yapabilmek iÃ§in gerekli kabiliyet adlarÄ±.
     /// 
-    /// Örnek:
-    /// Mapping görevi:
+    /// Ã–rnek:
+    /// Mapping gÃ¶revi:
     /// - "navigation"
     /// - "mapping"
     /// - "lidar"
     /// 
-    /// Target inspection görevi:
+    /// Target inspection gÃ¶revi:
     /// - "navigation"
     /// - "camera"
     /// - "target_tracking"
@@ -62,19 +62,19 @@ public sealed record MissionRequest
         Array.Empty<string>();
 
     /// <summary>
-    /// Görev için tercih edilen ama zorunlu olmayan kabiliyet adları.
+    /// GÃ¶rev iÃ§in tercih edilen ama zorunlu olmayan kabiliyet adlarÄ±.
     /// 
-    /// Bu kabiliyetlere sahip araçlar daha yüksek skor alır.
+    /// Bu kabiliyetlere sahip araÃ§lar daha yÃ¼ksek skor alÄ±r.
     /// </summary>
     public IReadOnlyList<string> PreferredCapabilities { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Görev için uygun araç tipleri.
+    /// GÃ¶rev iÃ§in uygun araÃ§ tipleri.
     /// 
-    /// Boş ise her araç tipi uygun kabul edilebilir.
+    /// BoÅŸ ise her araÃ§ tipi uygun kabul edilebilir.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "SurfaceVessel"
     /// - "Submarine"
     /// - "SailingVessel"
@@ -84,45 +84,45 @@ public sealed record MissionRequest
         Array.Empty<string>();
 
     /// <summary>
-    /// Görev önceliği.
+    /// GÃ¶rev Ã¶nceliÄŸi.
     /// 
-    /// Daha yüksek değer daha öncelikli görev anlamına gelir.
-    /// İlk fazda basit int kullanıyoruz.
+    /// Daha yÃ¼ksek deÄŸer daha Ã¶ncelikli gÃ¶rev anlamÄ±na gelir.
+    /// Ä°lk fazda basit int kullanÄ±yoruz.
     /// </summary>
     public int Priority { get; init; } = 1;
 
     /// <summary>
-    /// Görev için hedef enlem.
+    /// GÃ¶rev iÃ§in hedef enlem.
     /// 
-    /// Ops map üzerinden seçilen nokta veya görev alanı merkezi olabilir.
+    /// Ops map Ã¼zerinden seÃ§ilen nokta veya gÃ¶rev alanÄ± merkezi olabilir.
     /// </summary>
     public double? TargetLatitude { get; init; }
 
     /// <summary>
-    /// Görev için hedef boylam.
+    /// GÃ¶rev iÃ§in hedef boylam.
     /// 
-    /// Ops map üzerinden seçilen nokta veya görev alanı merkezi olabilir.
+    /// Ops map Ã¼zerinden seÃ§ilen nokta veya gÃ¶rev alanÄ± merkezi olabilir.
     /// </summary>
     public double? TargetLongitude { get; init; }
 
     /// <summary>
-    /// Görev için yerel X hedef koordinatı.
+    /// GÃ¶rev iÃ§in yerel X hedef koordinatÄ±.
     /// 
-    /// Simülasyon veya GPS olmayan görevlerde kullanılabilir.
+    /// SimÃ¼lasyon veya GPS olmayan gÃ¶revlerde kullanÄ±labilir.
     /// </summary>
     public double? TargetX { get; init; }
 
     /// <summary>
-    /// Görev için yerel Y hedef koordinatı.
+    /// GÃ¶rev iÃ§in yerel Y hedef koordinatÄ±.
     /// 
-    /// Simülasyon veya GPS olmayan görevlerde kullanılabilir.
+    /// SimÃ¼lasyon veya GPS olmayan gÃ¶revlerde kullanÄ±labilir.
     /// </summary>
     public double? TargetY { get; init; }
 
     /// <summary>
-    /// Görevle ilişkili dünya nesnesi kimliği.
+    /// GÃ¶revle iliÅŸkili dÃ¼nya nesnesi kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Belirli bir target object
     /// - MissionArea object
     /// - NoGoZone object
@@ -130,9 +130,9 @@ public sealed record MissionRequest
     public string RelatedWorldObjectId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Görevle ilgili ek metadata alanı.
+    /// GÃ¶revle ilgili ek metadata alanÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "areaId": "AREA-A"
     /// - "operator": "Tunahan"
     /// - "source": "ops_map"
@@ -141,7 +141,7 @@ public sealed record MissionRequest
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Görev isteğinin temel olarak geçerli olup olmadığını döndürür.
+    /// GÃ¶rev isteÄŸinin temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(MissionId) &&

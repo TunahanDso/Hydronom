@@ -1,40 +1,41 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Interfaces
 {
     /// <summary>
-    /// Sensör/füzyon verilerinin "son bilinen" örneklerini paylaşan hafif veri otobüsü.
-    /// Adapters yayınlar, Core tüketir.
+    /// SensÃ¶r/fÃ¼zyon verilerinin "son bilinen" Ã¶rneklerini paylaÅŸan hafif veri otobÃ¼sÃ¼.
+    /// Adapters yayÄ±nlar, Core tÃ¼ketir.
     ///
     /// Not:
-    ///   - T hem class hem struct (ör. record struct ImuData) olabilir.
-    ///   - İç implementasyon genelde tip başına tek bir "last sample" tutar.
+    ///   - T hem class hem struct (Ã¶r. record struct ImuData) olabilir.
+    ///   - Ä°Ã§ implementasyon genelde tip baÅŸÄ±na tek bir "last sample" tutar.
     /// </summary>
     public interface ISensorBus
     {
         /// <summary>
-        /// Son bilinen veriyi döndürür (varsa true).
-        /// T hem referans tip (record class) hem değer tipi (record struct) olabilir.
+        /// Son bilinen veriyi dÃ¶ndÃ¼rÃ¼r (varsa true).
+        /// T hem referans tip (record class) hem deÄŸer tipi (record struct) olabilir.
         /// </summary>
-        /// <typeparam name="T">Sensör verisi veya fused veri tipi.</typeparam>
-        /// <param name="data">Bulunursa son örnek; bulunamazsa default(T).</param>
-        /// <returns>true → veri bulunursa, false → hiç kayıt yoksa.</returns>
+        /// <typeparam name="T">SensÃ¶r verisi veya fused veri tipi.</typeparam>
+        /// <param name="data">Bulunursa son Ã¶rnek; bulunamazsa default(T).</param>
+        /// <returns>true â†’ veri bulunursa, false â†’ hiÃ§ kayÄ±t yoksa.</returns>
         bool TryGetLast<T>(out T data);
 
         /// <summary>
-        /// İlgili tipin son zaman damgasını döndürür (yoksa null).
+        /// Ä°lgili tipin son zaman damgasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r (yoksa null).
         /// </summary>
-        /// <typeparam name="T">Sensör verisi veya fused veri tipi.</typeparam>
-        /// <returns>Son örneğin zaman damgası; yoksa null.</returns>
+        /// <typeparam name="T">SensÃ¶r verisi veya fused veri tipi.</typeparam>
+        /// <returns>Son Ã¶rneÄŸin zaman damgasÄ±; yoksa null.</returns>
         DateTime? LastStampOf<T>();
     }
 
     /// <summary>
-    /// Füzyonlanmış durum (FusedFrame/VehicleState vb.) için ayrı kanal gerekiyorsa kullanılır.
+    /// FÃ¼zyonlanmÄ±ÅŸ durum (FusedFrame/VehicleState vb.) iÃ§in ayrÄ± kanal gerekiyorsa kullanÄ±lÄ±r.
     /// </summary>
     public interface IFusedBus : ISensorBus
     {
-        /// <summary>Yeni bir fused çerçeve geldiğinde tetiklenir.</summary>
+        /// <summary>Yeni bir fused Ã§erÃ§eve geldiÄŸinde tetiklenir.</summary>
         event Action<object>? FusedUpdated;
     }
 }
+

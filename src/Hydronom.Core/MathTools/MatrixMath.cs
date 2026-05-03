@@ -1,23 +1,23 @@
-// File: Hydronom.Core/MathTools/MatrixMath.cs
+﻿// File: Hydronom.Core/MathTools/MatrixMath.cs
 //
 // Not:
-// - Vec3 ve Orientation: Hydronom.Core.Domain altında tanımlıdır.
-// - Bu sınıf AutoDiscovery dahil tüm modüller tarafından genel math helper olarak kullanılabilir.
+// - Vec3 ve Orientation: Hydronom.Core.Domain altÄ±nda tanÄ±mlÄ±dÄ±r.
+// - Bu sÄ±nÄ±f AutoDiscovery dahil tÃ¼m modÃ¼ller tarafÄ±ndan genel math helper olarak kullanÄ±labilir.
 
 using System;
-using Hydronom.Core.Domain; // Vec3, Orientation burada tanımlı
+using Hydronom.Core.Domain; // Vec3, Orientation burada tanÄ±mlÄ±
 
 namespace Hydronom.Core.MathTools
 {
     /// <summary>
-    /// 6-DoF Navigasyon ve Kontrol için yüksek performanslı matematik kütüphanesi.
-    /// Euler açıları (tekne) ve quaternion (roket/denizaltı) desteği içerir.
-    /// Garbage Collection baskısını azaltmak için Vec3 ve hafif tipler kullanılır.
+    /// 6-DoF Navigasyon ve Kontrol iÃ§in yÃ¼ksek performanslÄ± matematik kÃ¼tÃ¼phanesi.
+    /// Euler aÃ§Ä±larÄ± (tekne) ve quaternion (roket/denizaltÄ±) desteÄŸi iÃ§erir.
+    /// Garbage Collection baskÄ±sÄ±nÄ± azaltmak iÃ§in Vec3 ve hafif tipler kullanÄ±lÄ±r.
     /// </summary>
     public static class MatrixMath
     {
         // ---------------------------
-        // Vektör İşlemleri (Vec3 Entegrasyonu)
+        // VektÃ¶r Ä°ÅŸlemleri (Vec3 Entegrasyonu)
         // ---------------------------
 
         public static double Dot(Vec3 a, Vec3 b)
@@ -47,7 +47,7 @@ namespace Hydronom.Core.MathTools
         }
 
         /// <summary>
-        /// İki vektör arasındaki açıyı (radyan) hesaplar.
+        /// Ä°ki vektÃ¶r arasÄ±ndaki aÃ§Ä±yÄ± (radyan) hesaplar.
         /// </summary>
         public static double AngleBetween(Vec3 a, Vec3 b)
         {
@@ -58,13 +58,13 @@ namespace Hydronom.Core.MathTools
         }
 
         // ---------------------------
-        // Matris İşlemleri (Rotation)
+        // Matris Ä°ÅŸlemleri (Rotation)
         // ---------------------------
 
         /// <summary>
-        /// Euler açılarından (derece) dönüşüm matrisi (Rotation Matrix) oluşturur.
-        /// Sıralama: Yaw -> Pitch -> Roll (Intrinsic ZYX).
-        /// UYARI: Pitch +/- 90 derecede gimbal lock riski vardır.
+        /// Euler aÃ§Ä±larÄ±ndan (derece) dÃ¶nÃ¼ÅŸÃ¼m matrisi (Rotation Matrix) oluÅŸturur.
+        /// SÄ±ralama: Yaw -> Pitch -> Roll (Intrinsic ZYX).
+        /// UYARI: Pitch +/- 90 derecede gimbal lock riski vardÄ±r.
         /// </summary>
         public static double[,] RotationMatrixRPY(double rollDeg, double pitchDeg, double yawDeg)
         {
@@ -86,7 +86,7 @@ namespace Hydronom.Core.MathTools
         }
 
         /// <summary>
-        /// Bir vektörü (body frame), dünya koordinatlarına (world frame) döndürür.
+        /// Bir vektÃ¶rÃ¼ (body frame), dÃ¼nya koordinatlarÄ±na (world frame) dÃ¶ndÃ¼rÃ¼r.
         /// v_world = R * v_body
         /// </summary>
         public static Vec3 Transform(double[,] R, Vec3 v)
@@ -99,8 +99,8 @@ namespace Hydronom.Core.MathTools
         }
 
         /// <summary>
-        /// Bir vektörü, dünya koordinatlarından araç koordinatlarına (body frame) döndürür.
-        /// v_body = Rᵀ * v_world (ortogonal matrislerde inverse = transpose).
+        /// Bir vektÃ¶rÃ¼, dÃ¼nya koordinatlarÄ±ndan araÃ§ koordinatlarÄ±na (body frame) dÃ¶ndÃ¼rÃ¼r.
+        /// v_body = Ráµ€ * v_world (ortogonal matrislerde inverse = transpose).
         /// </summary>
         public static Vec3 InverseTransform(double[,] R, Vec3 v)
         {
@@ -113,35 +113,35 @@ namespace Hydronom.Core.MathTools
 
         /// <summary>
         /// Manifesto uyumlu helper:
-        /// Body-frame bir kuvvet vektörünü (Fx,Fy,Fz), aracın anlık
-        /// oryantasyonuna göre dünya eksenine dönüştürür.
-        /// Not: Burada Orientation içindeki kuaterniyon tabanlı dönüşüm kullanılır.
+        /// Body-frame bir kuvvet vektÃ¶rÃ¼nÃ¼ (Fx,Fy,Fz), aracÄ±n anlÄ±k
+        /// oryantasyonuna gÃ¶re dÃ¼nya eksenine dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
+        /// Not: Burada Orientation iÃ§indeki kuaterniyon tabanlÄ± dÃ¶nÃ¼ÅŸÃ¼m kullanÄ±lÄ±r.
         /// </summary>
         public static Vec3 BodyToWorld(Vec3 body, Orientation orientation)
         {
-            // Tek gerçek kaynak: Orientation.BodyToWorld
+            // Tek gerÃ§ek kaynak: Orientation.BodyToWorld
             return orientation.BodyToWorld(body);
         }
 
         /// <summary>
         /// Manifesto uyumlu helper:
-        /// Dünya eksenindeki bir kuvveti, aracın anlık oryantasyonuna göre
-        /// body-frame’e projeksiyon eder.
-        /// Not: Burada Orientation içindeki kuaterniyon tabanlı dönüşüm kullanılır.
+        /// DÃ¼nya eksenindeki bir kuvveti, aracÄ±n anlÄ±k oryantasyonuna gÃ¶re
+        /// body-frameâ€™e projeksiyon eder.
+        /// Not: Burada Orientation iÃ§indeki kuaterniyon tabanlÄ± dÃ¶nÃ¼ÅŸÃ¼m kullanÄ±lÄ±r.
         /// </summary>
         public static Vec3 WorldToBody(Vec3 world, Orientation orientation)
         {
-            // Tek gerçek kaynak: Orientation.WorldToBody
+            // Tek gerÃ§ek kaynak: Orientation.WorldToBody
             return orientation.WorldToBody(world);
         }
 
         // ---------------------------
-        // Quaternion Desteği
+        // Quaternion DesteÄŸi
         // ---------------------------
 
         /// <summary>
-        /// Euler açılarını (derece) quaternion'a çevirir.
-        /// Gimbal lock olmadan 3B rotasyon sağlar.
+        /// Euler aÃ§Ä±larÄ±nÄ± (derece) quaternion'a Ã§evirir.
+        /// Gimbal lock olmadan 3B rotasyon saÄŸlar.
         /// </summary>
         public static Vec4 EulerToQuaternion(double rollDeg, double pitchDeg, double yawDeg)
         {
@@ -162,8 +162,8 @@ namespace Hydronom.Core.MathTools
         }
 
         /// <summary>
-        /// Quaternion kullanarak vektörü döndürür.
-        /// Genelde matris çarpımından daha hızlı ve daha stabildir.
+        /// Quaternion kullanarak vektÃ¶rÃ¼ dÃ¶ndÃ¼rÃ¼r.
+        /// Genelde matris Ã§arpÄ±mÄ±ndan daha hÄ±zlÄ± ve daha stabildir.
         /// </summary>
         public static Vec3 RotateByQuaternion(Vec3 v, Vec4 q)
         {
@@ -183,7 +183,7 @@ namespace Hydronom.Core.MathTools
         }
 
         // ---------------------------
-        // Yardımcı Fonksiyonlar
+        // YardÄ±mcÄ± Fonksiyonlar
         // ---------------------------
 
         public static double Deg2Rad(double deg) => deg * Math.PI / 180.0;
@@ -197,7 +197,7 @@ namespace Hydronom.Core.MathTools
         }
 
         /// <summary>
-        /// Lineer interpolasyon (yumuşak geçişler).
+        /// Lineer interpolasyon (yumuÅŸak geÃ§iÅŸler).
         /// </summary>
         public static double Lerp(double start, double end, double amount)
         {
@@ -206,7 +206,8 @@ namespace Hydronom.Core.MathTools
     }
 
     /// <summary>
-    /// 4-elemanlı vektör (özellikle quaternion için).
+    /// 4-elemanlÄ± vektÃ¶r (Ã¶zellikle quaternion iÃ§in).
     /// </summary>
     public record Vec4(double W, double X, double Y, double Z);
 }
+

@@ -1,10 +1,10 @@
-using HydronomOps.Gateway.Contracts.Diagnostics;
+﻿using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Domain;
 
 namespace HydronomOps.Gateway.Services.Health;
 
 /// <summary>
-/// Gateway sağlık/heartbeat üretim servis sözleşmesi.
+/// Gateway saÄŸlÄ±k/heartbeat Ã¼retim servis sÃ¶zleÅŸmesi.
 /// </summary>
 public interface IGatewayHealthService
 {

@@ -1,17 +1,18 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Interfaces
 {
     /// <summary>
-    /// Sensör/fused verilerinden araç durumu kestirir.
+    /// SensÃ¶r/fused verilerinden araÃ§ durumu kestirir.
     /// </summary>
     public interface IStateEstimator
     {
-        /// <summary>Güncel araç durumu (kestirilmiş).</summary>
+        /// <summary>GÃ¼ncel araÃ§ durumu (kestirilmiÅŸ).</summary>
         VehicleState Current { get; }
 
-        /// <summary>Zamanla çağrılır; "son bilinen" sensör/fused verilerini kullanarak durumu günceller.</summary>
+        /// <summary>Zamanla Ã§aÄŸrÄ±lÄ±r; "son bilinen" sensÃ¶r/fused verilerini kullanarak durumu gÃ¼nceller.</summary>
         void Update(DateTime now, ISensorBus sensors);
     }
 }
+

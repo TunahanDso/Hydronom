@@ -1,24 +1,24 @@
-namespace Hydronom.GroundStation.Telemetry;
+﻿namespace Hydronom.GroundStation.Telemetry;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Hedef node'un kullanılabilir haberleşme transport'larına göre
-/// uygun telemetry profilini seçen sınıftır.
+/// Hedef node'un kullanÄ±labilir haberleÅŸme transport'larÄ±na gÃ¶re
+/// uygun telemetry profilini seÃ§en sÄ±nÄ±ftÄ±r.
 /// 
-/// Bu sınıf PDF'deki Adaptive Telemetry Profile mantığının ilk çekirdeğidir.
-/// Amaç:
-/// - Bağlantı güçlü ise Full telemetry seçmek,
-/// - Bağlantı orta seviyedeyse Normal telemetry seçmek,
-/// - Sadece düşük bant genişlikli kanal varsa Light telemetry seçmek,
-/// - Hiç bilgi yoksa güvenli varsayılan olarak Light telemetry seçmektir.
+/// Bu sÄ±nÄ±f PDF'deki Adaptive Telemetry Profile mantÄ±ÄŸÄ±nÄ±n ilk Ã§ekirdeÄŸidir.
+/// AmaÃ§:
+/// - BaÄŸlantÄ± gÃ¼Ã§lÃ¼ ise Full telemetry seÃ§mek,
+/// - BaÄŸlantÄ± orta seviyedeyse Normal telemetry seÃ§mek,
+/// - Sadece dÃ¼ÅŸÃ¼k bant geniÅŸlikli kanal varsa Light telemetry seÃ§mek,
+/// - HiÃ§ bilgi yoksa gÃ¼venli varsayÄ±lan olarak Light telemetry seÃ§mektir.
 /// </summary>
 public sealed class AdaptiveTelemetryProfileSelector
 {
     /// <summary>
-    /// Verilen kullanılabilir transport listesine göre telemetry profili seçer.
+    /// Verilen kullanÄ±labilir transport listesine gÃ¶re telemetry profili seÃ§er.
     /// 
-    /// Öncelik:
+    /// Ã–ncelik:
     /// 1. TCP / WebSocket / Cellular varsa Full
     /// 2. RF modem / Mesh varsa Normal
     /// 3. LoRa varsa Light
@@ -44,13 +44,13 @@ public sealed class AdaptiveTelemetryProfileSelector
     }
 
     /// <summary>
-    /// Seçilen telemetry profilini insan tarafından okunabilir kısa açıklamaya çevirir.
+    /// SeÃ§ilen telemetry profilini insan tarafÄ±ndan okunabilir kÄ±sa aÃ§Ä±klamaya Ã§evirir.
     /// 
-    /// Bu açıklama:
+    /// Bu aÃ§Ä±klama:
     /// - Hydronom Ops telemetry panelinde,
-    /// - Ground Station loglarında,
-    /// - Diagnostics ekranlarında
-    /// gösterilebilir.
+    /// - Ground Station loglarÄ±nda,
+    /// - Diagnostics ekranlarÄ±nda
+    /// gÃ¶sterilebilir.
     /// </summary>
     public string Explain(TelemetryProfile profile)
     {
@@ -71,9 +71,9 @@ public sealed class AdaptiveTelemetryProfileSelector
     }
 
     /// <summary>
-    /// Yüksek bant genişlikli transport olup olmadığını kontrol eder.
+    /// YÃ¼ksek bant geniÅŸlikli transport olup olmadÄ±ÄŸÄ±nÄ± kontrol eder.
     /// 
-    /// Bu kanallar Full telemetry için uygundur.
+    /// Bu kanallar Full telemetry iÃ§in uygundur.
     /// </summary>
     private static bool HasHighBandwidthTransport(IReadOnlySet<TransportKind> available)
     {
@@ -83,9 +83,9 @@ public sealed class AdaptiveTelemetryProfileSelector
     }
 
     /// <summary>
-    /// Orta bant genişlikli transport olup olmadığını kontrol eder.
+    /// Orta bant geniÅŸlikli transport olup olmadÄ±ÄŸÄ±nÄ± kontrol eder.
     /// 
-    /// Bu kanallar Normal telemetry için uygundur.
+    /// Bu kanallar Normal telemetry iÃ§in uygundur.
     /// </summary>
     private static bool HasMediumBandwidthTransport(IReadOnlySet<TransportKind> available)
     {

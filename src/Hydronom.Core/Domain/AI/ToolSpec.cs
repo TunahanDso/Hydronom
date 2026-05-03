@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace Hydronom.Core.Domain.AI;
 
-// Basit JSON-schema benzeri tanım: LLM'e "hangi argümanlar var" bilgisini verir.
+// Basit JSON-schema benzeri tanÄ±m: LLM'e "hangi argÃ¼manlar var" bilgisini verir.
 public sealed record ToolSpec
 {
     private static readonly HashSet<string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -37,7 +37,7 @@ public sealed record ToolSpec
     private static string RequireText(string? value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Alan boş olamaz.", paramName);
+            throw new ArgumentException("Alan boÅŸ olamaz.", paramName);
 
         return value.Trim();
     }
@@ -56,11 +56,11 @@ public sealed record ToolSpec
                 continue;
 
             if (!seenNames.Add(arg.Name))
-                throw new ArgumentException($"Aynı isimde birden fazla tool argümanı var: '{arg.Name}'.", nameof(args));
+                throw new ArgumentException($"AynÄ± isimde birden fazla tool argÃ¼manÄ± var: '{arg.Name}'.", nameof(args));
 
             if (!AllowedTypes.Contains(arg.Type))
                 throw new ArgumentException(
-                    $"Desteklenmeyen argüman tipi: '{arg.Type}'. İzin verilen tipler: string, number, integer, boolean, object, array.",
+                    $"Desteklenmeyen argÃ¼man tipi: '{arg.Type}'. Ä°zin verilen tipler: string, number, integer, boolean, object, array.",
                     nameof(args));
 
             normalized.Add(arg);
@@ -108,7 +108,7 @@ public sealed record ToolArgSpec
     private static string RequireText(string? value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Alan boş olamaz.", paramName);
+            throw new ArgumentException("Alan boÅŸ olamaz.", paramName);
 
         return value.Trim();
     }
@@ -116,13 +116,13 @@ public sealed record ToolArgSpec
     private static string NormalizeType(string? value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Alan boş olamaz.", paramName);
+            throw new ArgumentException("Alan boÅŸ olamaz.", paramName);
 
         var normalized = value.Trim().ToLowerInvariant();
 
         if (!AllowedTypes.Contains(normalized))
             throw new ArgumentException(
-                $"Desteklenmeyen argüman tipi: '{value}'. İzin verilen tipler: string, number, integer, boolean, object, array.",
+                $"Desteklenmeyen argÃ¼man tipi: '{value}'. Ä°zin verilen tipler: string, number, integer, boolean, object, array.",
                 paramName);
 
         return normalized;

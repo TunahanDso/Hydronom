@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -12,13 +12,13 @@ public sealed class TelemetrySnapshotTool : IAiTool
 {
     private static readonly ToolSpec _spec = new(
         Name: "telemetry.snapshot",
-        Description: "Tool context içindeki telemetri snapshot'ını döndürür.",
+        Description: "Tool context iÃ§indeki telemetri snapshot'Ä±nÄ± dÃ¶ndÃ¼rÃ¼r.",
         Args: new[]
         {
             new ToolArgSpec(
                 Name: "keys",
                 Type: "array",
-                Description: "Sadece istenen alanları döndürmek için anahtar listesi. Boşsa tamamını döndürür.",
+                Description: "Sadece istenen alanlarÄ± dÃ¶ndÃ¼rmek iÃ§in anahtar listesi. BoÅŸsa tamamÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.",
                 Required: false,
                 Example: new[] { "pos", "yaw_deg", "dist_to_target" }
             )
@@ -51,7 +51,7 @@ public sealed class TelemetrySnapshotTool : IAiTool
                 ToolResult.Success(
                     toolCallId: call.Id,
                     name: Spec.Name,
-                    output: $"Filtrelenmiş telemetri snapshot döndürüldü. Alan sayısı: {filtered.Count}.",
+                    output: $"FiltrelenmiÅŸ telemetri snapshot dÃ¶ndÃ¼rÃ¼ldÃ¼. Alan sayÄ±sÄ±: {filtered.Count}.",
                     data: filtered
                 )
             );
@@ -63,7 +63,7 @@ public sealed class TelemetrySnapshotTool : IAiTool
             ToolResult.Success(
                 toolCallId: call.Id,
                 name: Spec.Name,
-                output: $"Tam telemetri snapshot döndürüldü. Alan sayısı: {all.Count}.",
+                output: $"Tam telemetri snapshot dÃ¶ndÃ¼rÃ¼ldÃ¼. Alan sayÄ±sÄ±: {all.Count}.",
                 data: all
             )
         );

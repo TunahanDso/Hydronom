@@ -1,72 +1,72 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Interfaces
 {
     /// <summary>
-    /// IMU (Inertial Measurement Unit) sensörleri için ortak arayüz.
-    /// Hem fiziksel sensörler hem de simülasyonlar bu arayüzü uygular.
+    /// IMU (Inertial Measurement Unit) sensÃ¶rleri iÃ§in ortak arayÃ¼z.
+    /// Hem fiziksel sensÃ¶rler hem de simÃ¼lasyonlar bu arayÃ¼zÃ¼ uygular.
     /// </summary>
     public interface IInertialSensor : IDisposable
     {
         /// <summary>
-        /// Sensörün tanımlayıcı adı (örn. "MPU6050", "BNO055", "SimIMU").
+        /// SensÃ¶rÃ¼n tanÄ±mlayÄ±cÄ± adÄ± (Ã¶rn. "MPU6050", "BNO055", "SimIMU").
         /// </summary>
         string Name { get; }
 
         /// <summary>
-        /// Sensörün saniyede veri üretme oranı (Hz).
+        /// SensÃ¶rÃ¼n saniyede veri Ã¼retme oranÄ± (Hz).
         /// </summary>
         double SampleRateHz { get; }
 
         /// <summary>
-        /// Sensör aktif mi (başlatılmış mı)?
+        /// SensÃ¶r aktif mi (baÅŸlatÄ±lmÄ±ÅŸ mÄ±)?
         /// </summary>
         bool IsActive { get; }
 
         /// <summary>
-        /// Sensör ölçümünü başlatır (örneğin arka planda veri okumaya başlar).
+        /// SensÃ¶r Ã¶lÃ§Ã¼mÃ¼nÃ¼ baÅŸlatÄ±r (Ã¶rneÄŸin arka planda veri okumaya baÅŸlar).
         /// </summary>
         void Start();
 
         /// <summary>
-        /// Sensör ölçümünü durdurur.
+        /// SensÃ¶r Ã¶lÃ§Ã¼mÃ¼nÃ¼ durdurur.
         /// </summary>
         void Stop();
 
         /// <summary>
-        /// Tek seferlik ölçüm (blocking) alır.
+        /// Tek seferlik Ã¶lÃ§Ã¼m (blocking) alÄ±r.
         /// </summary>
         /// <returns>
-        /// Örnek veri:
-        ///  - Accel: m/s²  
-        ///  - Gyro : rad/s (SI birimi, ImuData ile tutarlı)  
-        ///  - Mag  : gauss veya sensörün ham manyetik birimi  
+        /// Ã–rnek veri:
+        ///  - Accel: m/sÂ²  
+        ///  - Gyro : rad/s (SI birimi, ImuData ile tutarlÄ±)  
+        ///  - Mag  : gauss veya sensÃ¶rÃ¼n ham manyetik birimi  
         ///  - Orientation: roll/pitch/yaw (deg)
         /// </returns>
         Task<InertialSample> ReadAsync();
 
         /// <summary>
-        /// Sensör durumunu (ör. sıcaklık, bağlantı, hatalar) döner.
+        /// SensÃ¶r durumunu (Ã¶r. sÄ±caklÄ±k, baÄŸlantÄ±, hatalar) dÃ¶ner.
         /// </summary>
-        /// <returns>Sağlık bilgisi (HealthRecord)</returns>
+        /// <returns>SaÄŸlÄ±k bilgisi (HealthRecord)</returns>
         HealthRecord GetHealth();
 
         /// <summary>
-        /// Kalibrasyon yapar (örn. ofset veya ölçek düzeltmeleri).
+        /// Kalibrasyon yapar (Ã¶rn. ofset veya Ã¶lÃ§ek dÃ¼zeltmeleri).
         /// </summary>
         void Calibrate();
     }
 
     /// <summary>
-    /// IMU verisi için temel kayıt tipi.
-    /// Accel: m/s², Gyro: rad/s, Mag: gauss, Orientation: deg.
+    /// IMU verisi iÃ§in temel kayÄ±t tipi.
+    /// Accel: m/sÂ², Gyro: rad/s, Mag: gauss, Orientation: deg.
     /// </summary>
     public readonly record struct InertialSample(
-        Vec3 Accel,           // m/s² — ivmeölçer
-        Vec3 Gyro,            // rad/s — jiroskop (SI birimi)
-        Vec3 Mag,             // gauss — manyetometre (opsiyonel, yoksa 0 vektörü)
+        Vec3 Accel,           // m/sÂ² â€” ivmeÃ¶lÃ§er
+        Vec3 Gyro,            // rad/s â€” jiroskop (SI birimi)
+        Vec3 Mag,             // gauss â€” manyetometre (opsiyonel, yoksa 0 vektÃ¶rÃ¼)
         Orientation Orientation, // roll/pitch/yaw (deg)
         DateTime TimestampUtc
     )
@@ -76,7 +76,7 @@ namespace Hydronom.Core.Interfaces
     }
 
     /// <summary>
-    /// Sensör sağlığı / bağlantı durumu.
+    /// SensÃ¶r saÄŸlÄ±ÄŸÄ± / baÄŸlantÄ± durumu.
     /// </summary>
     public readonly record struct HealthRecord(
         bool IsOnline,
@@ -89,3 +89,4 @@ namespace Hydronom.Core.Interfaces
             new(true, 25.0, "OK", DateTime.UtcNow);
     }
 }
+

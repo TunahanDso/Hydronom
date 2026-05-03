@@ -1,10 +1,10 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// Route execution kayıtlarının immutable özetidir.
-/// Diagnostics, smoke test ve Hydronom Ops için kullanılabilir.
+/// Route execution kayÄ±tlarÄ±nÄ±n immutable Ã¶zetidir.
+/// Diagnostics, smoke test ve Hydronom Ops iÃ§in kullanÄ±labilir.
 /// </summary>
 public sealed record RouteExecutionSnapshot
 {

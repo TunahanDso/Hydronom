@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
-    /// <summary>Geri bildirim/telemetri kaydı (6DoF + kuvvet/tork).</summary>
+    /// <summary>Geri bildirim/telemetri kaydÄ± (6DoF + kuvvet/tork).</summary>
     public record FeedbackRecord
     {
         public DateTime       TimestampUtc { get; init; }
@@ -11,7 +11,7 @@ namespace Hydronom.Core.Domain
         public DecisionCommand Command     { get; init; }
         public VehicleState   State        { get; init; }
 
-        // Ek: gövde ekseninde kuvvet/tork (ActuatorManager'dan)
+        // Ek: gÃ¶vde ekseninde kuvvet/tork (ActuatorManager'dan)
         public Vec3           ForceBody    { get; init; }
         public Vec3           TorqueBody   { get; init; }
 
@@ -34,7 +34,7 @@ namespace Hydronom.Core.Domain
             TorqueBody   = torqueBody;
         }
 
-        // Geriye dönük uyum: Force/Torque verilmezse 0 kabul edilir
+        // Geriye dÃ¶nÃ¼k uyum: Force/Torque verilmezse 0 kabul edilir
         public FeedbackRecord(
             DateTime timestampUtc,
             FusedFrame frame,
@@ -43,7 +43,7 @@ namespace Hydronom.Core.Domain
             VehicleState state)
             : this(timestampUtc, frame, insights, command, state, new Vec3(0, 0, 0), new Vec3(0, 0, 0)) { }
 
-        // Geriye dönük uyum: State de yoksa Frame’den üret
+        // Geriye dÃ¶nÃ¼k uyum: State de yoksa Frameâ€™den Ã¼ret
         public FeedbackRecord(
             DateTime timestampUtc,
             FusedFrame frame,
@@ -65,3 +65,4 @@ namespace Hydronom.Core.Domain
         }
     }
 }
+

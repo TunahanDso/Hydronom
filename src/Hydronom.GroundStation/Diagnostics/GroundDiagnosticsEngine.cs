@@ -1,4 +1,4 @@
-namespace Hydronom.GroundStation.Diagnostics;
+﻿namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Ack;
@@ -11,33 +11,33 @@ using Hydronom.GroundStation.Transports.Receive;
 using Hydronom.GroundStation.WorldModel;
 
 /// <summary>
-/// Ground Station tarafındaki farklı modüllerden gelen bilgileri okuyup
-/// tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
+/// Ground Station tarafÄ±ndaki farklÄ± modÃ¼llerden gelen bilgileri okuyup
+/// tek bir operasyon snapshot'Ä±na dÃ¶nÃ¼ÅŸtÃ¼ren diagnostics motorudur.
 /// 
-/// Bu sınıfın amacı:
-/// - FleetRegistry snapshot'ını yorumlamak,
-/// - CommandTracker geçmişini yorumlamak,
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - FleetRegistry snapshot'Ä±nÄ± yorumlamak,
+/// - CommandTracker geÃ§miÅŸini yorumlamak,
 /// - GroundWorldModel durumunu yorumlamak,
-/// - LinkHealthTracker bağlantı sağlığını yorumlamak,
-/// - GroundTransportExecutionTracker route/gönderim durumunu yorumlamak,
-/// - CommandAckCorrelator gerçek ACK/result korelasyon durumunu yorumlamak,
+/// - LinkHealthTracker baÄŸlantÄ± saÄŸlÄ±ÄŸÄ±nÄ± yorumlamak,
+/// - GroundTransportExecutionTracker route/gÃ¶nderim durumunu yorumlamak,
+/// - CommandAckCorrelator gerÃ§ek ACK/result korelasyon durumunu yorumlamak,
 /// - GroundTransportReceiver inbound/gelen mesaj durumunu yorumlamak,
 /// - GroundCommandSafetyGate son command safety/security sonucunu yorumlamak,
-/// - MissionAllocator son görev atama sonucunu yorumlamak,
-/// - genel health ve kısa açıklama üretmektir.
+/// - MissionAllocator son gÃ¶rev atama sonucunu yorumlamak,
+/// - genel health ve kÄ±sa aÃ§Ä±klama Ã¼retmektir.
 /// 
-/// Böylece Hydronom Ops veya ilerideki Gateway katmanı tek çağrıyla
+/// BÃ¶ylece Hydronom Ops veya ilerideki Gateway katmanÄ± tek Ã§aÄŸrÄ±yla
 /// yer istasyonunun genel durumunu okuyabilir.
 /// </summary>
 public sealed class GroundDiagnosticsEngine
 {
     /// <summary>
-    /// Filo, komut, dünya modeli, bağlantı sağlığı, route execution, ACK correlation,
-    /// receive event, command safety ve mission allocation verilerinden operasyon snapshot'ı üretir.
+    /// Filo, komut, dÃ¼nya modeli, baÄŸlantÄ± saÄŸlÄ±ÄŸÄ±, route execution, ACK correlation,
+    /// receive event, command safety ve mission allocation verilerinden operasyon snapshot'Ä± Ã¼retir.
     /// 
     /// linkHealthSnapshot, routeExecutionSnapshot, ackCorrelationSnapshot,
     /// receiveEventSnapshot, lastCommandSafetyResult ve lastMissionAllocationResult opsiyoneldir.
-    /// Böylece eski çağrılar bozulmadan çalışmaya devam eder.
+    /// BÃ¶ylece eski Ã§aÄŸrÄ±lar bozulmadan Ã§alÄ±ÅŸmaya devam eder.
     /// </summary>
     public GroundOperationSnapshot CreateSnapshot(
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot,
@@ -190,8 +190,8 @@ public sealed class GroundDiagnosticsEngine
         var successfulAckCorrelations = ackCorrelations.Count(x => x.IsSuccessful);
         var failedAckCorrelations = ackCorrelations.Count(x => x.IsFailed);
 
-        // İlk faz için varsayılan gerçek ACK timeout eşiği.
-        // İleride bu değer config üzerinden alınabilir.
+        // Ä°lk faz iÃ§in varsayÄ±lan gerÃ§ek ACK timeout eÅŸiÄŸi.
+        // Ä°leride bu deÄŸer config Ã¼zerinden alÄ±nabilir.
         var ackTimeout = TimeSpan.FromSeconds(5);
         var nowUtc = DateTimeOffset.UtcNow;
 
@@ -464,9 +464,9 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Komut kaydının başarısız/expired sayılıp sayılmayacağını belirler.
+    /// Komut kaydÄ±nÄ±n baÅŸarÄ±sÄ±z/expired sayÄ±lÄ±p sayÄ±lmayacaÄŸÄ±nÄ± belirler.
     /// 
-    /// CommandRecord içinde IsFailed alanı olmadığı için bunu LastResult üzerinden çıkarıyoruz.
+    /// CommandRecord iÃ§inde IsFailed alanÄ± olmadÄ±ÄŸÄ± iÃ§in bunu LastResult Ã¼zerinden Ã§Ä±karÄ±yoruz.
     /// </summary>
     private static bool IsFailedCommand(CommandRecord record)
     {
@@ -488,7 +488,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Receive event mesaj tipini güvenli şekilde kontrol eder.
+    /// Receive event mesaj tipini gÃ¼venli ÅŸekilde kontrol eder.
     /// </summary>
     private static bool IsMessageType(GroundTransportReceiveEvent receiveEvent, string messageType)
     {
@@ -502,11 +502,11 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Ground Station genel sağlık durumunu değerlendirir.
+    /// Ground Station genel saÄŸlÄ±k durumunu deÄŸerlendirir.
     /// 
-    /// İlk fazda basit kural tabanlı değerlendirme kullanıyoruz.
-    /// Link health, route execution, gerçek ACK correlation, receive diagnostics,
-    /// command safety/security ve mission allocation verisi varsa bunlar da genel değerlendirmeye katılır.
+    /// Ä°lk fazda basit kural tabanlÄ± deÄŸerlendirme kullanÄ±yoruz.
+    /// Link health, route execution, gerÃ§ek ACK correlation, receive diagnostics,
+    /// command safety/security ve mission allocation verisi varsa bunlar da genel deÄŸerlendirmeye katÄ±lÄ±r.
     /// </summary>
     private static string EvaluateOverallHealth(
         int totalNodes,
@@ -618,7 +618,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Link health için kısa özet cümlesi üretir.
+    /// Link health iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildLinkHealthSummary(
         int linkVehicleCount,
@@ -655,7 +655,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Route execution / transport send için kısa özet cümlesi üretir.
+    /// Route execution / transport send iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildRouteExecutionSummary(
         int totalRouteExecutions,
@@ -687,7 +687,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Gerçek ACK/result korelasyonu için kısa özet cümlesi üretir.
+    /// GerÃ§ek ACK/result korelasyonu iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildAckCorrelationSummary(
         int totalAckCorrelations,
@@ -724,7 +724,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Receive diagnostics için kısa özet cümlesi üretir.
+    /// Receive diagnostics iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildReceiveHealthSummary(
         int totalReceiveEvents,
@@ -762,7 +762,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Son command safety/security değerlendirmesi için kısa özet cümlesi üretir.
+    /// Son command safety/security deÄŸerlendirmesi iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildCommandSafetySummary(
         CommandValidationResult? lastCommandSafetyResult,
@@ -792,7 +792,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Son mission allocation sonucu için kısa özet cümlesi üretir.
+    /// Son mission allocation sonucu iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildMissionAllocationSummary(
         MissionAllocationResult? lastMissionAllocationResult,
@@ -815,7 +815,7 @@ public sealed class GroundDiagnosticsEngine
     }
 
     /// <summary>
-    /// Snapshot için kısa özet cümlesi üretir.
+    /// Snapshot iÃ§in kÄ±sa Ã¶zet cÃ¼mlesi Ã¼retir.
     /// </summary>
     private static string BuildSummary(
         string overallHealth,

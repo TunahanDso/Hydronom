@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -9,21 +9,21 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Runtime.Actuators
 {
     /// <summary>
-    /// ActuatorManager diagnostics / health / watchdog / logging bölümü.
+    /// ActuatorManager diagnostics / health / watchdog / logging bÃ¶lÃ¼mÃ¼.
     ///
-    /// Bu partial dosya şunlardan sorumludur:
-    /// - Thruster feedback health değerlendirmesi
+    /// Bu partial dosya ÅŸunlardan sorumludur:
+    /// - Thruster feedback health deÄŸerlendirmesi
     /// - Watchdog failsafe
-    /// - Tüm thruster çıkışlarını nötrleme
-    /// - Actuator ve allocation summary logları
-    /// - Log worker döngüsü
-    /// - Dispose sırasında güvenli kapanış yardımcıları
+    /// - TÃ¼m thruster Ã§Ä±kÄ±ÅŸlarÄ±nÄ± nÃ¶trleme
+    /// - Actuator ve allocation summary loglarÄ±
+    /// - Log worker dÃ¶ngÃ¼sÃ¼
+    /// - Dispose sÄ±rasÄ±nda gÃ¼venli kapanÄ±ÅŸ yardÄ±mcÄ±larÄ±
     /// </summary>
     public sealed partial class ActuatorManager
     {
         /// <summary>
-        /// Thruster telemetry health güncellemesi.
-        /// true dönerse solver/authority yeniden hesaplanmalıdır.
+        /// Thruster telemetry health gÃ¼ncellemesi.
+        /// true dÃ¶nerse solver/authority yeniden hesaplanmalÄ±dÄ±r.
         /// </summary>
         private bool EvaluateFeedbackHealth_NoLock(DateTime now)
         {
@@ -100,7 +100,8 @@ namespace Hydronom.Runtime.Actuators
                         HealthyThrusterCount: _thrusters.Count(t => t.IsHealthy),
                         HadSaturation: false,
                         HadUnhealthyThruster: _thrusters.Any(t => !t.IsHealthy),
-                        AuthorityLimited: false
+                        AuthorityLimited: false,
+                        ReverseClampCount: 0
                     );
                 }
 
@@ -134,7 +135,13 @@ namespace Hydronom.Runtime.Actuators
                             ? "OK"
                             : $"FAULT:{mtr.HealthFlags}";
 
-                        return $"{mtr.Id}={mtr.Current:F2}[{health}|I={mtr.CurrentSenseMilliAmp}mA|RPM={mtr.RpmFeedback}]";
+                        string reverseMode = mtr.CanReverse
+                            ? "BiDir"
+                            : "OneWay";
+
+                        return
+                            $"{mtr.Id}={mtr.Current:F2}" +
+                            $"[{health}|{reverseMode}|I={mtr.CurrentSenseMilliAmp}mA|RPM={mtr.RpmFeedback}]";
                     });
 
                 summary = $"[Actuator] {string.Join(" ", ordered)} | F_body={Fmt(totalFBody)} T_body={Fmt(totalTBody)}";
@@ -153,7 +160,8 @@ namespace Hydronom.Runtime.Actuators
                 $"sat={report.SaturationRatio:F2} " +
                 $"active={report.ActiveThrusterCount} " +
                 $"healthy={report.HealthyThrusterCount} " +
-                $"limited={report.AuthorityLimited}";
+                $"limited={report.AuthorityLimited} " +
+                $"revClamp={report.ReverseClampCount}";
 
             EnqueueLog(summary);
         }
@@ -205,7 +213,7 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Worker thread ve seri port kaynaklarını güvenli şekilde kapatır.
+        /// Worker thread ve seri port kaynaklarÄ±nÄ± gÃ¼venli ÅŸekilde kapatÄ±r.
         /// </summary>
         public void Dispose()
         {

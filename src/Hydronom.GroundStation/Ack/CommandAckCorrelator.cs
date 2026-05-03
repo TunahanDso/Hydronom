@@ -1,20 +1,20 @@
-namespace Hydronom.GroundStation.Ack;
+﻿namespace Hydronom.GroundStation.Ack;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// FleetCommand gönderimleri ile araçtan gelen FleetCommandResult mesajlarını eşleştiren korelasyon motorudur.
+/// FleetCommand gÃ¶nderimleri ile araÃ§tan gelen FleetCommandResult mesajlarÄ±nÄ± eÅŸleÅŸtiren korelasyon motorudur.
 /// 
-/// Bu sınıfın amacı:
-/// - Komut gönderildiğinde CommandId → RouteExecutionRecord bağlantısını kaydetmek,
-/// - Araçtan FleetCommandResult geldiğinde aynı CommandId üzerinden execution kaydını bulmak,
-/// - TransportExecutionTracker'a gerçek ACK / failure sonucunu işlemek,
-/// - Hydronom Ops için gerçek command delivery trace snapshot'ı üretmektir.
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - Komut gÃ¶nderildiÄŸinde CommandId â†’ RouteExecutionRecord baÄŸlantÄ±sÄ±nÄ± kaydetmek,
+/// - AraÃ§tan FleetCommandResult geldiÄŸinde aynÄ± CommandId Ã¼zerinden execution kaydÄ±nÄ± bulmak,
+/// - TransportExecutionTracker'a gerÃ§ek ACK / failure sonucunu iÅŸlemek,
+/// - Hydronom Ops iÃ§in gerÃ§ek command delivery trace snapshot'Ä± Ã¼retmektir.
 /// 
-/// Böylece sistem artık "SendAsync başarılı oldu, o zaman ACK geldi" varsayımından çıkar;
-/// gerçekten araçtan dönen result ile ACK correlation yapar.
+/// BÃ¶ylece sistem artÄ±k "SendAsync baÅŸarÄ±lÄ± oldu, o zaman ACK geldi" varsayÄ±mÄ±ndan Ã§Ä±kar;
+/// gerÃ§ekten araÃ§tan dÃ¶nen result ile ACK correlation yapar.
 /// </summary>
 public sealed class CommandAckCorrelator
 {
@@ -23,7 +23,7 @@ public sealed class CommandAckCorrelator
     private readonly object _sync = new();
 
     /// <summary>
-    /// Kayıtlı korelasyon sayısı.
+    /// KayÄ±tlÄ± korelasyon sayÄ±sÄ±.
     /// </summary>
     public int Count
     {
@@ -35,7 +35,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Gönderilen bir command ile route execution kaydını ilişkilendirir.
+    /// GÃ¶nderilen bir command ile route execution kaydÄ±nÄ± iliÅŸkilendirir.
     /// </summary>
     public CommandAckCorrelationRecord? Track(
         FleetCommand command,
@@ -79,7 +79,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// FleetCommandResult ile daha önce track edilmiş command execution kaydını eşleştirir.
+    /// FleetCommandResult ile daha Ã¶nce track edilmiÅŸ command execution kaydÄ±nÄ± eÅŸleÅŸtirir.
     /// </summary>
     public CommandAckCorrelationRecord? ApplyResult(
         FleetCommandResult result,
@@ -108,7 +108,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// CommandId ile korelasyon kaydı döndürür.
+    /// CommandId ile korelasyon kaydÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public CommandAckCorrelationRecord? GetByCommandId(string commandId)
     {
@@ -124,7 +124,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// ExecutionId ile korelasyon kaydı döndürür.
+    /// ExecutionId ile korelasyon kaydÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public CommandAckCorrelationRecord? GetByExecutionId(string executionId)
     {
@@ -140,7 +140,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// ACK alınmış korelasyon kayıtlarını döndürür.
+    /// ACK alÄ±nmÄ±ÅŸ korelasyon kayÄ±tlarÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetAckedSnapshot()
     {
@@ -150,7 +150,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Pending korelasyon kayıtlarını döndürür.
+    /// Pending korelasyon kayÄ±tlarÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetPendingSnapshot()
     {
@@ -160,7 +160,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Başarısız korelasyon kayıtlarını döndürür.
+    /// BaÅŸarÄ±sÄ±z korelasyon kayÄ±tlarÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetFailedSnapshot()
     {
@@ -170,7 +170,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Tüm korelasyon kayıtlarının snapshot listesini döndürür.
+    /// TÃ¼m korelasyon kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetSnapshot()
     {
@@ -188,9 +188,9 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Süresi dolmuş pending korelasyon kayıtlarını failed/timeout gibi işaretlemek için kullanılabilir.
+    /// SÃ¼resi dolmuÅŸ pending korelasyon kayÄ±tlarÄ±nÄ± failed/timeout gibi iÅŸaretlemek iÃ§in kullanÄ±labilir.
     /// 
-    /// İlk fazda sadece snapshot tarafında sayım amaçlıdır; command tracker timeout akışını bozmaz.
+    /// Ä°lk fazda sadece snapshot tarafÄ±nda sayÄ±m amaÃ§lÄ±dÄ±r; command tracker timeout akÄ±ÅŸÄ±nÄ± bozmaz.
     /// </summary>
     public int CountExpiredPending(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -205,7 +205,7 @@ public sealed class CommandAckCorrelator
     }
 
     /// <summary>
-    /// Kayıt modelini snapshot modeline dönüştürür.
+    /// KayÄ±t modelini snapshot modeline dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
     /// </summary>
     private static CommandAckCorrelationSnapshot ToSnapshot(CommandAckCorrelationRecord record)
     {

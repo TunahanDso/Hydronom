@@ -256,6 +256,7 @@ namespace Hydronom.Runtime.Actuators
         /// - hedef wrench alınır,
         /// - solver ile thruster çözümü üretilir,
         /// - health ve saturation dikkate alınır,
+        /// - motor/ESC ters çalışma kabiliyeti dikkate alınır,
         /// - slew-rate uygulanır,
         /// - gerçek üretilebilen wrench hesaplanır,
         /// - allocation kalite raporu oluşturulur.
@@ -283,7 +284,8 @@ namespace Hydronom.Runtime.Actuators
                     HealthyThrusterCount: 0,
                     HadSaturation: false,
                     HadUnhealthyThruster: false,
-                    AuthorityLimited: true
+                    AuthorityLimited: true,
+                    ReverseClampCount: 0
                 );
 
                 if (_motorController != null)
@@ -310,9 +312,12 @@ namespace Hydronom.Runtime.Actuators
                 bool hadSaturation = false;
                 double saturationSum = 0.0;
                 int activeThrusterCount = 0;
+                int reverseClampCount = 0;
 
                 for (int j = 0; j < _thrusters.Count; j++)
                 {
+                    var thruster = _thrusters[j];
+
                     double desired = j < solve.RawSolution.Length
                         ? solve.RawSolution[j]
                         : 0.0;
@@ -326,14 +331,16 @@ namespace Hydronom.Runtime.Actuators
                     if (Math.Abs(beforeClamp - desired) > 1e-9)
                         hadSaturation = true;
 
-                    if (!_thrusters[j].IsHealthy)
+                    if (!thruster.IsHealthy)
                         desired = 0.0;
 
-                    double applied = ApplySlewLimit(_thrusters[j].Current, desired, dt);
-                    applied = Math.Clamp(applied, -1.0, 1.0);
+                    desired = ApplyThrusterCapability(thruster, desired, ref reverseClampCount);
 
-                    _thrusters[j].Current = applied;
-                    _thrusters[j].LastCommandUtc = now;
+                    double applied = ApplySlewLimit(thruster.Current, desired, dt);
+                    applied = Math.Clamp(applied, thruster.CanReverse ? -1.0 : 0.0, 1.0);
+
+                    thruster.Current = applied;
+                    thruster.LastCommandUtc = now;
 
                     double abs = Math.Abs(applied);
                     saturationSum += abs;
@@ -362,7 +369,8 @@ namespace Hydronom.Runtime.Actuators
                     totalTBody,
                     hadSaturation,
                     activeThrusterCount,
-                    saturationRatio
+                    saturationRatio,
+                    reverseClampCount
                 );
 
                 LastAllocationReport = allocationReport;
@@ -383,6 +391,34 @@ namespace Hydronom.Runtime.Actuators
 
             if (_motorController != null)
                 _ = _motorController.ApplyAsync(cmd, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Motor/ESC fiziksel kabiliyetini uygular.
+        ///
+        /// CanReverse=true:
+        ///   - Negatif ve pozitif normalize komutlar geçerlidir.
+        ///
+        /// CanReverse=false:
+        ///   - Negatif komut fiziksel çıkışa gönderilemez.
+        ///   - Negatif komut güvenli şekilde 0.0'a kırpılır.
+        ///
+        /// Not:
+        /// Reversed etkisi Thruster constructor'ında ForceDir üzerine uygulanır.
+        /// Bu metot yalnızca fiziksel motor çıkış kabiliyetini uygular.
+        /// </summary>
+        private static double ApplyThrusterCapability(
+            Thruster thruster,
+            double desired,
+            ref int reverseClampCount)
+        {
+            if (!thruster.CanReverse && desired < 0.0)
+            {
+                reverseClampCount++;
+                return 0.0;
+            }
+
+            return desired;
         }
 
         private double ComputeThrusterSlewDt(DateTime now)
@@ -437,12 +473,12 @@ namespace Hydronom.Runtime.Actuators
 
             var defaults = new[]
             {
-                new ThrusterDesc("SIM_CH0", 0, new Vec3(-halfL, +halfW, zMain), new Vec3(+1, 0, 0), false),
-                new ThrusterDesc("SIM_CH1", 1, new Vec3(-halfL, -halfW, zMain), new Vec3(+1, 0, 0), false),
-                new ThrusterDesc("SIM_CH2", 2, new Vec3(+halfL, +halfW, zUpper), new Vec3(0, 0, +1), false),
-                new ThrusterDesc("SIM_CH3", 3, new Vec3(+halfL, -halfW, zUpper), new Vec3(0, 0, +1), false),
-                new ThrusterDesc("SIM_CH4", 4, new Vec3(0.0, +halfW, zMain), new Vec3(+1, 0, 0), false),
-                new ThrusterDesc("SIM_CH5", 5, new Vec3(0.0, -halfW, zMain), new Vec3(+1, 0, 0), false),
+                new ThrusterDesc("SIM_CH0", 0, new Vec3(-halfL, +halfW, zMain), new Vec3(+1, 0, 0), false, true),
+                new ThrusterDesc("SIM_CH1", 1, new Vec3(-halfL, -halfW, zMain), new Vec3(+1, 0, 0), false, true),
+                new ThrusterDesc("SIM_CH2", 2, new Vec3(+halfL, +halfW, zUpper), new Vec3(0, 0, +1), false, true),
+                new ThrusterDesc("SIM_CH3", 3, new Vec3(+halfL, -halfW, zUpper), new Vec3(0, 0, +1), false, true),
+                new ThrusterDesc("SIM_CH4", 4, new Vec3(0.0, +halfW, zMain), new Vec3(+1, 0, 0), false, true),
+                new ThrusterDesc("SIM_CH5", 5, new Vec3(0.0, -halfW, zMain), new Vec3(+1, 0, 0), false, true),
             };
 
             foreach (var t in defaults)
@@ -451,7 +487,7 @@ namespace Hydronom.Runtime.Actuators
             EnqueueLog("[ActuatorManager] SIM thruster layout:");
 
             foreach (var t in _thrusters.OrderBy(t => t.Channel))
-                EnqueueLog($"  {t.Id}@ch{t.Channel}: Pos={Fmt(t.Position)} Dir={Fmt(t.ForceDir)}");
+                EnqueueLog($"  {t.Id}@ch{t.Channel}: Pos={Fmt(t.Position)} Dir={Fmt(t.ForceDir)} CanReverse={t.CanReverse}");
 
             EnqueueLog($"[ActuatorManager] SIM modda {_thrusters.Count} thruster oluşturuldu.");
         }

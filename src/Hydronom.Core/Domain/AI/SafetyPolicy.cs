@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,7 +11,7 @@ public enum AiMode
     Autopilot = 1
 }
 
-// Basit bir politika: hangi tool'lar autopilot'ta çalışabilir?
+// Basit bir politika: hangi tool'lar autopilot'ta Ã§alÄ±ÅŸabilir?
 public sealed record SafetyPolicy
 {
     public AiMode Mode { get; init; }
@@ -26,7 +26,7 @@ public sealed record SafetyPolicy
         int maxToolCallsPerCycle = 8)
     {
         if (maxToolCallsPerCycle <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maxToolCallsPerCycle), "MaxToolCallsPerCycle 0'dan büyük olmalıdır.");
+            throw new ArgumentOutOfRangeException(nameof(maxToolCallsPerCycle), "MaxToolCallsPerCycle 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
 
         Mode = mode;
         AllowedToolsInAutopilot = NormalizeSet(allowedToolsInAutopilot);
@@ -115,7 +115,7 @@ public sealed record SafetyPolicy
     private static string NormalizeToolName(string? toolName)
     {
         if (string.IsNullOrWhiteSpace(toolName))
-            throw new ArgumentException("Tool adı boş olamaz.", nameof(toolName));
+            throw new ArgumentException("Tool adÄ± boÅŸ olamaz.", nameof(toolName));
 
         return toolName.Trim();
     }

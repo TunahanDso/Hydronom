@@ -1,4 +1,4 @@
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text;
 using System.IO;
 
@@ -6,7 +6,7 @@ namespace Hydronom.Runtime.Buses
 {
     public static class TcpJsonIngestor
     {
-        // Türkçe yorum: Bu görev ana döngüden bağımsız çalışır, bloklamaz.
+        // TÃ¼rkÃ§e yorum: Bu gÃ¶rev ana dÃ¶ngÃ¼den baÄŸÄ±msÄ±z Ã§alÄ±ÅŸÄ±r, bloklamaz.
         public static async Task RunAsync(string host, int port, SensorInbox inbox, CancellationToken ct)
         {
             while (!ct.IsCancellationRequested)
@@ -14,7 +14,7 @@ namespace Hydronom.Runtime.Buses
                 try
                 {
                     using var client = new TcpClient();
-                    client.NoDelay = true; // küçük paketlerde gecikmeyi azalt
+                    client.NoDelay = true; // kÃ¼Ã§Ã¼k paketlerde gecikmeyi azalt
                     await client.ConnectAsync(host, port, ct);
 
                     using var stream = client.GetStream();
@@ -24,15 +24,16 @@ namespace Hydronom.Runtime.Buses
                     while (!ct.IsCancellationRequested && (line = await reader.ReadLineAsync()) != null)
                     {
                         if (line.Length == 0) continue;
-                        inbox.TryPublish(line); // Taşarsa en eskiyi düşürür (DropOldest)
+                        inbox.TryPublish(line); // TaÅŸarsa en eskiyi dÃ¼ÅŸÃ¼rÃ¼r (DropOldest)
                     }
                 }
                 catch (Exception)
                 {
-                    // Türkçe yorum: Bağlantı koptuysa kısa bir bekleme ve tekrar dene.
+                    // TÃ¼rkÃ§e yorum: BaÄŸlantÄ± koptuysa kÄ±sa bir bekleme ve tekrar dene.
                     await Task.Delay(500, ct);
                 }
             }
         }
     }
 }
+

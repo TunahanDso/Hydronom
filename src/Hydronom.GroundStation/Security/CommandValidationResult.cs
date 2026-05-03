@@ -1,12 +1,12 @@
-namespace Hydronom.GroundStation.Security;
+﻿namespace Hydronom.GroundStation.Security;
 
 /// <summary>
-/// Komut doğrulama, yetki ve safety gate sonucunu temsil eder.
+/// Komut doÄŸrulama, yetki ve safety gate sonucunu temsil eder.
 /// </summary>
 public sealed record CommandValidationResult
 {
     /// <summary>
-    /// Komut gönderilebilir mi?
+    /// Komut gÃ¶nderilebilir mi?
     /// </summary>
     public bool IsAllowed { get; init; }
 
@@ -16,7 +16,7 @@ public sealed record CommandValidationResult
     public bool IsRejected => !IsAllowed;
 
     /// <summary>
-    /// Sonuç kısa açıklaması.
+    /// SonuÃ§ kÄ±sa aÃ§Ä±klamasÄ±.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
@@ -27,12 +27,12 @@ public sealed record CommandValidationResult
         Array.Empty<CommandValidationIssue>();
 
     /// <summary>
-    /// Blocking problem var mı?
+    /// Blocking problem var mÄ±?
     /// </summary>
     public bool HasBlockingIssues => Issues.Any(x => x.IsBlocking);
 
     /// <summary>
-    /// Warning problem var mı?
+    /// Warning problem var mÄ±?
     /// </summary>
     public bool HasWarnings => Issues.Any(x => !x.IsBlocking);
 

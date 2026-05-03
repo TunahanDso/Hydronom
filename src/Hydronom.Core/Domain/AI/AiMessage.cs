@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace Hydronom.Core.Domain.AI;
 
 /// <summary>
-/// LLM mesajında "kim konuşuyor?" bilgisini taşır.
-/// System: sistem yönergesi
-/// User: kullanıcı mesajı
-/// Assistant: model cevabı
-/// Tool: tool çıktısı (ToolResult gibi)
+/// LLM mesajÄ±nda "kim konuÅŸuyor?" bilgisini taÅŸÄ±r.
+/// System: sistem yÃ¶nergesi
+/// User: kullanÄ±cÄ± mesajÄ±
+/// Assistant: model cevabÄ±
+/// Tool: tool Ã§Ä±ktÄ±sÄ± (ToolResult gibi)
 /// </summary>
 public enum AiRole
 {
@@ -21,11 +21,11 @@ public enum AiRole
 
 /// <summary>
 /// HydronomAI mesaj modeli.
-/// - Role: mesajın kaynağı
-/// - Content: metin/içerik
-/// - TimestampUtc: UTC zaman damgası
-/// - Name: opsiyonel konuşmacı adı (ör. tool adı, kullanıcı adı)
-/// - Meta: opsiyonel küçük ek alanlar (trace_id, model, channel vb.)
+/// - Role: mesajÄ±n kaynaÄŸÄ±
+/// - Content: metin/iÃ§erik
+/// - TimestampUtc: UTC zaman damgasÄ±
+/// - Name: opsiyonel konuÅŸmacÄ± adÄ± (Ã¶r. tool adÄ±, kullanÄ±cÄ± adÄ±)
+/// - Meta: opsiyonel kÃ¼Ã§Ã¼k ek alanlar (trace_id, model, channel vb.)
 /// </summary>
 public sealed record AiMessage
 {
@@ -49,8 +49,8 @@ public sealed record AiMessage
         Meta = NormalizeMeta(meta);
     }
 
-    // Sık kullanım: doğru Role ile mesaj üretmek için factory metotlar.
-    // Böylece AiRole'u yanlış parametreye verme gibi hatalar azalır.
+    // SÄ±k kullanÄ±m: doÄŸru Role ile mesaj Ã¼retmek iÃ§in factory metotlar.
+    // BÃ¶ylece AiRole'u yanlÄ±ÅŸ parametreye verme gibi hatalar azalÄ±r.
 
     public static AiMessage System(string content, string? name = null, IReadOnlyDictionary<string, string>? meta = null)
         => new(AiRole.System, content, DateTime.UtcNow, name, meta);
@@ -64,11 +64,11 @@ public sealed record AiMessage
     public static AiMessage Tool(string content, string? name = null, IReadOnlyDictionary<string, string>? meta = null)
         => new(AiRole.Tool, content, DateTime.UtcNow, name, meta);
 
-    // Bazı yerlerde timestamp'i dışarıdan set etmek isteyebilirsin.
+    // BazÄ± yerlerde timestamp'i dÄ±ÅŸarÄ±dan set etmek isteyebilirsin.
     public static AiMessage At(AiRole role, string content, DateTime timestampUtc, string? name = null, IReadOnlyDictionary<string, string>? meta = null)
         => new(role, content, timestampUtc, name, meta);
 
-    // ToolResult -> AiMessage dönüşümü için pratik helper
+    // ToolResult -> AiMessage dÃ¶nÃ¼ÅŸÃ¼mÃ¼ iÃ§in pratik helper
     public static AiMessage FromToolResult(ToolResult result, IReadOnlyDictionary<string, string>? meta = null)
     {
         if (result is null)

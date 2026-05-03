@@ -1,35 +1,35 @@
-namespace Hydronom.GroundStation.Transports;
+﻿namespace Hydronom.GroundStation.Transports;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Ground Station tarafında kayıtlı transport instance'larını tutar.
+/// Ground Station tarafÄ±nda kayÄ±tlÄ± transport instance'larÄ±nÄ± tutar.
 /// 
 /// Bu registry:
-/// - TransportKind bazlı transport seçimi,
-/// - bağlı transport'ları bulma,
-/// - mock/real transport geçişi,
-/// - ileride multi-instance transport desteği
-/// için temel yapıdır.
+/// - TransportKind bazlÄ± transport seÃ§imi,
+/// - baÄŸlÄ± transport'larÄ± bulma,
+/// - mock/real transport geÃ§iÅŸi,
+/// - ileride multi-instance transport desteÄŸi
+/// iÃ§in temel yapÄ±dÄ±r.
 /// </summary>
 public sealed class GroundTransportRegistry
 {
     private readonly List<ITransport> _transports = new();
 
     /// <summary>
-    /// Kayıtlı tüm transport'lar.
+    /// KayÄ±tlÄ± tÃ¼m transport'lar.
     /// </summary>
     public IReadOnlyList<ITransport> Transports => _transports.ToArray();
 
     /// <summary>
-    /// Registry içindeki transport sayısı.
+    /// Registry iÃ§indeki transport sayÄ±sÄ±.
     /// </summary>
     public int Count => _transports.Count;
 
     /// <summary>
     /// Yeni transport ekler.
     /// 
-    /// Aynı isimde transport varsa ekleme yapmaz.
+    /// AynÄ± isimde transport varsa ekleme yapmaz.
     /// </summary>
     public bool Add(ITransport transport)
     {
@@ -47,7 +47,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Belirli isimde transport kaldırır.
+    /// Belirli isimde transport kaldÄ±rÄ±r.
     /// </summary>
     public bool RemoveByName(string name)
     {
@@ -65,7 +65,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Belirli türdeki bağlı ilk transport'u döndürür.
+    /// Belirli tÃ¼rdeki baÄŸlÄ± ilk transport'u dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public ITransport? GetConnectedTransport(TransportKind kind)
     {
@@ -75,7 +75,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Belirli türdeki tüm bağlı transport'ları döndürür.
+    /// Belirli tÃ¼rdeki tÃ¼m baÄŸlÄ± transport'larÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<ITransport> GetConnectedTransports(TransportKind kind)
     {
@@ -85,7 +85,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Verilen candidate listesine göre ilk bağlı transport'u döndürür.
+    /// Verilen candidate listesine gÃ¶re ilk baÄŸlÄ± transport'u dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public ITransport? FindFirstConnected(IReadOnlyList<TransportKind> candidateKinds)
     {
@@ -104,7 +104,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Verilen candidate listesine göre bağlı transport listesini döndürür.
+    /// Verilen candidate listesine gÃ¶re baÄŸlÄ± transport listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<ITransport> FindConnected(IReadOnlyList<TransportKind> candidateKinds)
     {
@@ -123,7 +123,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Tüm transport'ları bağlar.
+    /// TÃ¼m transport'larÄ± baÄŸlar.
     /// </summary>
     public async Task ConnectAllAsync(CancellationToken cancellationToken = default)
     {
@@ -132,7 +132,7 @@ public sealed class GroundTransportRegistry
     }
 
     /// <summary>
-    /// Tüm transport'ları kapatır.
+    /// TÃ¼m transport'larÄ± kapatÄ±r.
     /// </summary>
     public async Task DisconnectAllAsync(CancellationToken cancellationToken = default)
     {

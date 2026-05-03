@@ -1,13 +1,13 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 
 namespace Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// Bir route kararının gönderim aşamasındaki takip kaydıdır.
+/// Bir route kararÄ±nÄ±n gÃ¶nderim aÅŸamasÄ±ndaki takip kaydÄ±dÄ±r.
 /// 
-/// CommunicationRouter route kararını üretir.
-/// GroundTransportExecutionTracker ise bu route kararının gönderim sonucunu takip eder.
+/// CommunicationRouter route kararÄ±nÄ± Ã¼retir.
+/// GroundTransportExecutionTracker ise bu route kararÄ±nÄ±n gÃ¶nderim sonucunu takip eder.
 /// </summary>
 public sealed class RouteExecutionRecord
 {
@@ -25,37 +25,37 @@ public sealed class RouteExecutionRecord
     }
 
     /// <summary>
-    /// Route execution kayıt ID'si.
+    /// Route execution kayÄ±t ID'si.
     /// </summary>
     public string ExecutionId { get; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Gönderilmeye çalışılan envelope.
+    /// GÃ¶nderilmeye Ã§alÄ±ÅŸÄ±lan envelope.
     /// </summary>
     public HydronomEnvelope Envelope { get; }
 
     /// <summary>
-    /// Bu envelope için üretilmiş route sonucu.
+    /// Bu envelope iÃ§in Ã¼retilmiÅŸ route sonucu.
     /// </summary>
     public CommunicationRouteResult RouteResult { get; }
 
     /// <summary>
-    /// Kayıt oluşturulma zamanı.
+    /// KayÄ±t oluÅŸturulma zamanÄ±.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; }
 
     /// <summary>
-    /// Son güncellenme zamanı.
+    /// Son gÃ¼ncellenme zamanÄ±.
     /// </summary>
     public DateTimeOffset LastUpdatedUtc { get; private set; }
 
     /// <summary>
-    /// Route execution tamamlandı mı?
+    /// Route execution tamamlandÄ± mÄ±?
     /// </summary>
     public bool IsCompleted { get; private set; }
 
     /// <summary>
-    /// Kullanılan veya denenmesi planlanan transport türleri.
+    /// KullanÄ±lan veya denenmesi planlanan transport tÃ¼rleri.
     /// </summary>
     public IReadOnlyList<TransportKind> CandidateTransports =>
         RouteResult.PrimaryTransports
@@ -64,27 +64,27 @@ public sealed class RouteExecutionRecord
             .ToArray();
 
     /// <summary>
-    /// Gönderim sonuçları.
+    /// GÃ¶nderim sonuÃ§larÄ±.
     /// </summary>
     public IReadOnlyList<TransportSendResult> SendResults => _sendResults.ToArray();
 
     /// <summary>
-    /// Başarılı gönderim sonucu var mı?
+    /// BaÅŸarÄ±lÄ± gÃ¶nderim sonucu var mÄ±?
     /// </summary>
     public bool HasSuccess => _sendResults.Any(x => x.Success);
 
     /// <summary>
-    /// ACK alınmış sonuç var mı?
+    /// ACK alÄ±nmÄ±ÅŸ sonuÃ§ var mÄ±?
     /// </summary>
     public bool HasAck => _sendResults.Any(x => x.HasAck);
 
     /// <summary>
-    /// Timeout sonucu var mı?
+    /// Timeout sonucu var mÄ±?
     /// </summary>
     public bool HasTimeout => _sendResults.Any(x => x.IsTimeout);
 
     /// <summary>
-    /// Başarısız sonuç var mı?
+    /// BaÅŸarÄ±sÄ±z sonuÃ§ var mÄ±?
     /// </summary>
     public bool HasFailure => _sendResults.Any(x => x.IsFailure);
 
@@ -97,7 +97,7 @@ public sealed class RouteExecutionRecord
             : _sendResults[^1].Status;
 
     /// <summary>
-    /// En iyi ölçülen latency değeri.
+    /// En iyi Ã¶lÃ§Ã¼len latency deÄŸeri.
     /// </summary>
     public double? BestLatencyMs =>
         _sendResults
@@ -109,7 +109,7 @@ public sealed class RouteExecutionRecord
                 : null;
 
     /// <summary>
-    /// Execution kaydına transport sonucu ekler.
+    /// Execution kaydÄ±na transport sonucu ekler.
     /// </summary>
     public void AddResult(TransportSendResult result)
     {
@@ -124,7 +124,7 @@ public sealed class RouteExecutionRecord
     }
 
     /// <summary>
-    /// Execution kaydını manuel tamamlanmış işaretler.
+    /// Execution kaydÄ±nÄ± manuel tamamlanmÄ±ÅŸ iÅŸaretler.
     /// </summary>
     public void MarkCompleted(DateTimeOffset nowUtc)
     {

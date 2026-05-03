@@ -1,51 +1,51 @@
-namespace Hydronom.Runtime.Fleet;
+﻿namespace Hydronom.Runtime.Fleet;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Araç üzerindeki Hydronom Runtime'ın Fleet & Ground Station mimarisine
-/// kendini tanıtmasını sağlayan temel ajan sınıfıdır.
+/// AraÃ§ Ã¼zerindeki Hydronom Runtime'Ä±n Fleet & Ground Station mimarisine
+/// kendini tanÄ±tmasÄ±nÄ± saÄŸlayan temel ajan sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// VehicleFleetAgent şu işlerden sorumludur:
-/// - Aracın kimliğini tutmak,
-/// - Aracın mevcut durumundan FleetHeartbeat üretmek,
-/// - Bu heartbeat'i HydronomEnvelope içine sarmak,
-/// - Yer istasyonuna gönderilmeye hazır standart mesaj üretmek.
+/// VehicleFleetAgent ÅŸu iÅŸlerden sorumludur:
+/// - AracÄ±n kimliÄŸini tutmak,
+/// - AracÄ±n mevcut durumundan FleetHeartbeat Ã¼retmek,
+/// - Bu heartbeat'i HydronomEnvelope iÃ§ine sarmak,
+/// - Yer istasyonuna gÃ¶nderilmeye hazÄ±r standart mesaj Ã¼retmek.
 /// 
-/// Bu sınıf henüz transport ile doğrudan mesaj göndermiyor.
-/// Şimdilik sadece mesaj üretir.
-/// Gönderme işini ileride TransportManager / CommunicationRouter yapacak.
+/// Bu sÄ±nÄ±f henÃ¼z transport ile doÄŸrudan mesaj gÃ¶ndermiyor.
+/// Åimdilik sadece mesaj Ã¼retir.
+/// GÃ¶nderme iÅŸini ileride TransportManager / CommunicationRouter yapacak.
 /// </summary>
 public sealed class VehicleFleetAgent
 {
     /// <summary>
-    /// Bu aracın Fleet mimarisindeki kimliği.
+    /// Bu aracÄ±n Fleet mimarisindeki kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - VEHICLE-ALPHA-001
     /// - VEHICLE-BETA-001
     /// - SIM-VEHICLE-001
     /// 
-    /// Runtime, yer istasyonuna bu kimlikle görünür.
+    /// Runtime, yer istasyonuna bu kimlikle gÃ¶rÃ¼nÃ¼r.
     /// </summary>
     public NodeIdentity Identity { get; }
 
     /// <summary>
-    /// Varsayılan hedef yer istasyonu node kimliği.
+    /// VarsayÄ±lan hedef yer istasyonu node kimliÄŸi.
     /// 
-    /// İlk fazda GROUND-001 kullanıyoruz.
-    /// İleride config üzerinden değiştirilebilir.
+    /// Ä°lk fazda GROUND-001 kullanÄ±yoruz.
+    /// Ä°leride config Ã¼zerinden deÄŸiÅŸtirilebilir.
     /// </summary>
     public string GroundNodeId { get; }
 
     /// <summary>
-    /// VehicleFleetAgent oluşturur.
+    /// VehicleFleetAgent oluÅŸturur.
     /// </summary>
     public VehicleFleetAgent(NodeIdentity identity, string groundNodeId = "GROUND-001")
     {
         if (identity is null || !identity.IsValid)
-            throw new ArgumentException("VehicleFleetAgent için geçerli bir NodeIdentity gerekir.", nameof(identity));
+            throw new ArgumentException("VehicleFleetAgent iÃ§in geÃ§erli bir NodeIdentity gerekir.", nameof(identity));
 
         Identity = identity;
         GroundNodeId = string.IsNullOrWhiteSpace(groundNodeId)
@@ -54,14 +54,14 @@ public sealed class VehicleFleetAgent
     }
 
     /// <summary>
-    /// Araç durumundan FleetHeartbeat payload'ı üretir.
+    /// AraÃ§ durumundan FleetHeartbeat payload'Ä± Ã¼retir.
     /// 
-    /// Bu metot Runtime içindeki mevcut state, görev, health, batarya ve transport
-    /// bilgileriyle çağrılabilir.
+    /// Bu metot Runtime iÃ§indeki mevcut state, gÃ¶rev, health, batarya ve transport
+    /// bilgileriyle Ã§aÄŸrÄ±labilir.
     /// 
-    /// İlk sürümde parametreler basit tutuldu.
-    /// İleride VehicleState, HealthReport, PowerReport, MissionState gibi güçlü
-    /// modellerden otomatik üretime geçilebilir.
+    /// Ä°lk sÃ¼rÃ¼mde parametreler basit tutuldu.
+    /// Ä°leride VehicleState, HealthReport, PowerReport, MissionState gibi gÃ¼Ã§lÃ¼
+    /// modellerden otomatik Ã¼retime geÃ§ilebilir.
     /// </summary>
     public FleetHeartbeat CreateHeartbeat(
         string mode = "Unknown",
@@ -97,10 +97,10 @@ public sealed class VehicleFleetAgent
     }
 
     /// <summary>
-    /// Araç durumundan doğrudan HydronomEnvelope içine sarılmış heartbeat mesajı üretir.
+    /// AraÃ§ durumundan doÄŸrudan HydronomEnvelope iÃ§ine sarÄ±lmÄ±ÅŸ heartbeat mesajÄ± Ã¼retir.
     /// 
-    /// Bu metot ileride transport katmanına verilecek hazır mesajı üretir.
-    /// Yani Runtime şunu diyebilir:
+    /// Bu metot ileride transport katmanÄ±na verilecek hazÄ±r mesajÄ± Ã¼retir.
+    /// Yani Runtime ÅŸunu diyebilir:
     /// 
     /// var envelope = fleetAgent.CreateHeartbeatEnvelope(...);
     /// await transport.SendAsync(envelope, ct);

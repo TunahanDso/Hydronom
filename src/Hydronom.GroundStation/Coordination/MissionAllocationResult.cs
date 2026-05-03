@@ -1,66 +1,66 @@
-namespace Hydronom.GroundStation.Coordination;
+﻿namespace Hydronom.GroundStation.Coordination;
 
 /// <summary>
-/// MissionAllocator tarafından üretilen görev atama sonucunu temsil eder.
+/// MissionAllocator tarafÄ±ndan Ã¼retilen gÃ¶rev atama sonucunu temsil eder.
 /// 
-/// Bu model Ground Station'a şunu söyler:
-/// - Görev atanabildi mi?
-/// - Hangi araç seçildi?
-/// - Neden o araç seçildi?
+/// Bu model Ground Station'a ÅŸunu sÃ¶yler:
+/// - GÃ¶rev atanabildi mi?
+/// - Hangi araÃ§ seÃ§ildi?
+/// - Neden o araÃ§ seÃ§ildi?
 /// - Uygun adaylar kimlerdi?
-/// - Reddedilen/uygun olmayan araçlar neden elendi?
+/// - Reddedilen/uygun olmayan araÃ§lar neden elendi?
 /// 
-/// İleride Hydronom Ops tarafında görev atama kararını operatöre açıklamak için kullanılabilir.
+/// Ä°leride Hydronom Ops tarafÄ±nda gÃ¶rev atama kararÄ±nÄ± operatÃ¶re aÃ§Ä±klamak iÃ§in kullanÄ±labilir.
 /// </summary>
 public sealed record MissionAllocationResult
 {
     /// <summary>
-    /// İlgili görev kimliği.
+    /// Ä°lgili gÃ¶rev kimliÄŸi.
     /// </summary>
     public string MissionId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Görev başarıyla bir araca atanabildi mi?
+    /// GÃ¶rev baÅŸarÄ±yla bir araca atanabildi mi?
     /// </summary>
     public bool Success { get; init; }
 
     /// <summary>
-    /// Seçilen araç/node kimliği.
+    /// SeÃ§ilen araÃ§/node kimliÄŸi.
     /// 
-    /// Success false ise boş kalabilir.
+    /// Success false ise boÅŸ kalabilir.
     /// </summary>
     public string SelectedNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Seçilen aracın insan tarafından okunabilir adı.
+    /// SeÃ§ilen aracÄ±n insan tarafÄ±ndan okunabilir adÄ±.
     /// </summary>
     public string SelectedDisplayName { get; init; } = string.Empty;
 
     /// <summary>
-    /// Atama kararının kısa açıklaması.
+    /// Atama kararÄ±nÄ±n kÄ±sa aÃ§Ä±klamasÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "Alpha selected because it satisfies all required capabilities."
     /// - "No online vehicle satisfies required capabilities."
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Seçilen aracın hesaplanan uygunluk skoru.
+    /// SeÃ§ilen aracÄ±n hesaplanan uygunluk skoru.
     /// 
-    /// Daha yüksek skor daha uygun araç anlamına gelir.
-    /// İlk fazda basit bir puanlama modeli kullanacağız.
+    /// Daha yÃ¼ksek skor daha uygun araÃ§ anlamÄ±na gelir.
+    /// Ä°lk fazda basit bir puanlama modeli kullanacaÄŸÄ±z.
     /// </summary>
     public double Score { get; init; }
 
     /// <summary>
-    /// Görev için değerlendirilen aday araç kimlikleri.
+    /// GÃ¶rev iÃ§in deÄŸerlendirilen aday araÃ§ kimlikleri.
     /// </summary>
     public IReadOnlyList<string> CandidateNodeIds { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Uygun bulunmayan araçlar ve kısa ret sebepleri.
+    /// Uygun bulunmayan araÃ§lar ve kÄ±sa ret sebepleri.
     /// 
     /// Key:
     /// - NodeId
@@ -72,12 +72,12 @@ public sealed record MissionAllocationResult
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Atama sonucunun üretildiği UTC zaman.
+    /// Atama sonucunun Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Başarısız atama sonucu üretir.
+    /// BaÅŸarÄ±sÄ±z atama sonucu Ã¼retir.
     /// </summary>
     public static MissionAllocationResult Failed(
         MissionRequest request,

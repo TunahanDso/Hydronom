@@ -14,3 +14,6 @@ obj/
 # VS Code ve IDE ayarları
 .vscode/
 .idea/
+# Hydronom temporary debug dumps/backups
+sensor_runtime_dump.txt
+*.bak

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
@@ -35,7 +35,7 @@ namespace Hydronom.Core.Modules
 
             if (_routePoints.Count == 0)
             {
-                AbortInternal("Görevde hedef noktası yok.", state: null, insights: null);
+                AbortInternal("GÃ¶revde hedef noktasÄ± yok.", state: null, insights: null);
                 return;
             }
 
@@ -254,7 +254,7 @@ namespace Hydronom.Core.Modules
             if (_lastProgressTicks is long tProg &&
                 ElapsedSeconds(tProg, nowTicks) > _maxNoProgressSeconds)
             {
-                AbortInternal("Görev ilerleme göstermiyor (takılmış olabilir).", state, insights);
+                AbortInternal("GÃ¶rev ilerleme gÃ¶stermiyor (takÄ±lmÄ±ÅŸ olabilir).", state, insights);
             }
         }
 
@@ -295,7 +295,7 @@ namespace Hydronom.Core.Modules
             var elapsed = ElapsedSeconds(_obstacleSinceTicks.Value, nowTicks);
             if (elapsed > _maxObstacleHoldSeconds)
             {
-                AbortInternal("Engel uzun süre kaldı, görev iptal edildi.", state, insights);
+                AbortInternal("Engel uzun sÃ¼re kaldÄ±, gÃ¶rev iptal edildi.", state, insights);
             }
             else
             {

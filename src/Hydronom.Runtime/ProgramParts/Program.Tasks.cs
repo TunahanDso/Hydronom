@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Hydronom.Core.Domain;
 
 partial class Program
 {
     /// <summary>
-    /// Görev değişimlerinde görevin okunabilir durumunu konsola basar.
-    /// Reflection kullanmasının sebebi farklı task tiplerini ortak şekilde loglayabilmektir.
+    /// GÃ¶rev deÄŸiÅŸimlerinde gÃ¶revin okunabilir durumunu konsola basar.
+    /// Reflection kullanmasÄ±nÄ±n sebebi farklÄ± task tiplerini ortak ÅŸekilde loglayabilmektir.
     /// </summary>
     private static void LogTaskState(object? task)
     {
@@ -41,7 +41,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Görevi tek satırlık log formatında açıklar.
+    /// GÃ¶revi tek satÄ±rlÄ±k log formatÄ±nda aÃ§Ä±klar.
     /// </summary>
     private static string DescribeTaskInline(object? task)
     {
@@ -64,7 +64,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Görev değişimi olup olmadığını anlamak için kararlı imza üretir.
+    /// GÃ¶rev deÄŸiÅŸimi olup olmadÄ±ÄŸÄ±nÄ± anlamak iÃ§in kararlÄ± imza Ã¼retir.
     /// </summary>
     private static string BuildTaskSignature(object? task)
     {
@@ -80,7 +80,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Farklı task tiplerinden ortak isim alanlarını okumaya çalışır.
+    /// FarklÄ± task tiplerinden ortak isim alanlarÄ±nÄ± okumaya Ã§alÄ±ÅŸÄ±r.
     /// </summary>
     private static string? TryReadStringProperty(object obj, params string[] propertyNames)
     {
@@ -103,7 +103,7 @@ partial class Program
             }
             catch
             {
-                // Görev loglama runtime davranışını bozmamalı.
+                // GÃ¶rev loglama runtime davranÄ±ÅŸÄ±nÄ± bozmamalÄ±.
             }
         }
 
@@ -111,7 +111,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Task.Target property değerini okunabilir metne çevirir.
+    /// Task.Target property deÄŸerini okunabilir metne Ã§evirir.
     /// </summary>
     private static string? TryReadTargetString(object obj)
     {

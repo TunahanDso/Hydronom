@@ -1,87 +1,87 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 /// <summary>
-/// Hydronom mesajlarının önem / öncelik seviyesini temsil eder.
+/// Hydronom mesajlarÄ±nÄ±n Ã¶nem / Ã¶ncelik seviyesini temsil eder.
 /// 
-/// Fleet & Ground Station mimarisinde her mesaj aynı öneme sahip değildir.
-/// Örneğin:
-/// - Bir heartbeat mesajı düzenli ama düşük öncelikli olabilir.
-/// - Bir görev komutu orta/yüksek öncelikli olabilir.
-/// - Bir EmergencyStop mesajı ise sistemdeki en kritik mesajlardan biridir.
+/// Fleet & Ground Station mimarisinde her mesaj aynÄ± Ã¶neme sahip deÄŸildir.
+/// Ã–rneÄŸin:
+/// - Bir heartbeat mesajÄ± dÃ¼zenli ama dÃ¼ÅŸÃ¼k Ã¶ncelikli olabilir.
+/// - Bir gÃ¶rev komutu orta/yÃ¼ksek Ã¶ncelikli olabilir.
+/// - Bir EmergencyStop mesajÄ± ise sistemdeki en kritik mesajlardan biridir.
 /// 
 /// Bu enum sayesinde CommunicationRouter, TransportManager veya GroundStation
-/// mesajları önceliğine göre sıralayabilir, farklı kanallardan gönderebilir
-/// veya kritik mesajlar için ACK / tekrar gönderim gibi mekanizmalar uygulayabilir.
+/// mesajlarÄ± Ã¶nceliÄŸine gÃ¶re sÄ±ralayabilir, farklÄ± kanallardan gÃ¶nderebilir
+/// veya kritik mesajlar iÃ§in ACK / tekrar gÃ¶nderim gibi mekanizmalar uygulayabilir.
 /// </summary>
 public enum MessagePriority
 {
     /// <summary>
-    /// Öncelik bilinmiyor veya mesaj henüz sınıflandırılmadı.
+    /// Ã–ncelik bilinmiyor veya mesaj henÃ¼z sÄ±nÄ±flandÄ±rÄ±lmadÄ±.
     /// 
-    /// Normalde üretim sisteminde mümkün olduğunca kullanılmamalıdır.
-    /// Daha çok varsayılan değer veya eksik konfigürasyon durumları içindir.
+    /// Normalde Ã¼retim sisteminde mÃ¼mkÃ¼n olduÄŸunca kullanÄ±lmamalÄ±dÄ±r.
+    /// Daha Ã§ok varsayÄ±lan deÄŸer veya eksik konfigÃ¼rasyon durumlarÄ± iÃ§indir.
     /// </summary>
     Unknown = 0,
 
     /// <summary>
-    /// Düşük öncelikli mesaj.
+    /// DÃ¼ÅŸÃ¼k Ã¶ncelikli mesaj.
     /// 
-    /// Kullanım örnekleri:
-    /// - Periyodik düşük önem telemetry
+    /// KullanÄ±m Ã¶rnekleri:
+    /// - Periyodik dÃ¼ÅŸÃ¼k Ã¶nem telemetry
     /// - Debug bilgileri
-    /// - Uzun analiz özetleri
-    /// - Gecikse de sistemi doğrudan riske sokmayacak mesajlar
+    /// - Uzun analiz Ã¶zetleri
+    /// - Gecikse de sistemi doÄŸrudan riske sokmayacak mesajlar
     /// </summary>
     Low = 1,
 
     /// <summary>
-    /// Normal öncelikli mesaj.
+    /// Normal Ã¶ncelikli mesaj.
     /// 
-    /// Kullanım örnekleri:
+    /// KullanÄ±m Ã¶rnekleri:
     /// - Standart vehicle status
     /// - Normal heartbeat
     /// - Genel telemetry
-    /// - Fleet registry güncellemeleri
+    /// - Fleet registry gÃ¼ncellemeleri
     /// </summary>
     Normal = 2,
 
     /// <summary>
-    /// Yüksek öncelikli mesaj.
+    /// YÃ¼ksek Ã¶ncelikli mesaj.
     /// 
-    /// Kullanım örnekleri:
-    /// - Görev komutu
-    /// - Araç rol değişimi
-    /// - Bağlantı kalitesi kritik uyarısı
-    /// - Önemli health uyarısı
-    /// - Operatör tarafından gönderilen kontrol komutları
+    /// KullanÄ±m Ã¶rnekleri:
+    /// - GÃ¶rev komutu
+    /// - AraÃ§ rol deÄŸiÅŸimi
+    /// - BaÄŸlantÄ± kalitesi kritik uyarÄ±sÄ±
+    /// - Ã–nemli health uyarÄ±sÄ±
+    /// - OperatÃ¶r tarafÄ±ndan gÃ¶nderilen kontrol komutlarÄ±
     /// </summary>
     High = 3,
 
     /// <summary>
-    /// Kritik öncelikli mesaj.
+    /// Kritik Ã¶ncelikli mesaj.
     /// 
-    /// Kullanım örnekleri:
-    /// - Safety uyarıları
-    /// - Çarpışma riski
-    /// - Araç kaybı / bağlantı kopması
+    /// KullanÄ±m Ã¶rnekleri:
+    /// - Safety uyarÄ±larÄ±
+    /// - Ã‡arpÄ±ÅŸma riski
+    /// - AraÃ§ kaybÄ± / baÄŸlantÄ± kopmasÄ±
     /// - Failover gerektiren durumlar
-    /// - Komutun gecikmesi halinde sistem güvenliğini etkileyebilecek olaylar
+    /// - Komutun gecikmesi halinde sistem gÃ¼venliÄŸini etkileyebilecek olaylar
     /// </summary>
     Critical = 4,
 
     /// <summary>
-    /// Acil durum önceliği.
+    /// Acil durum Ã¶nceliÄŸi.
     /// 
-    /// Kullanım örnekleri:
+    /// KullanÄ±m Ã¶rnekleri:
     /// - EmergencyStop
     /// - Kill switch
-    /// - Tüm araçlara acil dur komutu
+    /// - TÃ¼m araÃ§lara acil dur komutu
     /// - Operasyon iptali
-    /// - İnsan, araç veya çevre güvenliği için anında uygulanması gereken mesajlar
+    /// - Ä°nsan, araÃ§ veya Ã§evre gÃ¼venliÄŸi iÃ§in anÄ±nda uygulanmasÄ± gereken mesajlar
     /// 
     /// Not:
-    /// Bu seviyedeki mesajlar ileride CommunicationRouter tarafından
-    /// mümkün olan tüm kanallardan yayınlanabilir:
+    /// Bu seviyedeki mesajlar ileride CommunicationRouter tarafÄ±ndan
+    /// mÃ¼mkÃ¼n olan tÃ¼m kanallardan yayÄ±nlanabilir:
     /// Wi-Fi + RF + LoRa + Serial + Mesh gibi.
     /// </summary>
     Emergency = 5

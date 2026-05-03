@@ -1,28 +1,28 @@
-namespace Hydronom.GroundStation.Communication;
+﻿namespace Hydronom.GroundStation.Communication;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Routing;
 
 /// <summary>
-/// Ground Station tarafında envelope mesajlarını gönderim öncesi route eden sınıftır.
+/// Ground Station tarafÄ±nda envelope mesajlarÄ±nÄ± gÃ¶nderim Ã¶ncesi route eden sÄ±nÄ±ftÄ±r.
 /// 
-/// Bu sınıf şimdilik gerçek TCP/LoRa/WebSocket gönderimi yapmaz.
-/// İlk faz görevi:
-/// - Envelope için policy route kararı üretmek,
-/// - Hedef node FleetRegistry snapshot içinde var mı bakmak,
-/// - Hedef node'un AvailableTransports listesine göre route'u filtrelemek,
-/// - Mesajın gönderilebilir olup olmadığını söylemektir.
+/// Bu sÄ±nÄ±f ÅŸimdilik gerÃ§ek TCP/LoRa/WebSocket gÃ¶nderimi yapmaz.
+/// Ä°lk faz gÃ¶revi:
+/// - Envelope iÃ§in policy route kararÄ± Ã¼retmek,
+/// - Hedef node FleetRegistry snapshot iÃ§inde var mÄ± bakmak,
+/// - Hedef node'un AvailableTransports listesine gÃ¶re route'u filtrelemek,
+/// - MesajÄ±n gÃ¶nderilebilir olup olmadÄ±ÄŸÄ±nÄ± sÃ¶ylemektir.
 /// 
-/// Yeni LinkHealth hazırlığı:
-/// - Router artık opsiyonel link uygunluk filtresi alabilir.
-/// - Bu filtre sayesinde ileride LinkHealthTracker üzerinden
-///   kötü, critical veya lost linkler route kararından elenebilir.
-/// - Böylece CommunicationRouter ileride kalite skoru tabanlı route kararına geçebilir.
+/// Yeni LinkHealth hazÄ±rlÄ±ÄŸÄ±:
+/// - Router artÄ±k opsiyonel link uygunluk filtresi alabilir.
+/// - Bu filtre sayesinde ileride LinkHealthTracker Ã¼zerinden
+///   kÃ¶tÃ¼, critical veya lost linkler route kararÄ±ndan elenebilir.
+/// - BÃ¶ylece CommunicationRouter ileride kalite skoru tabanlÄ± route kararÄ±na geÃ§ebilir.
 /// 
-/// İleride bu sınıfın üzerine:
+/// Ä°leride bu sÄ±nÄ±fÄ±n Ã¼zerine:
 /// - TransportManager,
-/// - ITransport implementasyonları,
+/// - ITransport implementasyonlarÄ±,
 /// - retry/ACK tracking,
 /// - link quality scoring,
 /// - send queue,
@@ -32,20 +32,20 @@ using Hydronom.GroundStation.Routing;
 public sealed class CommunicationRouter
 {
     /// <summary>
-    /// Mesaj tipine ve priority değerine göre teorik route kararı üreten policy.
+    /// Mesaj tipine ve priority deÄŸerine gÃ¶re teorik route kararÄ± Ã¼reten policy.
     /// </summary>
     private readonly TransportRoutingPolicy _routingPolicy;
 
     /// <summary>
-    /// Policy kararını hedef node'un gerçek transport listesine göre filtreleyen yardımcı.
+    /// Policy kararÄ±nÄ± hedef node'un gerÃ§ek transport listesine gÃ¶re filtreleyen yardÄ±mcÄ±.
     /// </summary>
     private readonly AvailableTransportFilter _transportFilter;
 
     /// <summary>
-    /// CommunicationRouter oluşturur.
+    /// CommunicationRouter oluÅŸturur.
     /// 
-    /// Dışarıdan policy/filter verilebilir.
-    /// Verilmezse varsayılan implementasyonlar kullanılır.
+    /// DÄ±ÅŸarÄ±dan policy/filter verilebilir.
+    /// Verilmezse varsayÄ±lan implementasyonlar kullanÄ±lÄ±r.
     /// </summary>
     public CommunicationRouter(
         TransportRoutingPolicy? routingPolicy = null,
@@ -56,17 +56,17 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Verilen envelope için mevcut fleet snapshot üzerinden route sonucu üretir.
+    /// Verilen envelope iÃ§in mevcut fleet snapshot Ã¼zerinden route sonucu Ã¼retir.
     /// 
-    /// Normal hedefli mesajlarda TargetNodeId üzerinden hedef araç aranır.
+    /// Normal hedefli mesajlarda TargetNodeId Ã¼zerinden hedef araÃ§ aranÄ±r.
     /// Broadcast mesajlarda ise:
     /// - TargetNodeId "BROADCAST" olabilir,
     /// - Emergency priority olabilir,
     /// - BroadcastAllAvailableLinks true olabilir.
     /// 
-    /// İlk fazda broadcast için tüm filodaki transport'lar birleştirilerek uygulanabilir route çıkarılır.
+    /// Ä°lk fazda broadcast iÃ§in tÃ¼m filodaki transport'lar birleÅŸtirilerek uygulanabilir route Ã§Ä±karÄ±lÄ±r.
     /// 
-    /// Bu overload eski davranışı korur.
+    /// Bu overload eski davranÄ±ÅŸÄ± korur.
     /// Link health filtresi uygulanmaz.
     /// </summary>
     public CommunicationRouteResult Route(
@@ -80,16 +80,16 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Verilen envelope için mevcut fleet snapshot ve opsiyonel link uygunluk filtresi üzerinden route sonucu üretir.
+    /// Verilen envelope iÃ§in mevcut fleet snapshot ve opsiyonel link uygunluk filtresi Ã¼zerinden route sonucu Ã¼retir.
     /// 
     /// linkAvailabilityFilter:
-    /// - vehicleId ve transportKind alır,
-    /// - true dönerse link kullanılabilir kabul edilir,
-    /// - false dönerse o transport route adaylarından çıkarılır.
+    /// - vehicleId ve transportKind alÄ±r,
+    /// - true dÃ¶nerse link kullanÄ±labilir kabul edilir,
+    /// - false dÃ¶nerse o transport route adaylarÄ±ndan Ã§Ä±karÄ±lÄ±r.
     /// 
-    /// Bu yapı LinkHealthTracker'a doğrudan bağımlılık kurmadan link-aware routing zemini hazırlar.
-    /// Böylece CommunicationRouter saf route motoru olarak kalır,
-    /// LinkHealthTracker ise GroundStationEngine tarafından dışarıdan bağlanabilir.
+    /// Bu yapÄ± LinkHealthTracker'a doÄŸrudan baÄŸÄ±mlÄ±lÄ±k kurmadan link-aware routing zemini hazÄ±rlar.
+    /// BÃ¶ylece CommunicationRouter saf route motoru olarak kalÄ±r,
+    /// LinkHealthTracker ise GroundStationEngine tarafÄ±ndan dÄ±ÅŸarÄ±dan baÄŸlanabilir.
     /// </summary>
     public CommunicationRouteResult Route(
         HydronomEnvelope envelope,
@@ -127,11 +127,11 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Tek hedefli mesaj için route sonucu üretir.
+    /// Tek hedefli mesaj iÃ§in route sonucu Ã¼retir.
     /// 
-    /// Eğer linkAvailabilityFilter verilmişse hedef aracın AvailableTransports listesi
-    /// önce bu filtreye göre daraltılır.
-    /// Ardından mevcut AvailableTransportFilter ile policy kararı uygulanır.
+    /// EÄŸer linkAvailabilityFilter verilmiÅŸse hedef aracÄ±n AvailableTransports listesi
+    /// Ã¶nce bu filtreye gÃ¶re daraltÄ±lÄ±r.
+    /// ArdÄ±ndan mevcut AvailableTransportFilter ile policy kararÄ± uygulanÄ±r.
     /// </summary>
     private CommunicationRouteResult RouteSingleTarget(
         HydronomEnvelope envelope,
@@ -194,17 +194,17 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Broadcast mesajlar için route sonucu üretir.
+    /// Broadcast mesajlar iÃ§in route sonucu Ã¼retir.
     /// 
-    /// İlk fazda tüm online araçların AvailableTransports listeleri birleştirilir.
-    /// Böylece broadcast için pratikte kullanılabilecek transport türleri bulunur.
+    /// Ä°lk fazda tÃ¼m online araÃ§larÄ±n AvailableTransports listeleri birleÅŸtirilir.
+    /// BÃ¶ylece broadcast iÃ§in pratikte kullanÄ±labilecek transport tÃ¼rleri bulunur.
     /// 
-    /// Eğer linkAvailabilityFilter verilmişse her online araç için transport listesi
-    /// link sağlığına göre daraltılır ve sonra union alınır.
+    /// EÄŸer linkAvailabilityFilter verilmiÅŸse her online araÃ§ iÃ§in transport listesi
+    /// link saÄŸlÄ±ÄŸÄ±na gÃ¶re daraltÄ±lÄ±r ve sonra union alÄ±nÄ±r.
     /// 
     /// Not:
-    /// Gerçek implementasyonda her node için ayrı route sonucu üretmek daha doğru olacaktır.
-    /// Bu ilk çekirdek sadece toplam route uygulanabilirliğini gösterir.
+    /// GerÃ§ek implementasyonda her node iÃ§in ayrÄ± route sonucu Ã¼retmek daha doÄŸru olacaktÄ±r.
+    /// Bu ilk Ã§ekirdek sadece toplam route uygulanabilirliÄŸini gÃ¶sterir.
     /// </summary>
     private CommunicationRouteResult RouteBroadcast(
         HydronomEnvelope envelope,
@@ -268,10 +268,10 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Hedef araç ve transport listesi için opsiyonel link uygunluk filtresi uygular.
+    /// Hedef araÃ§ ve transport listesi iÃ§in opsiyonel link uygunluk filtresi uygular.
     /// 
-    /// Filtre yoksa AvailableTransports olduğu gibi döner.
-    /// Filtre varsa sadece true dönen transport türleri kalır.
+    /// Filtre yoksa AvailableTransports olduÄŸu gibi dÃ¶ner.
+    /// Filtre varsa sadece true dÃ¶nen transport tÃ¼rleri kalÄ±r.
     /// </summary>
     private static IReadOnlyList<TransportKind> ApplyLinkAvailabilityFilter(
         string vehicleId,
@@ -291,9 +291,9 @@ public sealed class CommunicationRouter
     }
 
     /// <summary>
-    /// Envelope'un broadcast olarak değerlendirilip değerlendirilmeyeceğini belirler.
+    /// Envelope'un broadcast olarak deÄŸerlendirilip deÄŸerlendirilmeyeceÄŸini belirler.
     /// 
-    /// Broadcast sayılan durumlar:
+    /// Broadcast sayÄ±lan durumlar:
     /// - TargetNodeId = BROADCAST
     /// - Policy broadcast istiyor
     /// - Priority Emergency

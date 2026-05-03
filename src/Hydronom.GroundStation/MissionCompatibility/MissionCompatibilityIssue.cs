@@ -1,7 +1,7 @@
-namespace Hydronom.GroundStation.MissionCompatibility;
+﻿namespace Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
-/// Mission compatibility değerlendirmesinde bulunan tek bir problemi temsil eder.
+/// Mission compatibility deÄŸerlendirmesinde bulunan tek bir problemi temsil eder.
 /// </summary>
 public sealed record MissionCompatibilityIssue
 {
@@ -11,17 +11,17 @@ public sealed record MissionCompatibilityIssue
     public string Code { get; init; } = string.Empty;
 
     /// <summary>
-    /// İnsan-okunabilir açıklama.
+    /// Ä°nsan-okunabilir aÃ§Ä±klama.
     /// </summary>
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    /// Bu problem göreve uygunluğu tamamen engeller mi?
+    /// Bu problem gÃ¶reve uygunluÄŸu tamamen engeller mi?
     /// </summary>
     public bool IsBlocking { get; init; } = true;
 
     /// <summary>
-    /// Problem üretilen UTC zaman.
+    /// Problem Ã¼retilen UTC zaman.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
 

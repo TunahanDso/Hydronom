@@ -1,31 +1,31 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// FleetRegistry içinde takip edilecek araç/node durum özetini temsil eder.
+/// FleetRegistry iÃ§inde takip edilecek araÃ§/node durum Ã¶zetini temsil eder.
 /// 
-/// Bu model, yer istasyonunun bir aracı hızlıca anlayabilmesi için tasarlanmıştır.
-/// Hydronom Ops tarafındaki araç kartları, filo listesi ve canlı durum panelleri
+/// Bu model, yer istasyonunun bir aracÄ± hÄ±zlÄ±ca anlayabilmesi iÃ§in tasarlanmÄ±ÅŸtÄ±r.
+/// Hydronom Ops tarafÄ±ndaki araÃ§ kartlarÄ±, filo listesi ve canlÄ± durum panelleri
 /// bu modelden beslenebilir.
 /// 
-/// Amaç:
-/// - Araç bağlı mı?
-/// - En son ne zaman görüldü?
+/// AmaÃ§:
+/// - AraÃ§ baÄŸlÄ± mÄ±?
+/// - En son ne zaman gÃ¶rÃ¼ldÃ¼?
 /// - Batarya durumu ne?
-/// - Sağlık durumu ne?
-/// - Aktif görevi var mı?
+/// - SaÄŸlÄ±k durumu ne?
+/// - Aktif gÃ¶revi var mÄ±?
 /// - Hangi role sahip?
-/// - Hangi haberleşme kanalları kullanılabilir?
+/// - Hangi haberleÅŸme kanallarÄ± kullanÄ±labilir?
 /// - Hangi kabiliyetlere sahip?
 /// 
-/// Bu sınıf full telemetry değildir.
-/// Sadece Fleet seviyesinde hızlı durum özeti verir.
+/// Bu sÄ±nÄ±f full telemetry deÄŸildir.
+/// Sadece Fleet seviyesinde hÄ±zlÄ± durum Ã¶zeti verir.
 /// </summary>
 public sealed record VehicleNodeStatus
 {
     /// <summary>
-    /// Araç veya node kimliği.
+    /// AraÃ§ veya node kimliÄŸi.
     /// 
     /// Bu alan:
     /// - NodeId
@@ -33,81 +33,81 @@ public sealed record VehicleNodeStatus
     /// - NodeType
     /// - VehicleType
     /// - Role
-    /// gibi temel kimlik bilgilerini taşır.
+    /// gibi temel kimlik bilgilerini taÅŸÄ±r.
     /// 
-    /// FleetRegistry araçları bu kimlik üzerinden takip eder.
+    /// FleetRegistry araÃ§larÄ± bu kimlik Ã¼zerinden takip eder.
     /// </summary>
     public NodeIdentity Identity { get; init; } = new();
 
     /// <summary>
-    /// Node'un yer istasyonu tarafından bağlı kabul edilip edilmediğini belirtir.
+    /// Node'un yer istasyonu tarafÄ±ndan baÄŸlÄ± kabul edilip edilmediÄŸini belirtir.
     /// 
     /// true:
-    /// - Son heartbeat/status mesajı taze.
-    /// - En az bir transport üzerinden erişilebilir.
+    /// - Son heartbeat/status mesajÄ± taze.
+    /// - En az bir transport Ã¼zerinden eriÅŸilebilir.
     /// 
     /// false:
-    /// - Araç uzun süredir mesaj göndermemiş olabilir.
-    /// - Bağlantı kopmuş olabilir.
-    /// - Araç offline olabilir.
+    /// - AraÃ§ uzun sÃ¼redir mesaj gÃ¶ndermemiÅŸ olabilir.
+    /// - BaÄŸlantÄ± kopmuÅŸ olabilir.
+    /// - AraÃ§ offline olabilir.
     /// </summary>
     public bool IsOnline { get; init; }
 
     /// <summary>
-    /// Bu node'dan alınan son mesajın UTC zamanı.
+    /// Bu node'dan alÄ±nan son mesajÄ±n UTC zamanÄ±.
     /// 
-    /// Kullanım alanları:
-    /// - Bağlantı tazeliği hesaplama
-    /// - Offline araç tespiti
-    /// - Fleet dashboard üzerinde "son görüldü" bilgisi
-    /// - Watchdog / bağlantı kaybı uyarıları
+    /// KullanÄ±m alanlarÄ±:
+    /// - BaÄŸlantÄ± tazeliÄŸi hesaplama
+    /// - Offline araÃ§ tespiti
+    /// - Fleet dashboard Ã¼zerinde "son gÃ¶rÃ¼ldÃ¼" bilgisi
+    /// - Watchdog / baÄŸlantÄ± kaybÄ± uyarÄ±larÄ±
     /// </summary>
     public DateTimeOffset LastSeenUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Araç batarya yüzdesi.
+    /// AraÃ§ batarya yÃ¼zdesi.
     /// 
-    /// Değer aralığı normalde 0-100 olmalıdır.
+    /// DeÄŸer aralÄ±ÄŸÄ± normalde 0-100 olmalÄ±dÄ±r.
     /// 
     /// null ise:
-    /// - Araç batarya bilgisi göndermiyor olabilir.
-    /// - Bu node araç dışı bir sistem olabilir.
-    /// - Veri henüz alınmamış olabilir.
+    /// - AraÃ§ batarya bilgisi gÃ¶ndermiyor olabilir.
+    /// - Bu node araÃ§ dÄ±ÅŸÄ± bir sistem olabilir.
+    /// - Veri henÃ¼z alÄ±nmamÄ±ÅŸ olabilir.
     /// </summary>
     public double? BatteryPercent { get; init; }
 
     /// <summary>
-    /// Genel sağlık durumu.
+    /// Genel saÄŸlÄ±k durumu.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "OK"
     /// - "Warning"
     /// - "Critical"
     /// - "Fault"
     /// - "Unknown"
     /// 
-    /// Şimdilik string bırakıyoruz.
-    /// Çünkü ileride health sistemi daha detaylı power/sensor/actuator analizleriyle
-    /// genişletilecek.
+    /// Åimdilik string bÄ±rakÄ±yoruz.
+    /// Ã‡Ã¼nkÃ¼ ileride health sistemi daha detaylÄ± power/sensor/actuator analizleriyle
+    /// geniÅŸletilecek.
     /// </summary>
     public string Health { get; init; } = "Unknown";
 
     /// <summary>
-    /// Araçta aktif olan görev kimliği.
+    /// AraÃ§ta aktif olan gÃ¶rev kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "MISSION-2026-001"
     /// - "SEARCH-AREA-A"
     /// - "RETURN-HOME"
     /// 
-    /// Boş ise araçta aktif görev olmayabilir.
+    /// BoÅŸ ise araÃ§ta aktif gÃ¶rev olmayabilir.
     /// </summary>
     public string ActiveMissionId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Araçta aktif olan görev durum bilgisi.
+    /// AraÃ§ta aktif olan gÃ¶rev durum bilgisi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Idle"
     /// - "Running"
     /// - "Paused"
@@ -115,64 +115,64 @@ public sealed record VehicleNodeStatus
     /// - "Failed"
     /// - "ReturningHome"
     /// 
-    /// Bu bilgi Ops tarafındaki görev kartlarında gösterilebilir.
+    /// Bu bilgi Ops tarafÄ±ndaki gÃ¶rev kartlarÄ±nda gÃ¶sterilebilir.
     /// </summary>
     public string MissionState { get; init; } = "Idle";
 
     /// <summary>
-    /// Aracın son bilinen enlem değeri.
+    /// AracÄ±n son bilinen enlem deÄŸeri.
     /// 
     /// null ise:
     /// - GPS yoktur.
-    /// - Konum henüz alınmamıştır.
-    /// - Araç simülasyon/kapalı ortamda çalışıyor olabilir.
+    /// - Konum henÃ¼z alÄ±nmamÄ±ÅŸtÄ±r.
+    /// - AraÃ§ simÃ¼lasyon/kapalÄ± ortamda Ã§alÄ±ÅŸÄ±yor olabilir.
     /// </summary>
     public double? Latitude { get; init; }
 
     /// <summary>
-    /// Aracın son bilinen boylam değeri.
+    /// AracÄ±n son bilinen boylam deÄŸeri.
     /// 
     /// null ise:
     /// - GPS yoktur.
-    /// - Konum henüz alınmamıştır.
-    /// - Araç simülasyon/kapalı ortamda çalışıyor olabilir.
+    /// - Konum henÃ¼z alÄ±nmamÄ±ÅŸtÄ±r.
+    /// - AraÃ§ simÃ¼lasyon/kapalÄ± ortamda Ã§alÄ±ÅŸÄ±yor olabilir.
     /// </summary>
     public double? Longitude { get; init; }
 
     /// <summary>
-    /// Aracın son bilinen baş açısı.
+    /// AracÄ±n son bilinen baÅŸ aÃ§Ä±sÄ±.
     /// 
     /// Derece cinsindendir.
-    /// 0-360 veya -180/+180 formatı kullanılabilir; bu formatı ileride standardize edebiliriz.
+    /// 0-360 veya -180/+180 formatÄ± kullanÄ±labilir; bu formatÄ± ileride standardize edebiliriz.
     /// </summary>
     public double? HeadingDeg { get; init; }
 
     /// <summary>
-    /// Aracın son bilinen hızı.
+    /// AracÄ±n son bilinen hÄ±zÄ±.
     /// 
     /// Metre/saniye cinsindendir.
     /// </summary>
     public double? SpeedMps { get; init; }
 
     /// <summary>
-    /// Node'un kullanılabilir haberleşme kanalları.
+    /// Node'un kullanÄ±labilir haberleÅŸme kanallarÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Tcp
     /// - WebSocket
     /// - LoRa
     /// - RfModem
     /// - Cellular
     /// 
-    /// CommunicationRouter bu listeyi mesaj yönlendirme kararlarında kullanabilir.
+    /// CommunicationRouter bu listeyi mesaj yÃ¶nlendirme kararlarÄ±nda kullanabilir.
     /// </summary>
     public IReadOnlyList<TransportKind> AvailableTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Node'un bildirdiği kabiliyetler.
+    /// Node'un bildirdiÄŸi kabiliyetler.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - navigation
     /// - lidar
     /// - camera
@@ -180,30 +180,30 @@ public sealed record VehicleNodeStatus
     /// - relay
     /// - autonomous_mission
     /// 
-    /// MissionAllocator ileride görevleri bu kabiliyetlere göre dağıtabilir.
+    /// MissionAllocator ileride gÃ¶revleri bu kabiliyetlere gÃ¶re daÄŸÄ±tabilir.
     /// </summary>
     public IReadOnlyList<VehicleCapability> Capabilities { get; init; } =
         Array.Empty<VehicleCapability>();
 
     /// <summary>
-    /// Fleet tarafında bu node için ek bilgi alanı.
+    /// Fleet tarafÄ±nda bu node iÃ§in ek bilgi alanÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "linkQuality": "Good"
     /// - "operator": "Tunahan"
     /// - "area": "TestPool"
     /// - "mode": "Autonomous"
     /// 
-    /// Bu alan, ilk fazda esneklik sağlar.
-    /// Daha sonra gerekli alanlar netleşirse güçlü tiplere ayrılabilir.
+    /// Bu alan, ilk fazda esneklik saÄŸlar.
+    /// Daha sonra gerekli alanlar netleÅŸirse gÃ¼Ã§lÃ¼ tiplere ayrÄ±labilir.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Bu status bilgisinin temel olarak geçerli olup olmadığını döndürür.
+    /// Bu status bilgisinin temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Kimliği geçerli olmayan bir node FleetRegistry içine alınmamalıdır.
+    /// KimliÄŸi geÃ§erli olmayan bir node FleetRegistry iÃ§ine alÄ±nmamalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         Identity.IsValid;

@@ -1,74 +1,74 @@
-namespace Hydronom.GroundStation.MissionCompatibility;
+﻿namespace Hydronom.GroundStation.MissionCompatibility;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Bir aracın belirli bir göreve uygunluk değerlendirme sonucunu temsil eder.
+/// Bir aracÄ±n belirli bir gÃ¶reve uygunluk deÄŸerlendirme sonucunu temsil eder.
 /// </summary>
 public sealed record MissionCompatibilityResult
 {
     /// <summary>
-    /// Değerlendirilen aracın node id değeri.
+    /// DeÄŸerlendirilen aracÄ±n node id deÄŸeri.
     /// </summary>
     public string VehicleId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Değerlendirilen aracın tipi.
+    /// DeÄŸerlendirilen aracÄ±n tipi.
     /// </summary>
     public string VehicleType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Görev tipi.
+    /// GÃ¶rev tipi.
     /// </summary>
     public string MissionType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Araç bu göreve uygun mu?
+    /// AraÃ§ bu gÃ¶reve uygun mu?
     /// </summary>
     public bool IsCompatible { get; init; }
 
     /// <summary>
-    /// Araç bu görev için reddedildi mi?
+    /// AraÃ§ bu gÃ¶rev iÃ§in reddedildi mi?
     /// </summary>
     public bool IsRejected => !IsCompatible;
 
     /// <summary>
     /// Uyumluluk skoru.
     /// 
-    /// İlk sürümde 0-100 arası normalize edilir.
+    /// Ä°lk sÃ¼rÃ¼mde 0-100 arasÄ± normalize edilir.
     /// </summary>
     public double Score { get; init; }
 
     /// <summary>
-    /// Kısa sonuç açıklaması.
+    /// KÄ±sa sonuÃ§ aÃ§Ä±klamasÄ±.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Değerlendirme sırasında bulunan problemler.
+    /// DeÄŸerlendirme sÄ±rasÄ±nda bulunan problemler.
     /// </summary>
     public IReadOnlyList<MissionCompatibilityIssue> Issues { get; init; } =
         Array.Empty<MissionCompatibilityIssue>();
 
     /// <summary>
-    /// Eşleşen capability adları.
+    /// EÅŸleÅŸen capability adlarÄ±.
     /// </summary>
     public IReadOnlyList<string> MatchedCapabilities { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Eksik required capability adları.
+    /// Eksik required capability adlarÄ±.
     /// </summary>
     public IReadOnlyList<string> MissingRequiredCapabilities { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Blocking problem var mı?
+    /// Blocking problem var mÄ±?
     /// </summary>
     public bool HasBlockingIssues => Issues.Any(x => x.IsBlocking);
 
     /// <summary>
-    /// Warning problem var mı?
+    /// Warning problem var mÄ±?
     /// </summary>
     public bool HasWarnings => Issues.Any(x => !x.IsBlocking);
 

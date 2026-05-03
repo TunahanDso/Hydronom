@@ -1,14 +1,14 @@
-namespace Hydronom.GroundStation.MissionCompatibility;
+﻿namespace Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
-/// Bir görevin araçtan beklediği capability gereksinimini temsil eder.
+/// Bir gÃ¶revin araÃ§tan beklediÄŸi capability gereksinimini temsil eder.
 /// </summary>
 public sealed record MissionCapabilityRequirement
 {
     /// <summary>
-    /// Capability adı.
+    /// Capability adÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - navigation
     /// - lidar
     /// - camera
@@ -21,23 +21,23 @@ public sealed record MissionCapabilityRequirement
     /// <summary>
     /// Bu capability zorunlu mu?
     /// 
-    /// true ise yokluğu görevi engeller.
-    /// false ise preferred/bonus capability gibi değerlendirilir.
+    /// true ise yokluÄŸu gÃ¶revi engeller.
+    /// false ise preferred/bonus capability gibi deÄŸerlendirilir.
     /// </summary>
     public bool Required { get; init; } = true;
 
     /// <summary>
-    /// Capability'nin enabled olması zorunlu mu?
+    /// Capability'nin enabled olmasÄ± zorunlu mu?
     /// </summary>
     public bool RequireEnabled { get; init; } = true;
 
     /// <summary>
-    /// Capability health değerinin OK olması zorunlu mu?
+    /// Capability health deÄŸerinin OK olmasÄ± zorunlu mu?
     /// </summary>
     public bool RequireHealthy { get; init; } = true;
 
     /// <summary>
-    /// Bu capability eşleşince skora eklenecek ağırlık.
+    /// Bu capability eÅŸleÅŸince skora eklenecek aÄŸÄ±rlÄ±k.
     /// </summary>
     public double Weight { get; init; } = 1.0;
 }

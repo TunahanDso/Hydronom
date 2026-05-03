@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -12,7 +12,7 @@ public sealed class RuntimeStatusTool : IAiTool
 {
     private static readonly ToolSpec _spec = new(
         Name: "runtime.status",
-        Description: "Runtime instance bilgilerini ve capability özetini döndürür.",
+        Description: "Runtime instance bilgilerini ve capability Ã¶zetini dÃ¶ndÃ¼rÃ¼r.",
         Args: Array.Empty<ToolArgSpec>(),
         Dangerous: false
     );
@@ -47,7 +47,7 @@ public sealed class RuntimeStatusTool : IAiTool
             ToolResult.Success(
                 toolCallId: call.Id,
                 name: Spec.Name,
-                output: "Runtime status alındı.",
+                output: "Runtime status alÄ±ndÄ±.",
                 data: data
             )
         );

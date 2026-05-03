@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HydronomOps.Gateway.Contracts.Actuators;
 using HydronomOps.Gateway.Contracts.Diagnostics;
@@ -9,62 +9,62 @@ using HydronomOps.Gateway.Contracts.Vehicle;
 namespace HydronomOps.Gateway.Domain;
 
 /// <summary>
-/// Gateway tarafında tek araç için tutulan birleşik durum modeli.
+/// Gateway tarafÄ±nda tek araÃ§ iÃ§in tutulan birleÅŸik durum modeli.
 /// </summary>
 public sealed class VehicleAggregateState
 {
     /// <summary>
-    /// Araç kimliği.
+    /// AraÃ§ kimliÄŸi.
     /// </summary>
     public string VehicleId { get; set; } = "hydronom-main";
 
     /// <summary>
-    /// Gateway başlangıç zamanı.
+    /// Gateway baÅŸlangÄ±Ã§ zamanÄ±.
     /// </summary>
     public DateTime StartedUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Son genel güncelleme zamanı.
+    /// Son genel gÃ¼ncelleme zamanÄ±.
     /// </summary>
     public DateTime? LastUpdatedUtc { get; set; }
 
     /// <summary>
-    /// Runtime’dan son veri geliş zamanı.
+    /// Runtimeâ€™dan son veri geliÅŸ zamanÄ±.
     /// </summary>
     public DateTime? LastRuntimeIngressUtc { get; set; }
 
     /// <summary>
-    /// Son araç telemetri zamanı.
+    /// Son araÃ§ telemetri zamanÄ±.
     /// </summary>
     public DateTime? LastVehicleTelemetryUtc { get; set; }
 
     /// <summary>
-    /// Son görev durumu zamanı.
+    /// Son gÃ¶rev durumu zamanÄ±.
     /// </summary>
     public DateTime? LastMissionStateUtc { get; set; }
 
     /// <summary>
-    /// Son sensör durumu zamanı.
+    /// Son sensÃ¶r durumu zamanÄ±.
     /// </summary>
     public DateTime? LastSensorStateUtc { get; set; }
 
     /// <summary>
-    /// Son aktüatör durumu zamanı.
+    /// Son aktÃ¼atÃ¶r durumu zamanÄ±.
     /// </summary>
     public DateTime? LastActuatorStateUtc { get; set; }
 
     /// <summary>
-    /// Son tanı durumu zamanı.
+    /// Son tanÄ± durumu zamanÄ±.
     /// </summary>
     public DateTime? LastDiagnosticsStateUtc { get; set; }
 
     /// <summary>
-    /// Son gateway broadcast zamanı.
+    /// Son gateway broadcast zamanÄ±.
     /// </summary>
     public DateTime? LastGatewayBroadcastUtc { get; set; }
 
     /// <summary>
-    /// Runtime’dan gelen son ham satır.
+    /// Runtimeâ€™dan gelen son ham satÄ±r.
     /// </summary>
     public string? LastRawRuntimeLine { get; set; }
 
@@ -74,27 +74,27 @@ public sealed class VehicleAggregateState
     public string? LastError { get; set; }
 
     /// <summary>
-    /// Runtime bağlı kabul ediliyor mu.
+    /// Runtime baÄŸlÄ± kabul ediliyor mu.
     /// </summary>
     public bool RuntimeConnected { get; set; }
 
     /// <summary>
-    /// Python bağlı kabul ediliyor mu.
+    /// Python baÄŸlÄ± kabul ediliyor mu.
     /// </summary>
     public bool PythonConnected { get; set; }
 
     /// <summary>
-    /// Aktif websocket istemci sayısı.
+    /// Aktif websocket istemci sayÄ±sÄ±.
     /// </summary>
     public int WebSocketClientCount { get; set; }
 
     /// <summary>
-    /// Runtime’dan alınan toplam mesaj sayısı.
+    /// Runtimeâ€™dan alÄ±nan toplam mesaj sayÄ±sÄ±.
     /// </summary>
     public long TotalMessagesReceived { get; set; }
 
     /// <summary>
-    /// Gateway’den yayınlanan toplam mesaj sayısı.
+    /// Gatewayâ€™den yayÄ±nlanan toplam mesaj sayÄ±sÄ±.
     /// </summary>
     public long TotalMessagesBroadcast { get; set; }
 
@@ -104,27 +104,27 @@ public sealed class VehicleAggregateState
     public VehicleTelemetryDto? VehicleTelemetry { get; set; }
 
     /// <summary>
-    /// Son görev durumu.
+    /// Son gÃ¶rev durumu.
     /// </summary>
     public MissionStateDto? MissionState { get; set; }
 
     /// <summary>
-    /// Son sensör durumu.
+    /// Son sensÃ¶r durumu.
     /// </summary>
     public SensorStateDto? SensorState { get; set; }
 
     /// <summary>
-    /// Son aktüatör durumu.
+    /// Son aktÃ¼atÃ¶r durumu.
     /// </summary>
     public ActuatorStateDto? ActuatorState { get; set; }
 
     /// <summary>
-    /// Son tanı durumu.
+    /// Son tanÄ± durumu.
     /// </summary>
     public DiagnosticsStateDto? DiagnosticsState { get; set; }
 
     /// <summary>
-    /// Son log kayıtları.
+    /// Son log kayÄ±tlarÄ±.
     /// </summary>
     public List<GatewayLogDto> Logs { get; set; } = new();
 }

@@ -1,12 +1,12 @@
-namespace HydronomOps.Gateway.Infrastructure.Time;
+﻿namespace HydronomOps.Gateway.Infrastructure.Time;
 
 /// <summary>
-/// Zaman erişimini soyutlar.
+/// Zaman eriÅŸimini soyutlar.
 /// </summary>
 public interface ISystemClock
 {
     /// <summary>
-    /// Şu anki UTC zamanı.
+    /// Åu anki UTC zamanÄ±.
     /// </summary>
     DateTime UtcNow { get; }
 }

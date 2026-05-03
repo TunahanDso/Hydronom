@@ -1,106 +1,106 @@
-namespace Hydronom.GroundStation.WorldModel;
+﻿namespace Hydronom.GroundStation.WorldModel;
 
 /// <summary>
-/// GroundWorldModel içinde tutulabilecek dünya nesnesi türlerini temsil eder.
+/// GroundWorldModel iÃ§inde tutulabilecek dÃ¼nya nesnesi tÃ¼rlerini temsil eder.
 /// 
-/// Yer istasyonu tarafında farklı araçlardan gelen bilgiler ortak bir dünya modelinde
-/// birleşecektir. Bu enum, o ortak modeldeki nesnelerin temel sınıflandırmasıdır.
+/// Yer istasyonu tarafÄ±nda farklÄ± araÃ§lardan gelen bilgiler ortak bir dÃ¼nya modelinde
+/// birleÅŸecektir. Bu enum, o ortak modeldeki nesnelerin temel sÄ±nÄ±flandÄ±rmasÄ±dÄ±r.
 /// 
-/// Örnek:
-/// - Bir araç LiDAR ile engel görür.
-/// - Başka bir araç kamera ile hedef tespit eder.
-/// - Operatör haritada no-go zone çizer.
-/// - MissionPlanner görev alanı tanımlar.
+/// Ã–rnek:
+/// - Bir araÃ§ LiDAR ile engel gÃ¶rÃ¼r.
+/// - BaÅŸka bir araÃ§ kamera ile hedef tespit eder.
+/// - OperatÃ¶r haritada no-go zone Ã§izer.
+/// - MissionPlanner gÃ¶rev alanÄ± tanÄ±mlar.
 /// 
-/// Bunların hepsi GroundWorldModel içinde farklı WorldObjectKind değerleriyle tutulabilir.
+/// BunlarÄ±n hepsi GroundWorldModel iÃ§inde farklÄ± WorldObjectKind deÄŸerleriyle tutulabilir.
 /// </summary>
 public enum WorldObjectKind
 {
     /// <summary>
-    /// Nesne türü bilinmiyor veya henüz sınıflandırılmadı.
+    /// Nesne tÃ¼rÃ¼ bilinmiyor veya henÃ¼z sÄ±nÄ±flandÄ±rÄ±lmadÄ±.
     /// </summary>
     Unknown = 0,
 
     /// <summary>
-    /// Filo içindeki araç/node.
+    /// Filo iÃ§indeki araÃ§/node.
     /// 
     /// Not:
-    /// Araçların ana canlı durumu FleetRegistry içinde tutulur.
-    /// GroundWorldModel içinde ise araç dünya üzerindeki bir nesne olarak da temsil edilebilir.
+    /// AraÃ§larÄ±n ana canlÄ± durumu FleetRegistry iÃ§inde tutulur.
+    /// GroundWorldModel iÃ§inde ise araÃ§ dÃ¼nya Ã¼zerindeki bir nesne olarak da temsil edilebilir.
     /// </summary>
     Vehicle = 1,
 
     /// <summary>
     /// Engel nesnesi.
     /// 
-    /// Örnek:
-    /// - LiDAR ile görülen sabit engel
-    /// - Kamera ile algılanan riskli obje
-    /// - Harita üzerinden gelen bilinen engel
+    /// Ã–rnek:
+    /// - LiDAR ile gÃ¶rÃ¼len sabit engel
+    /// - Kamera ile algÄ±lanan riskli obje
+    /// - Harita Ã¼zerinden gelen bilinen engel
     /// </summary>
     Obstacle = 2,
 
     /// <summary>
     /// Hedef nesnesi.
     /// 
-    /// Örnek:
-    /// - Tespit edilen şamandıra
+    /// Ã–rnek:
+    /// - Tespit edilen ÅŸamandÄ±ra
     /// - Takip edilmesi gereken obje
-    /// - Görev hedef noktası
+    /// - GÃ¶rev hedef noktasÄ±
     /// </summary>
     Target = 3,
 
     /// <summary>
-    /// Girilmemesi gereken bölge.
+    /// Girilmemesi gereken bÃ¶lge.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Yasak alan
-    /// - Sığ bölge
-    /// - Operatör tarafından çizilen risk alanı
-    /// - Yarışma alanında kısıtlı bölge
+    /// - SÄ±ÄŸ bÃ¶lge
+    /// - OperatÃ¶r tarafÄ±ndan Ã§izilen risk alanÄ±
+    /// - YarÄ±ÅŸma alanÄ±nda kÄ±sÄ±tlÄ± bÃ¶lge
     /// </summary>
     NoGoZone = 4,
 
     /// <summary>
-    /// Görev alanı.
+    /// GÃ¶rev alanÄ±.
     /// 
-    /// Örnek:
-    /// - Arama yapılacak bölge
+    /// Ã–rnek:
+    /// - Arama yapÄ±lacak bÃ¶lge
     /// - Haritalanacak alan
-    /// - Devriye alanı
-    /// - Yarışma görev sahası
+    /// - Devriye alanÄ±
+    /// - YarÄ±ÅŸma gÃ¶rev sahasÄ±
     /// </summary>
     MissionArea = 5,
 
     /// <summary>
-    /// Harita katmanı.
+    /// Harita katmanÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Occupancy grid
-    /// - Derinlik haritası
-    /// - Risk haritası
+    /// - Derinlik haritasÄ±
+    /// - Risk haritasÄ±
     /// - Link quality heatmap
     /// </summary>
     MapLayer = 6,
 
     /// <summary>
-    /// Bağlantı/link kalitesiyle ilgili dünya nesnesi veya bölgesel bilgi.
+    /// BaÄŸlantÄ±/link kalitesiyle ilgili dÃ¼nya nesnesi veya bÃ¶lgesel bilgi.
     /// 
-    /// Örnek:
-    /// - RF sinyal zayıf bölge
-    /// - LoRa kapsama alanı
-    /// - Wi-Fi bağlantı kalitesi noktası
+    /// Ã–rnek:
+    /// - RF sinyal zayÄ±f bÃ¶lge
+    /// - LoRa kapsama alanÄ±
+    /// - Wi-Fi baÄŸlantÄ± kalitesi noktasÄ±
     /// </summary>
     LinkQuality = 7,
 
     /// <summary>
-    /// Operasyon sırasında oluşan olay.
+    /// Operasyon sÄ±rasÄ±nda oluÅŸan olay.
     /// 
-    /// Örnek:
-    /// - Araç bağlantısı koptu
+    /// Ã–rnek:
+    /// - AraÃ§ baÄŸlantÄ±sÄ± koptu
     /// - Engel tespit edildi
     /// - Komut reddedildi
-    /// - EmergencyStop uygulandı
+    /// - EmergencyStop uygulandÄ±
     /// </summary>
     Event = 8
 }

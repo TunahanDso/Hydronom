@@ -1,7 +1,7 @@
-namespace Hydronom.GroundStation.LinkHealth;
+﻿namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Bir aracın tüm bağlantı sağlığını özetleyen snapshot.
+/// Bir aracÄ±n tÃ¼m baÄŸlantÄ± saÄŸlÄ±ÄŸÄ±nÄ± Ã¶zetleyen snapshot.
 /// </summary>
 public sealed record VehicleLinkHealthSnapshot(
     string VehicleId,

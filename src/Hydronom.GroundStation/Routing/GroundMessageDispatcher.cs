@@ -1,43 +1,43 @@
-namespace Hydronom.GroundStation.Routing;
+﻿namespace Hydronom.GroundStation.Routing;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Ground Station tarafında gelen HydronomEnvelope mesajlarını
-/// mesaj tipine göre ilgili handler'a yönlendiren küçük dispatcher sınıfıdır.
+/// Ground Station tarafÄ±nda gelen HydronomEnvelope mesajlarÄ±nÄ±
+/// mesaj tipine gÃ¶re ilgili handler'a yÃ¶nlendiren kÃ¼Ã§Ã¼k dispatcher sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// Bu sınıfın amacı:
-/// - GroundStationEngine içinde büyüyen if/switch karmaşasını engellemek,
-/// - Mesaj işleme mantığını merkezi hale getirmek,
-/// - İleride FleetHeartbeat, FleetCommandResult, TelemetryFrame,
-///   CapabilityAnnouncement, LinkQualityReport gibi mesajları daha temiz yönetmektir.
+/// Bu sÄ±nÄ±fÄ±n amacÄ±:
+/// - GroundStationEngine iÃ§inde bÃ¼yÃ¼yen if/switch karmaÅŸasÄ±nÄ± engellemek,
+/// - Mesaj iÅŸleme mantÄ±ÄŸÄ±nÄ± merkezi hale getirmek,
+/// - Ä°leride FleetHeartbeat, FleetCommandResult, TelemetryFrame,
+///   CapabilityAnnouncement, LinkQualityReport gibi mesajlarÄ± daha temiz yÃ¶netmektir.
 /// 
-/// Şu an ilk fazda sadece FleetHeartbeat desteklenir.
+/// Åu an ilk fazda sadece FleetHeartbeat desteklenir.
 /// </summary>
 public sealed class GroundMessageDispatcher
 {
     /// <summary>
-    /// FleetHeartbeat mesajı geldiğinde çalıştırılacak handler.
+    /// FleetHeartbeat mesajÄ± geldiÄŸinde Ã§alÄ±ÅŸtÄ±rÄ±lacak handler.
     /// 
-    /// GroundStationEngine bu handler'ı FleetRegistry.ApplyHeartbeat'e bağlayabilir.
-    /// Böylece dispatcher registry'yi doğrudan bilmez; sadece mesajı yönlendirir.
+    /// GroundStationEngine bu handler'Ä± FleetRegistry.ApplyHeartbeat'e baÄŸlayabilir.
+    /// BÃ¶ylece dispatcher registry'yi doÄŸrudan bilmez; sadece mesajÄ± yÃ¶nlendirir.
     /// </summary>
     private readonly Func<FleetHeartbeat, bool> _onHeartbeat;
 
     /// <summary>
-    /// FleetCommandResult mesajı geldiğinde çalıştırılabilecek handler.
+    /// FleetCommandResult mesajÄ± geldiÄŸinde Ã§alÄ±ÅŸtÄ±rÄ±labilecek handler.
     /// 
-    /// Şimdilik opsiyonel bırakılmıştır.
-    /// İleride komut sonucu takibi, operatör paneli ve event timeline için kullanılacak.
+    /// Åimdilik opsiyonel bÄ±rakÄ±lmÄ±ÅŸtÄ±r.
+    /// Ä°leride komut sonucu takibi, operatÃ¶r paneli ve event timeline iÃ§in kullanÄ±lacak.
     /// </summary>
     private readonly Func<FleetCommandResult, bool>? _onCommandResult;
 
     /// <summary>
-    /// GroundMessageDispatcher oluşturur.
+    /// GroundMessageDispatcher oluÅŸturur.
     /// 
-    /// İlk zorunlu handler FleetHeartbeat içindir.
-    /// Çünkü FleetRegistry'nin güncel kalması için heartbeat temel mesajdır.
+    /// Ä°lk zorunlu handler FleetHeartbeat iÃ§indir.
+    /// Ã‡Ã¼nkÃ¼ FleetRegistry'nin gÃ¼ncel kalmasÄ± iÃ§in heartbeat temel mesajdÄ±r.
     /// </summary>
     public GroundMessageDispatcher(
         Func<FleetHeartbeat, bool> onHeartbeat,
@@ -48,11 +48,11 @@ public sealed class GroundMessageDispatcher
     }
 
     /// <summary>
-    /// Gelen envelope'u MessageType alanına göre ilgili işleyiciye yönlendirir.
+    /// Gelen envelope'u MessageType alanÄ±na gÃ¶re ilgili iÅŸleyiciye yÃ¶nlendirir.
     /// 
-    /// Dönüş:
-    /// - true: mesaj tanındı ve başarıyla işlendi
-    /// - false: mesaj tanınmadı, payload uyumsuzdu veya handler başarısız oldu
+    /// DÃ¶nÃ¼ÅŸ:
+    /// - true: mesaj tanÄ±ndÄ± ve baÅŸarÄ±yla iÅŸlendi
+    /// - false: mesaj tanÄ±nmadÄ±, payload uyumsuzdu veya handler baÅŸarÄ±sÄ±z oldu
     /// </summary>
     public bool Dispatch(HydronomEnvelope envelope)
     {
@@ -72,11 +72,11 @@ public sealed class GroundMessageDispatcher
     }
 
     /// <summary>
-    /// Payload içinden FleetHeartbeat modelini çıkarır ve heartbeat handler'ına yollar.
+    /// Payload iÃ§inden FleetHeartbeat modelini Ã§Ä±karÄ±r ve heartbeat handler'Ä±na yollar.
     /// 
     /// Not:
-    /// Şu an aynı proses içinde object payload taşıdığımız için doğrudan cast yeterli.
-    /// Gerçek transport/JSON aşamasında payload deserialize katmanı eklenecek.
+    /// Åu an aynÄ± proses iÃ§inde object payload taÅŸÄ±dÄ±ÄŸÄ±mÄ±z iÃ§in doÄŸrudan cast yeterli.
+    /// GerÃ§ek transport/JSON aÅŸamasÄ±nda payload deserialize katmanÄ± eklenecek.
     /// </summary>
     private bool DispatchHeartbeat(object? payload)
     {
@@ -90,10 +90,10 @@ public sealed class GroundMessageDispatcher
     }
 
     /// <summary>
-    /// Payload içinden FleetCommandResult modelini çıkarır ve varsa command result handler'ına yollar.
+    /// Payload iÃ§inden FleetCommandResult modelini Ã§Ä±karÄ±r ve varsa command result handler'Ä±na yollar.
     /// 
-    /// Şimdilik handler verilmemişse false döner.
-    /// İleride GroundStation komut geçmişi tuttuğunda bu aktifleşecek.
+    /// Åimdilik handler verilmemiÅŸse false dÃ¶ner.
+    /// Ä°leride GroundStation komut geÃ§miÅŸi tuttuÄŸunda bu aktifleÅŸecek.
     /// </summary>
     private bool DispatchCommandResult(object? payload)
     {

@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 partial class Program
 {
     /// <summary>
-    /// External pose uygulanmadığında runtime iç fizik simülasyonunu yürütür.
+    /// External pose uygulanmadÄ±ÄŸÄ±nda runtime iÃ§ fizik simÃ¼lasyonunu yÃ¼rÃ¼tÃ¼r.
     ///
-    /// Amaç:
-    /// - Sensör/pose gelmediği durumda karar/rota testlerini sürdürebilmek
-    /// - ActuatorManager'ın ürettiği body-frame force/torque değerleriyle VehicleState'i ilerletmek
+    /// AmaÃ§:
+    /// - SensÃ¶r/pose gelmediÄŸi durumda karar/rota testlerini sÃ¼rdÃ¼rebilmek
+    /// - ActuatorManager'Ä±n Ã¼rettiÄŸi body-frame force/torque deÄŸerleriyle VehicleState'i ilerletmek
     ///
     /// Not:
-    /// - forceBody gövde frame'indedir.
-    /// - VehicleState lineer tarafta dünya frame kuvvet beklediği için forceBody dünya frame'e çevrilir.
-    /// - torqueBody gövde frame olarak korunur.
+    /// - forceBody gÃ¶vde frame'indedir.
+    /// - VehicleState lineer tarafta dÃ¼nya frame kuvvet beklediÄŸi iÃ§in forceBody dÃ¼nya frame'e Ã§evrilir.
+    /// - torqueBody gÃ¶vde frame olarak korunur.
     /// </summary>
     private static VehicleState IntegrateSyntheticStateIfNeeded(
         VehicleState state,
@@ -34,7 +34,7 @@ partial class Program
 
         if (!loopState.LoggedSyntheticStateNotice)
         {
-            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi için iç fizik yürütülüyor).");
+            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi iÃ§in iÃ§ fizik yÃ¼rÃ¼tÃ¼lÃ¼yor).");
             loopState.LoggedSyntheticStateNotice = true;
         }
 

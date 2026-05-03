@@ -1,14 +1,14 @@
-namespace Hydronom.GroundStation.MissionCompatibility;
+﻿namespace Hydronom.GroundStation.MissionCompatibility;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Araç capability listesi ile görev capability gereksinimlerini eşleştirir.
+/// AraÃ§ capability listesi ile gÃ¶rev capability gereksinimlerini eÅŸleÅŸtirir.
 /// </summary>
 public sealed class VehicleCapabilityMatcher
 {
     /// <summary>
-    /// Tek bir capability gereksinimini araç üzerinde arar.
+    /// Tek bir capability gereksinimini araÃ§ Ã¼zerinde arar.
     /// </summary>
     public bool Matches(
         VehicleNodeStatus vehicle,

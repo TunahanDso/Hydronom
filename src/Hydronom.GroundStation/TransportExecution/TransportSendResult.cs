@@ -1,24 +1,24 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// Tek bir transport üzerinden yapılan gönderim denemesinin sonucudur.
+/// Tek bir transport Ã¼zerinden yapÄ±lan gÃ¶nderim denemesinin sonucudur.
 /// 
-/// Örnek:
-/// - VEHICLE-ALPHA-001 hedefine Tcp üzerinden FleetCommand gönderildi.
+/// Ã–rnek:
+/// - VEHICLE-ALPHA-001 hedefine Tcp Ã¼zerinden FleetCommand gÃ¶nderildi.
 /// - 24 ms sonra ACK geldi.
-/// - Sonuç: Acked.
+/// - SonuÃ§: Acked.
 /// </summary>
 public sealed record TransportSendResult
 {
     /// <summary>
-    /// Gönderim sonucuna ait benzersiz kayıt ID'si.
+    /// GÃ¶nderim sonucuna ait benzersiz kayÄ±t ID'si.
     /// </summary>
     public string SendResultId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// İlgili HydronomEnvelope mesaj ID'si.
+    /// Ä°lgili HydronomEnvelope mesaj ID'si.
     /// </summary>
     public string MessageId { get; init; } = string.Empty;
 
@@ -28,35 +28,35 @@ public sealed record TransportSendResult
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gönderim için kullanılan transport türü.
+    /// GÃ¶nderim iÃ§in kullanÄ±lan transport tÃ¼rÃ¼.
     /// </summary>
     public TransportKind TransportKind { get; init; }
 
     /// <summary>
-    /// Gönderim sonucu.
+    /// GÃ¶nderim sonucu.
     /// </summary>
     public TransportSendStatus Status { get; init; } = TransportSendStatus.Unknown;
 
     /// <summary>
-    /// Gönderimin başarılı kabul edilip edilmediği.
+    /// GÃ¶nderimin baÅŸarÄ±lÄ± kabul edilip edilmediÄŸi.
     /// </summary>
     public bool Success =>
         Status is TransportSendStatus.Sent or TransportSendStatus.Acked;
 
     /// <summary>
-    /// Bu sonuç ACK alındığını temsil ediyor mu?
+    /// Bu sonuÃ§ ACK alÄ±ndÄ±ÄŸÄ±nÄ± temsil ediyor mu?
     /// </summary>
     public bool HasAck =>
         Status == TransportSendStatus.Acked;
 
     /// <summary>
-    /// Bu sonuç timeout sayılıyor mu?
+    /// Bu sonuÃ§ timeout sayÄ±lÄ±yor mu?
     /// </summary>
     public bool IsTimeout =>
         Status == TransportSendStatus.Timeout;
 
     /// <summary>
-    /// Bu sonuç başarısız sayılıyor mu?
+    /// Bu sonuÃ§ baÅŸarÄ±sÄ±z sayÄ±lÄ±yor mu?
     /// </summary>
     public bool IsFailure =>
         Status is TransportSendStatus.Timeout
@@ -65,39 +65,39 @@ public sealed record TransportSendResult
             or TransportSendStatus.Failed;
 
     /// <summary>
-    /// Gönderim denemesinin başladığı UTC zaman.
+    /// GÃ¶nderim denemesinin baÅŸladÄ±ÄŸÄ± UTC zaman.
     /// </summary>
     public DateTimeOffset StartedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Gönderim sonucunun üretildiği UTC zaman.
+    /// GÃ¶nderim sonucunun Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset CompletedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Ölçülen gecikme.
-    /// ACK varsa round-trip latency gibi düşünülebilir.
+    /// Ã–lÃ§Ã¼len gecikme.
+    /// ACK varsa round-trip latency gibi dÃ¼ÅŸÃ¼nÃ¼lebilir.
     /// </summary>
     public double? LatencyMs { get; init; }
 
     /// <summary>
-    /// İnsan-okunabilir açıklama.
+    /// Ä°nsan-okunabilir aÃ§Ä±klama.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Transport seviyesindeki hata mesajı.
+    /// Transport seviyesindeki hata mesajÄ±.
     /// </summary>
     public string? ErrorMessage { get; init; }
 
     /// <summary>
-    /// Ek metadata alanı.
+    /// Ek metadata alanÄ±.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Başarılı gönderim sonucu üretir.
+    /// BaÅŸarÄ±lÄ± gÃ¶nderim sonucu Ã¼retir.
     /// </summary>
     public static TransportSendResult Sent(
         string messageId,
@@ -122,7 +122,7 @@ public sealed record TransportSendResult
     }
 
     /// <summary>
-    /// ACK alınmış gönderim sonucu üretir.
+    /// ACK alÄ±nmÄ±ÅŸ gÃ¶nderim sonucu Ã¼retir.
     /// </summary>
     public static TransportSendResult Acked(
         string messageId,
@@ -147,7 +147,7 @@ public sealed record TransportSendResult
     }
 
     /// <summary>
-    /// Timeout sonucu üretir.
+    /// Timeout sonucu Ã¼retir.
     /// </summary>
     public static TransportSendResult Timeout(
         string messageId,
@@ -170,7 +170,7 @@ public sealed record TransportSendResult
     }
 
     /// <summary>
-    /// Başarısız gönderim sonucu üretir.
+    /// BaÅŸarÄ±sÄ±z gÃ¶nderim sonucu Ã¼retir.
     /// </summary>
     public static TransportSendResult Failed(
         string messageId,

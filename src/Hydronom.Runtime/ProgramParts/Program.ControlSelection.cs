@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Modules;
@@ -6,16 +6,16 @@ using Hydronom.Core.Modules;
 partial class Program
 {
     /// <summary>
-    /// Runtime döngüsünde kontrol modunu seçer ve desired command üretir.
+    /// Runtime dÃ¶ngÃ¼sÃ¼nde kontrol modunu seÃ§er ve desired command Ã¼retir.
     ///
-    /// Karar sırası:
+    /// Karar sÄ±rasÄ±:
     /// 1. Emergency stop
     /// 2. Manual mode
     /// 3. Auto mode
     /// 4. Disarmed fallback
     ///
-    /// Bu metot sadece "istenen komutu" üretir.
-    /// SafetyLimiter ve ActuatorManager bu komuttan sonra çalışır.
+    /// Bu metot sadece "istenen komutu" Ã¼retir.
+    /// SafetyLimiter ve ActuatorManager bu komuttan sonra Ã§alÄ±ÅŸÄ±r.
     /// </summary>
     private static ControlSelectionResult SelectControlCommand(
         CommandServer cmdSrv,

@@ -1,15 +1,15 @@
-namespace Hydronom.GroundStation.Security;
+﻿namespace Hydronom.GroundStation.Security;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// FleetCommand modelinin temel yapısal doğrulamasını yapar.
+/// FleetCommand modelinin temel yapÄ±sal doÄŸrulamasÄ±nÄ± yapar.
 /// </summary>
 public sealed class CommandValidator
 {
     /// <summary>
-    /// Komutun temel alanlarını doğrular.
+    /// Komutun temel alanlarÄ±nÄ± doÄŸrular.
     /// </summary>
     public CommandValidationResult Validate(FleetCommand? command)
     {

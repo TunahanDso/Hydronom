@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 
@@ -7,27 +7,27 @@ namespace Hydronom.Core.Modules
     /// <summary>
     /// AdvancedDecision v3.0
     /// ------------------------------------------------------------
-    /// Platform bağımsız 6-DoF wrench tabanlı karar modülü.
+    /// Platform baÄŸÄ±msÄ±z 6-DoF wrench tabanlÄ± karar modÃ¼lÃ¼.
     ///
-    /// Çıktı sözleşmesi:
-    /// - Fx,Fy,Fz → Newton
-    /// - Tx,Ty,Tz → Newton-metre
-    /// - Tüm wrench body frame'dedir.
+    /// Ã‡Ä±ktÄ± sÃ¶zleÅŸmesi:
+    /// - Fx,Fy,Fz â†’ Newton
+    /// - Tx,Ty,Tz â†’ Newton-metre
+    /// - TÃ¼m wrench body frame'dedir.
     ///
-    /// Bu sürüm:
-    /// - Navigate / Avoid / Hold ayrımını açıklanabilir hale getirir.
-    /// - LastDecisionReport üretir.
-    /// - NaN / Infinity / bozuk dt koruması yapar.
-    /// - Hedefe yaklaşırken aktif frenleme uygular.
-    /// - Büyük heading hatasında ileri itmeyi kapılar.
-    /// - Body-frame hız ve pozisyon hatasını kullanır.
-    /// - Station keeping için XY + yaw + roll/pitch + heave kontrolü yapar.
-    /// - Heave integral anti-windup içerir.
+    /// Bu sÃ¼rÃ¼m:
+    /// - Navigate / Avoid / Hold ayrÄ±mÄ±nÄ± aÃ§Ä±klanabilir hale getirir.
+    /// - LastDecisionReport Ã¼retir.
+    /// - NaN / Infinity / bozuk dt korumasÄ± yapar.
+    /// - Hedefe yaklaÅŸÄ±rken aktif frenleme uygular.
+    /// - BÃ¼yÃ¼k heading hatasÄ±nda ileri itmeyi kapÄ±lar.
+    /// - Body-frame hÄ±z ve pozisyon hatasÄ±nÄ± kullanÄ±r.
+    /// - Station keeping iÃ§in XY + yaw + roll/pitch + heave kontrolÃ¼ yapar.
+    /// - Heave integral anti-windup iÃ§erir.
     /// - Deterministiktir; rastgelelik yoktur.
     /// ------------------------------------------------------------
     /// Not:
-    /// SafetyLimiter komutu ayrıca yumuşatır.
-    /// ActuatorManager ise gerçekten üretilebilen wrench'i allocation raporuyla açıklar.
+    /// SafetyLimiter komutu ayrÄ±ca yumuÅŸatÄ±r.
+    /// ActuatorManager ise gerÃ§ekten Ã¼retilebilen wrench'i allocation raporuyla aÃ§Ä±klar.
     /// </summary>
     public class AdvancedDecision : IDecisionModule
     {
@@ -37,7 +37,7 @@ namespace Hydronom.Core.Modules
         private const double GlobalEffortScale = 0.75;
 
         // ---------------------------------------------------------------------
-        // EKSEN KAPASİTELERİ
+        // EKSEN KAPASÄ°TELERÄ°
         // ---------------------------------------------------------------------
         private const double MaxFxN = 24.0;
         private const double MaxFyN = 12.0;
@@ -48,7 +48,7 @@ namespace Hydronom.Core.Modules
         private const double MaxTzNm = 8.0;
 
         // ---------------------------------------------------------------------
-        // MESAFE / HIZ PROFİLİ
+        // MESAFE / HIZ PROFÄ°LÄ°
         // ---------------------------------------------------------------------
         private const double SlowRadiusM = 4.0;
         private const double StopRadiusM = 0.7;
@@ -111,21 +111,21 @@ namespace Hydronom.Core.Modules
         private const double MaxHeaveNorm = 1.0;
 
         // ---------------------------------------------------------------------
-        // İç durum / hafıza
+        // Ä°Ã§ durum / hafÄ±za
         // ---------------------------------------------------------------------
         private Vec3? _lastTarget = null;
         private double? _frozenHoldHeadingDeg = null;
         private bool _isHoldingPosition = false;
 
         /// <summary>
-        /// Son kararın açıklanabilir raporu.
+        /// Son kararÄ±n aÃ§Ä±klanabilir raporu.
         /// Diagnostics, log, Hydronom Ops veya test kodu bunu okuyabilir.
         /// </summary>
         public AdvancedDecisionReport LastDecisionReport { get; private set; } =
             AdvancedDecisionReport.Empty;
 
         // ---------------------------------------------------------------------
-        // ANA KARAR FONKSİYONU
+        // ANA KARAR FONKSÄ°YONU
         // ---------------------------------------------------------------------
         public DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state, double dt)
         {
@@ -238,7 +238,7 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // ENGEL KAÇINMA
+        // ENGEL KAÃ‡INMA
         // ---------------------------------------------------------------------
         private DecisionResult Avoid(
             Insights ins,
@@ -253,7 +253,7 @@ namespace Hydronom.Core.Modules
             double sideSign;
             if (Math.Abs(right - left) < 0.10)
             {
-                // Açıklıklar eşitse hedefe göre daha az ters düşen yönü seç.
+                // AÃ§Ä±klÄ±klar eÅŸitse hedefe gÃ¶re daha az ters dÃ¼ÅŸen yÃ¶nÃ¼ seÃ§.
                 sideSign = nav.HeadingErrorDeg >= 0.0 ? +1.0 : -1.0;
             }
             else
@@ -267,7 +267,7 @@ namespace Hydronom.Core.Modules
 
             double throttleNorm = 0.10;
 
-            // Çok yakın engelde ileri itmeyi daha fazla bastır.
+            // Ã‡ok yakÄ±n engelde ileri itmeyi daha fazla bastÄ±r.
             if (clearanceMin < 1.0)
                 throttleNorm = 0.02;
             else if (clearanceMin < 2.0)
@@ -289,7 +289,7 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // HEDEF NAVİGASYONU
+        // HEDEF NAVÄ°GASYONU
         // ---------------------------------------------------------------------
         private DecisionResult NavigateToTarget(
             TaskDefinition task,
@@ -474,7 +474,7 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // PLANAR → 6DoF
+        // PLANAR â†’ 6DoF
         // ---------------------------------------------------------------------
         private DecisionCommand PlanarToRawWrench(
             double throttleNorm,
@@ -511,7 +511,7 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // İKİNCİL EKSENLER
+        // Ä°KÄ°NCÄ°L EKSENLER
         // ---------------------------------------------------------------------
         private (double Fy, double Fz, double Tx, double Ty)
             ComputeSecondaryAxes(TaskDefinition task, VehicleState state, double dt)
@@ -557,7 +557,7 @@ namespace Hydronom.Core.Modules
             double error = Safe(targetZ - state.Position.Z);
             double vz = Safe(state.Velocity.Z);
 
-            // Hata çok küçükse integral yavaşça sönsün.
+            // Hata Ã§ok kÃ¼Ã§Ã¼kse integral yavaÅŸÃ§a sÃ¶nsÃ¼n.
             if (Math.Abs(error) < 0.03)
                 _heaveIntegral *= 0.90;
 
@@ -663,7 +663,7 @@ namespace Hydronom.Core.Modules
         }
 
         // ---------------------------------------------------------------------
-        // GEOMETRİ / YARDIMCILAR
+        // GEOMETRÄ° / YARDIMCILAR
         // ---------------------------------------------------------------------
         private static NavigationGeometry ComputeNavigationGeometry(Vec3 target, VehicleState state)
         {
@@ -755,8 +755,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Heading hatasına ve yaw rate'e göre throttle kapısı.
-        /// Amaç: büyük açı hatasında önce yönelimi toparlamak.
+        /// Heading hatasÄ±na ve yaw rate'e gÃ¶re throttle kapÄ±sÄ±.
+        /// AmaÃ§: bÃ¼yÃ¼k aÃ§Ä± hatasÄ±nda Ã¶nce yÃ¶nelimi toparlamak.
         /// </summary>
         private static double HeadingThrottleGate(double absDeltaDeg, double absYawRateDeg)
         {
@@ -867,8 +867,8 @@ namespace Hydronom.Core.Modules
         {
             return
                 $"Decision mode={Mode} reason={Reason} " +
-                $"dist={DistanceXY:F2}m dHead={HeadingErrorDeg:F1}° " +
-                $"vFwd={ForwardSpeedMps:F2}m/s yawRate={YawRateDeg:F1}°/s " +
+                $"dist={DistanceXY:F2}m dHead={HeadingErrorDeg:F1}Â° " +
+                $"vFwd={ForwardSpeedMps:F2}m/s yawRate={YawRateDeg:F1}Â°/s " +
                 $"obs={ObstacleAhead} hold={IsHoldingPosition} " +
                 $"thr={ThrottleNorm:F2} rud={RudderNorm:F2}";
         }

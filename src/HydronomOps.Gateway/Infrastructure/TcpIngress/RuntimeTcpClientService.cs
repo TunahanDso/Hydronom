@@ -1,4 +1,4 @@
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.Options;
 using HydronomOps.Gateway.Configuration;
@@ -6,7 +6,7 @@ using HydronomOps.Gateway.Configuration;
 namespace HydronomOps.Gateway.Infrastructure.TcpIngress;
 
 /// <summary>
-/// Runtime TCP kaynağına bağlanır ve NDJSON satır bazlı veri okur.
+/// Runtime TCP kaynaÄŸÄ±na baÄŸlanÄ±r ve NDJSON satÄ±r bazlÄ± veri okur.
 /// </summary>
 public sealed class RuntimeTcpClientService : IAsyncDisposable
 {
@@ -16,11 +16,11 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     private TcpClient? _client;
     private NetworkStream? _stream;
 
-    // Gelen byte'ları burada biriktiriyoruz.
+    // Gelen byte'larÄ± burada biriktiriyoruz.
     private readonly byte[] _readBuffer = new byte[8192];
     private readonly List<byte> _lineBuffer = new(16384);
 
-    // Güvenlik amaçlı üst sınır. NDJSON frame çok büyürse parser zaten zorlanır.
+    // GÃ¼venlik amaÃ§lÄ± Ã¼st sÄ±nÄ±r. NDJSON frame Ã§ok bÃ¼yÃ¼rse parser zaten zorlanÄ±r.
     private const int MaxFrameBytes = 1024 * 1024; // 1 MB
 
     public RuntimeTcpClientService(
@@ -32,12 +32,12 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Aktif TCP bağlantısı var mı.
+    /// Aktif TCP baÄŸlantÄ±sÄ± var mÄ±.
     /// </summary>
     public bool IsConnected => _client?.Connected == true && _stream is not null;
 
     /// <summary>
-    /// Runtime'a TCP bağlantısı açar.
+    /// Runtime'a TCP baÄŸlantÄ±sÄ± aÃ§ar.
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
@@ -63,7 +63,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
             }
 
             _logger.LogInformation(
-                "Runtime TCP bağlantısı açılıyor. Host={Host}, Port={Port}",
+                "Runtime TCP baÄŸlantÄ±sÄ± aÃ§Ä±lÄ±yor. Host={Host}, Port={Port}",
                 _options.Host,
                 _options.Port);
 
@@ -78,7 +78,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
             _lineBuffer.Clear();
 
             _logger.LogInformation(
-                "Runtime TCP bağlantısı açıldı. Host={Host}, Port={Port}",
+                "Runtime TCP baÄŸlantÄ±sÄ± aÃ§Ä±ldÄ±. Host={Host}, Port={Port}",
                 _options.Host,
                 _options.Port);
         }
@@ -90,7 +90,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
             }
             catch
             {
-                // Sessiz geç.
+                // Sessiz geÃ§.
             }
 
             throw;
@@ -98,19 +98,19 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Runtime'tan tek NDJSON satırı okur.
-    /// Bağlantı kapanırsa null döner.
+    /// Runtime'tan tek NDJSON satÄ±rÄ± okur.
+    /// BaÄŸlantÄ± kapanÄ±rsa null dÃ¶ner.
     /// </summary>
     public async Task<string?> ReadLineAsync(CancellationToken cancellationToken = default)
     {
         if (_stream is null)
         {
-            throw new InvalidOperationException("TCP stream hazır değil. Önce ConnectAsync çağrılmalı.");
+            throw new InvalidOperationException("TCP stream hazÄ±r deÄŸil. Ã–nce ConnectAsync Ã§aÄŸrÄ±lmalÄ±.");
         }
 
         while (true)
         {
-            // Önce elimizde daha önce birikmiş veride satır sonu var mı bakalım.
+            // Ã–nce elimizde daha Ã¶nce birikmiÅŸ veride satÄ±r sonu var mÄ± bakalÄ±m.
             if (TryExtractLineFromBuffer(out var bufferedLine))
             {
                 return bufferedLine;
@@ -134,11 +134,11 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
                 throw new OperationCanceledException(cancellationToken);
             }
 
-            // Karşı taraf bağlantıyı kapattı.
+            // KarÅŸÄ± taraf baÄŸlantÄ±yÄ± kapattÄ±.
             if (bytesRead == 0)
             {
-                // Eğer elde kalan tamamlanmamış ama boş olmayan veri varsa
-                // bunu sessizce line diye döndürmeyelim; frame yarım kalmış demektir.
+                // EÄŸer elde kalan tamamlanmamÄ±ÅŸ ama boÅŸ olmayan veri varsa
+                // bunu sessizce line diye dÃ¶ndÃ¼rmeyelim; frame yarÄ±m kalmÄ±ÅŸ demektir.
                 if (_lineBuffer.Count > 0)
                 {
                     var partial = Encoding.UTF8.GetString(_lineBuffer.ToArray()).Trim();
@@ -147,7 +147,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
                     if (!string.IsNullOrWhiteSpace(partial))
                     {
                         _logger.LogWarning(
-                            "Runtime bağlantısı kapanırken tamamlanmamış frame atıldı. Uzunluk={Length}",
+                            "Runtime baÄŸlantÄ±sÄ± kapanÄ±rken tamamlanmamÄ±ÅŸ frame atÄ±ldÄ±. Uzunluk={Length}",
                             partial.Length);
                     }
                 }
@@ -160,13 +160,13 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Runtime'a NDJSON uyumlu tek satır veri yollar.
+    /// Runtime'a NDJSON uyumlu tek satÄ±r veri yollar.
     /// </summary>
     public async Task SendLineAsync(string line, CancellationToken cancellationToken = default)
     {
         if (_stream is null)
         {
-            throw new InvalidOperationException("TCP stream hazır değil. Önce ConnectAsync çağrılmalı.");
+            throw new InvalidOperationException("TCP stream hazÄ±r deÄŸil. Ã–nce ConnectAsync Ã§aÄŸrÄ±lmalÄ±.");
         }
 
         var normalized = NormalizeNdjsonLine(line);
@@ -177,11 +177,11 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Açık bağlantıyı kapatır.
+    /// AÃ§Ä±k baÄŸlantÄ±yÄ± kapatÄ±r.
     /// </summary>
     public Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Runtime TCP bağlantısı kapatılıyor.");
+        _logger.LogInformation("Runtime TCP baÄŸlantÄ±sÄ± kapatÄ±lÄ±yor.");
 
         _lineBuffer.Clear();
 
@@ -191,7 +191,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
         }
         catch
         {
-            // Sessiz geç.
+            // Sessiz geÃ§.
         }
 
         try
@@ -201,7 +201,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
         }
         catch
         {
-            // Sessiz geç.
+            // Sessiz geÃ§.
         }
 
         _stream = null;
@@ -211,7 +211,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Okunan byte'ları iç buffer'a ekler.
+    /// Okunan byte'larÄ± iÃ§ buffer'a ekler.
     /// </summary>
     private void AppendBytes(byte[] buffer, int count)
     {
@@ -224,7 +224,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
         {
             _lineBuffer.Clear();
             throw new InvalidDataException(
-                $"NDJSON frame izin verilen üst sınırı aştı. Max={MaxFrameBytes} byte.");
+                $"NDJSON frame izin verilen Ã¼st sÄ±nÄ±rÄ± aÅŸtÄ±. Max={MaxFrameBytes} byte.");
         }
 
         for (var i = 0; i < count; i++)
@@ -234,7 +234,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// İç buffer'dan ilk tamamlanmış satırı ayıklar.
+    /// Ä°Ã§ buffer'dan ilk tamamlanmÄ±ÅŸ satÄ±rÄ± ayÄ±klar.
     /// </summary>
     private bool TryExtractLineFromBuffer(out string? line)
     {
@@ -247,7 +247,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
 
             var length = i;
 
-            // CRLF geldiyse sondaki \r karakterini düş.
+            // CRLF geldiyse sondaki \r karakterini dÃ¼ÅŸ.
             if (length > 0 && _lineBuffer[length - 1] == (byte)'\r')
             {
                 length--;
@@ -255,12 +255,12 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
 
             var lineBytes = _lineBuffer.GetRange(0, length).ToArray();
 
-            // Okunan satırı ve satır sonunu buffer'dan sil.
+            // Okunan satÄ±rÄ± ve satÄ±r sonunu buffer'dan sil.
             _lineBuffer.RemoveRange(0, i + 1);
 
             var decoded = Encoding.UTF8.GetString(lineBytes).Trim();
 
-            // Boş satırları atla, bir sonraki satırı dene.
+            // BoÅŸ satÄ±rlarÄ± atla, bir sonraki satÄ±rÄ± dene.
             if (string.IsNullOrWhiteSpace(decoded))
             {
                 return TryExtractLineFromBuffer(out line);
@@ -275,7 +275,7 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// NDJSON tek satır normalizasyonu yapar.
+    /// NDJSON tek satÄ±r normalizasyonu yapar.
     /// </summary>
     private static string NormalizeNdjsonLine(string line)
     {
@@ -284,8 +284,8 @@ public sealed class RuntimeTcpClientService : IAsyncDisposable
             return "\n";
         }
 
-        // Gönderilen payload tek satır olmalı.
-        // Gerçek satır sonlarını kaçışlı hale getiriyoruz.
+        // GÃ¶nderilen payload tek satÄ±r olmalÄ±.
+        // GerÃ§ek satÄ±r sonlarÄ±nÄ± kaÃ§Ä±ÅŸlÄ± hale getiriyoruz.
         line = line.Replace("\r", string.Empty);
         line = line.Replace("\n", "\\n");
 

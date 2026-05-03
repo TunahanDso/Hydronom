@@ -1,8 +1,8 @@
-namespace Hydronom.Core.Domain
+﻿namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// Basit ama güvenli 6xN motor etki matrisi (B).
-    /// Her satır bir ekseni temsil eder: Fx, Fy, Fz, Tx, Ty, Tz.
+    /// Basit ama gÃ¼venli 6xN motor etki matrisi (B).
+    /// Her satÄ±r bir ekseni temsil eder: Fx, Fy, Fz, Tx, Ty, Tz.
     /// </summary>
     public class Matrix6xN
     {
@@ -14,19 +14,19 @@ namespace Hydronom.Core.Domain
         public Matrix6xN(double[,] data)
         {
             if (data.GetLength(0) != 6)
-                throw new ArgumentException("Matrix6xN: ilk boyut 6 olmalıdır.");
+                throw new ArgumentException("Matrix6xN: ilk boyut 6 olmalÄ±dÄ±r.");
 
             _data = data;
         }
 
         /// <summary>
-        /// B * u → Vec6 döndürür.
+        /// B * u â†’ Vec6 dÃ¶ndÃ¼rÃ¼r.
         /// </summary>
         public Vec6 Multiply(double[] u)
         {
             if (u == null) throw new ArgumentNullException(nameof(u));
             if (u.Length != Cols)
-                throw new ArgumentException($"Beklenen vektör boyutu: {Cols}, gelen: {u.Length}");
+                throw new ArgumentException($"Beklenen vektÃ¶r boyutu: {Cols}, gelen: {u.Length}");
 
             double[] r = new double[6];
 
@@ -39,7 +39,7 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// 6 boyutlu immutable vektör: (Fx, Fy, Fz, Tx, Ty, Tz).
+    /// 6 boyutlu immutable vektÃ¶r: (Fx, Fy, Fz, Tx, Ty, Tz).
     /// </summary>
     public readonly struct Vec6
     {
@@ -60,9 +60,9 @@ namespace Hydronom.Core.Domain
                 throw new ArgumentNullException(nameof(v));
 
             if (v.Length != 6)
-                throw new ArgumentException("Vec6: dizi uzunluğu 6 olmalıdır.");
+                throw new ArgumentException("Vec6: dizi uzunluÄŸu 6 olmalÄ±dÄ±r.");
 
-            // Derin kopya → immutable davranış
+            // Derin kopya â†’ immutable davranÄ±ÅŸ
             _v = (double[])v.Clone();
         }
 
@@ -75,3 +75,4 @@ namespace Hydronom.Core.Domain
             => $"Fx={Fx:F3}, Fy={Fy:F3}, Fz={Fz:F3}, Tx={Tx:F3}, Ty={Ty:F3}, Tz={Tz:F3}";
     }
 }
+

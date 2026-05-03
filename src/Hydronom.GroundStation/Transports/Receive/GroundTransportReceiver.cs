@@ -1,22 +1,22 @@
-namespace Hydronom.GroundStation.Transports.Receive;
+﻿namespace Hydronom.GroundStation.Transports.Receive;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.LinkHealth;
 using Hydronom.GroundStation.Transports;
 
 /// <summary>
-/// Ground Station tarafında kayıtlı transport'lardan gelen HydronomEnvelope mesajlarını dinler
-/// ve GroundStationEngine benzeri bir handler'a aktarır.
+/// Ground Station tarafÄ±nda kayÄ±tlÄ± transport'lardan gelen HydronomEnvelope mesajlarÄ±nÄ± dinler
+/// ve GroundStationEngine benzeri bir handler'a aktarÄ±r.
 /// 
-/// Bu sınıfın görevi:
-/// - ITransport.ReceiveAsync akışını başlatmak,
-/// - Gelen envelope'ları merkezi handler'a vermek,
-/// - Receive event geçmişi tutmak,
-/// - LinkHealthTracker üzerinde "link görüldü" bilgisini güncellemek,
-/// - Transport hata verirse kontrollü şekilde kayıt almaktır.
+/// Bu sÄ±nÄ±fÄ±n gÃ¶revi:
+/// - ITransport.ReceiveAsync akÄ±ÅŸÄ±nÄ± baÅŸlatmak,
+/// - Gelen envelope'larÄ± merkezi handler'a vermek,
+/// - Receive event geÃ§miÅŸi tutmak,
+/// - LinkHealthTracker Ã¼zerinde "link gÃ¶rÃ¼ldÃ¼" bilgisini gÃ¼ncellemek,
+/// - Transport hata verirse kontrollÃ¼ ÅŸekilde kayÄ±t almaktÄ±r.
 /// 
-/// Bu sınıf GroundStationEngine'e doğrudan bağımlı değildir.
-/// Handler delegate dışarıdan verilir:
+/// Bu sÄ±nÄ±f GroundStationEngine'e doÄŸrudan baÄŸÄ±mlÄ± deÄŸildir.
+/// Handler delegate dÄ±ÅŸarÄ±dan verilir:
 ///     Func&lt;HydronomEnvelope, bool&gt; envelopeHandler
 /// </summary>
 public sealed class GroundTransportReceiver
@@ -42,7 +42,7 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Kayıtlı receive event sayısı.
+    /// KayÄ±tlÄ± receive event sayÄ±sÄ±.
     /// </summary>
     public int EventCount
     {
@@ -54,10 +54,10 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Tüm bağlı transport'lar için receive loop başlatır.
+    /// TÃ¼m baÄŸlÄ± transport'lar iÃ§in receive loop baÅŸlatÄ±r.
     /// 
-    /// Bu metot her transport için ayrı task üretir ve hepsini bekler.
-    /// CancellationToken iptal edilene kadar akış devam eder.
+    /// Bu metot her transport iÃ§in ayrÄ± task Ã¼retir ve hepsini bekler.
+    /// CancellationToken iptal edilene kadar akÄ±ÅŸ devam eder.
     /// </summary>
     public async Task RunAllAsync(CancellationToken cancellationToken = default)
     {
@@ -76,7 +76,7 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Belirli bir transport için receive loop çalıştırır.
+    /// Belirli bir transport iÃ§in receive loop Ã§alÄ±ÅŸtÄ±rÄ±r.
     /// </summary>
     public async Task RunTransportAsync(
         ITransport transport,
@@ -122,7 +122,7 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Receive event snapshot döndürür.
+    /// Receive event snapshot dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundTransportReceiveEvent> GetSnapshot()
     {
@@ -131,7 +131,7 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Gelen envelope'u işler.
+    /// Gelen envelope'u iÅŸler.
     /// </summary>
     private void HandleReceivedEnvelope(
         ITransport transport,
@@ -173,7 +173,7 @@ public sealed class GroundTransportReceiver
     }
 
     /// <summary>
-    /// Event geçmişine yeni kayıt ekler.
+    /// Event geÃ§miÅŸine yeni kayÄ±t ekler.
     /// </summary>
     private void AddEvent(GroundTransportReceiveEvent receiveEvent)
     {

@@ -1,26 +1,26 @@
-namespace Hydronom.GroundStation.Commanding;
+﻿namespace Hydronom.GroundStation.Commanding;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Yer istasyonu tarafından üretilen veya takip edilen bir komutun kayıt modelidir.
+/// Yer istasyonu tarafÄ±ndan Ã¼retilen veya takip edilen bir komutun kayÄ±t modelidir.
 /// 
-/// CommandRecord, FleetCommand ile FleetCommandResult arasındaki ilişkiyi tutar.
-/// Böylece Ground Station şunu takip edebilir:
-/// - Hangi komut gönderildi?
-/// - Hangi araca gönderildi?
-/// - Ne zaman gönderildi?
-/// - Araç cevap verdi mi?
+/// CommandRecord, FleetCommand ile FleetCommandResult arasÄ±ndaki iliÅŸkiyi tutar.
+/// BÃ¶ylece Ground Station ÅŸunu takip edebilir:
+/// - Hangi komut gÃ¶nderildi?
+/// - Hangi araca gÃ¶nderildi?
+/// - Ne zaman gÃ¶nderildi?
+/// - AraÃ§ cevap verdi mi?
 /// - Komut kabul edildi mi?
-/// - SafetyGate tarafından reddedildi mi?
-/// - Komut hangi aşamaya kadar ilerledi?
+/// - SafetyGate tarafÄ±ndan reddedildi mi?
+/// - Komut hangi aÅŸamaya kadar ilerledi?
 /// 
-/// Bu model ileride Hydronom Ops tarafındaki:
+/// Bu model ileride Hydronom Ops tarafÄ±ndaki:
 /// - Command History
 /// - Operator Timeline
 /// - Safety Rejection Log
 /// - Mission Command Audit
-/// ekranlarının temel veri modeli olabilir.
+/// ekranlarÄ±nÄ±n temel veri modeli olabilir.
 /// </summary>
 public sealed record CommandRecord
 {
@@ -35,15 +35,15 @@ public sealed record CommandRecord
     /// - AuthorityLevel
     /// - Priority
     /// - Args
-    /// gibi bilgileri taşır.
+    /// gibi bilgileri taÅŸÄ±r.
     /// </summary>
     public FleetCommand Command { get; init; } = new();
 
     /// <summary>
-    /// Komuta karşılık araçtan/node'dan gelen en son sonuç.
+    /// Komuta karÅŸÄ±lÄ±k araÃ§tan/node'dan gelen en son sonuÃ§.
     /// 
     /// null ise:
-    /// - Komuta henüz cevap gelmemiştir.
+    /// - Komuta henÃ¼z cevap gelmemiÅŸtir.
     /// - Komut yolda olabilir.
     /// - Hedef node offline olabilir.
     /// - Result gerektirmeyen bir komut olabilir.
@@ -51,78 +51,78 @@ public sealed record CommandRecord
     public FleetCommandResult? LastResult { get; init; }
 
     /// <summary>
-    /// Komutun Ground Station tarafından kayıt altına alındığı UTC zamanıdır.
+    /// Komutun Ground Station tarafÄ±ndan kayÄ±t altÄ±na alÄ±ndÄ±ÄŸÄ± UTC zamanÄ±dÄ±r.
     /// 
-    /// Genelde komut gönderilmeden hemen önce oluşturulur.
+    /// Genelde komut gÃ¶nderilmeden hemen Ã¶nce oluÅŸturulur.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Komuta ilk sonucun geldiği UTC zamanıdır.
+    /// Komuta ilk sonucun geldiÄŸi UTC zamanÄ±dÄ±r.
     /// 
-    /// null ise henüz sonuç alınmamıştır.
+    /// null ise henÃ¼z sonuÃ§ alÄ±nmamÄ±ÅŸtÄ±r.
     /// </summary>
     public DateTimeOffset? FirstResultUtc { get; init; }
 
     /// <summary>
-    /// Komuta gelen en son sonucun UTC zamanıdır.
+    /// Komuta gelen en son sonucun UTC zamanÄ±dÄ±r.
     /// 
-    /// Bazı komutlar birden fazla aşamalı sonuç döndürebilir:
+    /// BazÄ± komutlar birden fazla aÅŸamalÄ± sonuÃ§ dÃ¶ndÃ¼rebilir:
     /// - Received
     /// - Accepted
     /// - SafetyChecked
     /// - Applied
     /// 
-    /// Bu alan son güncellemeyi gösterir.
+    /// Bu alan son gÃ¼ncellemeyi gÃ¶sterir.
     /// </summary>
     public DateTimeOffset? LastResultUtc { get; init; }
 
     /// <summary>
-    /// Komutun şu anda tamamlanmış sayılıp sayılmadığını belirtir.
+    /// Komutun ÅŸu anda tamamlanmÄ±ÅŸ sayÄ±lÄ±p sayÄ±lmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
     /// true:
-    /// - Komut uygulanmış olabilir.
-    /// - Komut reddedilmiş olabilir.
-    /// - Komut başarısız olmuş olabilir.
+    /// - Komut uygulanmÄ±ÅŸ olabilir.
+    /// - Komut reddedilmiÅŸ olabilir.
+    /// - Komut baÅŸarÄ±sÄ±z olmuÅŸ olabilir.
     /// 
-    /// Yani completed her zaman successful anlamına gelmez.
-    /// Başarı bilgisi LastResult.Success üzerinden okunmalıdır.
+    /// Yani completed her zaman successful anlamÄ±na gelmez.
+    /// BaÅŸarÄ± bilgisi LastResult.Success Ã¼zerinden okunmalÄ±dÄ±r.
     /// </summary>
     public bool IsCompleted { get; init; }
 
     /// <summary>
-    /// Komutun cevap bekleyip beklemediğini pratik olarak döndürür.
+    /// Komutun cevap bekleyip beklemediÄŸini pratik olarak dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// FleetCommand.RequiresResult alanını temel alır.
+    /// FleetCommand.RequiresResult alanÄ±nÄ± temel alÄ±r.
     /// </summary>
     public bool RequiresResult =>
         Command.RequiresResult;
 
     /// <summary>
-    /// Komuta cevap gelip gelmediğini döndürür.
+    /// Komuta cevap gelip gelmediÄŸini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool HasResult =>
         LastResult is not null;
 
     /// <summary>
-    /// Komutun sonucu başarılı mı?
+    /// Komutun sonucu baÅŸarÄ±lÄ± mÄ±?
     /// 
-    /// Henüz sonuç yoksa false döner.
+    /// HenÃ¼z sonuÃ§ yoksa false dÃ¶ner.
     /// </summary>
     public bool IsSuccessful =>
         LastResult?.Success == true;
 
     /// <summary>
-    /// Komutun sonuç beklediği halde henüz cevap almadığını belirtir.
+    /// Komutun sonuÃ§ beklediÄŸi halde henÃ¼z cevap almadÄ±ÄŸÄ±nÄ± belirtir.
     /// </summary>
     public bool IsPending =>
         RequiresResult && LastResult is null && !IsCompleted;
 
     /// <summary>
-    /// Komuta sonuç eklenmiş yeni bir CommandRecord üretir.
+    /// Komuta sonuÃ§ eklenmiÅŸ yeni bir CommandRecord Ã¼retir.
     /// 
-    /// Record immutable kaldığı için mevcut nesne değiştirilmez;
-    /// güncellenmiş kopya döner.
+    /// Record immutable kaldÄ±ÄŸÄ± iÃ§in mevcut nesne deÄŸiÅŸtirilmez;
+    /// gÃ¼ncellenmiÅŸ kopya dÃ¶ner.
     /// </summary>
     public CommandRecord WithResult(FleetCommandResult result)
     {
@@ -138,7 +138,7 @@ public sealed record CommandRecord
     }
 
     /// <summary>
-    /// Komutun zaman aşımına uğramış şekilde tamamlandığını belirten yeni kayıt üretir.
+    /// Komutun zaman aÅŸÄ±mÄ±na uÄŸramÄ±ÅŸ ÅŸekilde tamamlandÄ±ÄŸÄ±nÄ± belirten yeni kayÄ±t Ã¼retir.
     /// </summary>
     public CommandRecord MarkExpired()
     {
@@ -164,7 +164,7 @@ public sealed record CommandRecord
     }
 
     /// <summary>
-    /// Bir result status değerinin terminal/final durum sayılıp sayılmadığını belirler.
+    /// Bir result status deÄŸerinin terminal/final durum sayÄ±lÄ±p sayÄ±lmadÄ±ÄŸÄ±nÄ± belirler.
     /// 
     /// Terminal durumlar:
     /// - Applied
@@ -174,7 +174,7 @@ public sealed record CommandRecord
     /// - Expired
     /// - Failed
     /// 
-    /// Accepted her zaman final değildir; araç komutu kabul edip daha sonra uygulayabilir.
+    /// Accepted her zaman final deÄŸildir; araÃ§ komutu kabul edip daha sonra uygulayabilir.
     /// </summary>
     private static bool IsTerminalStatus(string status)
     {

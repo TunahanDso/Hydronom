@@ -1,7 +1,7 @@
-namespace Hydronom.GroundStation.Security;
+﻿namespace Hydronom.GroundStation.Security;
 
 /// <summary>
-/// Komut doğrulama sürecinde bulunan tek bir problemi temsil eder.
+/// Komut doÄŸrulama sÃ¼recinde bulunan tek bir problemi temsil eder.
 /// </summary>
 public sealed record CommandValidationIssue
 {
@@ -11,7 +11,7 @@ public sealed record CommandValidationIssue
     public string Code { get; init; } = string.Empty;
 
     /// <summary>
-    /// İnsan-okunabilir açıklama.
+    /// Ä°nsan-okunabilir aÃ§Ä±klama.
     /// </summary>
     public string Message { get; init; } = string.Empty;
 
@@ -21,7 +21,7 @@ public sealed record CommandValidationIssue
     public bool IsBlocking { get; init; } = true;
 
     /// <summary>
-    /// Problem üretildiği UTC zaman.
+    /// Problem Ã¼retildiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
 

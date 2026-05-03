@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// 6-DoF komut güvenliği ve hareket yumuşatma katmanı.
+    /// 6-DoF komut gÃ¼venliÄŸi ve hareket yumuÅŸatma katmanÄ±.
     ///
-    /// Decision katmanından gelen wrench komutunu güvenli hale getirir:
-    /// - NaN / Infinity temizliği
-    /// - dt güvenliği
-    /// - eksen bazlı deadband
-    /// - eksen bazlı rate limit
+    /// Decision katmanÄ±ndan gelen wrench komutunu gÃ¼venli hale getirir:
+    /// - NaN / Infinity temizliÄŸi
+    /// - dt gÃ¼venliÄŸi
+    /// - eksen bazlÄ± deadband
+    /// - eksen bazlÄ± rate limit
     /// - opsiyonel mutlak eksen limiti
     /// - planar turn-assist
-    /// - açıklanabilir rapor üretimi
+    /// - aÃ§Ä±klanabilir rapor Ã¼retimi
     /// </summary>
     public sealed class SafetyLimiter
     {
@@ -35,8 +35,8 @@ namespace Hydronom.Core.Modules
         private bool _hasLast;
 
         /// <summary>
-        /// Son limiter çalışmasının açıklanabilir raporu.
-        /// Runtime log, Analysis, Diagnostics ve Ops tarafı bunu okuyabilir.
+        /// Son limiter Ã§alÄ±ÅŸmasÄ±nÄ±n aÃ§Ä±klanabilir raporu.
+        /// Runtime log, Analysis, Diagnostics ve Ops tarafÄ± bunu okuyabilir.
         /// </summary>
         public SafetyLimitReport LastReport { get; private set; } =
             SafetyLimitReport.Empty;
@@ -67,7 +67,7 @@ namespace Hydronom.Core.Modules
         /// Geri uyumlu ayar:
         /// - throttleRatePerSec -> Fx
         /// - rudderRatePerSec   -> Tz
-        /// Yan eksenleri değiştirmez.
+        /// Yan eksenleri deÄŸiÅŸtirmez.
         /// </summary>
         public void SetRates(double? thrRatePerSec, double? rudRatePerSec)
         {
@@ -79,8 +79,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Fx/Tz tabanlı hızlı profil ayarı.
-        /// Yan eksenler otomatik türetilir.
+        /// Fx/Tz tabanlÄ± hÄ±zlÄ± profil ayarÄ±.
+        /// Yan eksenler otomatik tÃ¼retilir.
         /// </summary>
         public void SetProfile(double throttleRatePerSec, double rudderRatePerSec)
         {
@@ -98,8 +98,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// 6-DoF eksenleri için ayrı rate limit ayarı.
-        /// Null verilen eksen değişmeden kalır.
+        /// 6-DoF eksenleri iÃ§in ayrÄ± rate limit ayarÄ±.
+        /// Null verilen eksen deÄŸiÅŸmeden kalÄ±r.
         /// </summary>
         public void SetAxisRates(
             double? fx = null, double? fy = null, double? fz = null,
@@ -116,8 +116,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// 6-DoF eksenleri için deadband ayarı.
-        /// Null verilen eksen değişmeden kalır.
+        /// 6-DoF eksenleri iÃ§in deadband ayarÄ±.
+        /// Null verilen eksen deÄŸiÅŸmeden kalÄ±r.
         /// </summary>
         public void SetAxisDeadbands(
             double? fx = null, double? fy = null, double? fz = null,
@@ -136,9 +136,9 @@ namespace Hydronom.Core.Modules
         /// <summary>
         /// Opsiyonel mutlak eksen limitleri.
         ///
-        /// Varsayılan olarak kapalıdır.
-        /// Bu limitler açılırsa DecisionCommand değerleri belirtilen maksimum mutlak değerleri aşamaz.
-        /// Fiziksel actuator authority yine ActuatorManager tarafında denetlenmelidir.
+        /// VarsayÄ±lan olarak kapalÄ±dÄ±r.
+        /// Bu limitler aÃ§Ä±lÄ±rsa DecisionCommand deÄŸerleri belirtilen maksimum mutlak deÄŸerleri aÅŸamaz.
+        /// Fiziksel actuator authority yine ActuatorManager tarafÄ±nda denetlenmelidir.
         /// </summary>
         public void SetAxisAbsoluteLimits(
             bool enabled,
@@ -160,8 +160,8 @@ namespace Hydronom.Core.Modules
         /// <summary>
         /// Planar turn-assist parametreleri.
         ///
-        /// Turn-assist rate limitten önce uygulanır.
-        /// Böylece assist de güvenli geçiş filtresinden geçer.
+        /// Turn-assist rate limitten Ã¶nce uygulanÄ±r.
+        /// BÃ¶ylece assist de gÃ¼venli geÃ§iÅŸ filtresinden geÃ§er.
         /// </summary>
         public void SetTurnAssist(
             bool? enabled = null,
@@ -179,8 +179,8 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Geçmiş limiter durumunu sıfırlar.
-        /// Görev değişimi, emergency stop, mode transition veya external override sonrası çağrılabilir.
+        /// GeÃ§miÅŸ limiter durumunu sÄ±fÄ±rlar.
+        /// GÃ¶rev deÄŸiÅŸimi, emergency stop, mode transition veya external override sonrasÄ± Ã§aÄŸrÄ±labilir.
         /// </summary>
         public void Reset()
         {
@@ -199,7 +199,7 @@ namespace Hydronom.Core.Modules
         }
 
         /// <summary>
-        /// Açıklanabilir gelişmiş limiter API'si.
+        /// AÃ§Ä±klanabilir geliÅŸmiÅŸ limiter API'si.
         /// </summary>
         public SafetyLimitReport LimitAdvanced(DecisionCommand desired, double dtSeconds)
         {
@@ -364,7 +364,7 @@ namespace Hydronom.Core.Modules
     }
 
     /// <summary>
-    /// 6 eksenli değer paketi.
+    /// 6 eksenli deÄŸer paketi.
     /// Fx,Fy,Fz kuvvet; Tx,Ty,Tz tork eksenleridir.
     /// </summary>
     public readonly record struct AxisValues(
@@ -439,7 +439,7 @@ namespace Hydronom.Core.Modules
     }
 
     /// <summary>
-    /// Limiter'in yaptığı işlemleri raporlar.
+    /// Limiter'in yaptÄ±ÄŸÄ± iÅŸlemleri raporlar.
     /// </summary>
     public struct LimitFlags
     {
@@ -515,7 +515,7 @@ namespace Hydronom.Core.Modules
     }
 
     /// <summary>
-    /// SafetyLimiter çalışmasının açıklanabilir raporu.
+    /// SafetyLimiter Ã§alÄ±ÅŸmasÄ±nÄ±n aÃ§Ä±klanabilir raporu.
     /// </summary>
     public readonly record struct SafetyLimitReport(
         DecisionCommand Input,

@@ -1,212 +1,212 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 /// <summary>
-/// Hydronom sisteminde kullanılabilecek haberleşme / taşıma kanalı türlerini temsil eder.
+/// Hydronom sisteminde kullanÄ±labilecek haberleÅŸme / taÅŸÄ±ma kanalÄ± tÃ¼rlerini temsil eder.
 /// 
-/// Bu enum, Fleet & Ground Station mimarisinin temel parçalarından biridir.
-/// Amaç; TCP, UDP, WebSocket, Serial, LoRa, RF modem, MQTT gibi farklı haberleşme
-/// yöntemlerini üst seviye sistemden soyutlamaktır.
+/// Bu enum, Fleet & Ground Station mimarisinin temel parÃ§alarÄ±ndan biridir.
+/// AmaÃ§; TCP, UDP, WebSocket, Serial, LoRa, RF modem, MQTT gibi farklÄ± haberleÅŸme
+/// yÃ¶ntemlerini Ã¼st seviye sistemden soyutlamaktÄ±r.
 /// 
-/// Üst seviye Hydronom mimarisi şunu bilmek zorunda kalmamalıdır:
-/// - Mesaj Wi-Fi üzerinden mi gitti?
-/// - LoRa ile mi taşındı?
-/// - RF modem mi kullandı?
-/// - WebSocket üzerinden mi aktı?
+/// Ãœst seviye Hydronom mimarisi ÅŸunu bilmek zorunda kalmamalÄ±dÄ±r:
+/// - Mesaj Wi-Fi Ã¼zerinden mi gitti?
+/// - LoRa ile mi taÅŸÄ±ndÄ±?
+/// - RF modem mi kullandÄ±?
+/// - WebSocket Ã¼zerinden mi aktÄ±?
 /// 
-/// Bunun yerine sistem sadece şunu bilir:
-/// "Ben bir HydronomEnvelope göndereceğim."
+/// Bunun yerine sistem sadece ÅŸunu bilir:
+/// "Ben bir HydronomEnvelope gÃ¶ndereceÄŸim."
 /// 
-/// Mesajın hangi fiziksel veya mantıksal kanaldan gönderileceğine
+/// MesajÄ±n hangi fiziksel veya mantÄ±ksal kanaldan gÃ¶nderileceÄŸine
 /// CommunicationRouter / TransportManager karar verir.
 /// </summary>
 public enum TransportKind
 {
     /// <summary>
-    /// Transport türü bilinmiyor veya henüz tespit edilmedi.
+    /// Transport tÃ¼rÃ¼ bilinmiyor veya henÃ¼z tespit edilmedi.
     /// 
     /// Genellikle:
-    /// - Varsayılan değer olarak,
-    /// - Hatalı/eksik konfigürasyonda,
-    /// - Henüz sınıflandırılmamış bağlantılarda kullanılır.
+    /// - VarsayÄ±lan deÄŸer olarak,
+    /// - HatalÄ±/eksik konfigÃ¼rasyonda,
+    /// - HenÃ¼z sÄ±nÄ±flandÄ±rÄ±lmamÄ±ÅŸ baÄŸlantÄ±larda kullanÄ±lÄ±r.
     /// </summary>
     Unknown = 0,
 
     /// <summary>
-    /// TCP tabanlı bağlantı.
+    /// TCP tabanlÄ± baÄŸlantÄ±.
     /// 
-    /// Kullanım alanları:
-    /// - Yer istasyonu ile araç arasında güvenilir veri aktarımı,
-    /// - Hydronom Runtime ile Gateway arasında bağlantı,
-    /// - NDJSON / JSON tabanlı mesaj akışı,
-    /// - Geliştirme ve test ortamları.
+    /// KullanÄ±m alanlarÄ±:
+    /// - Yer istasyonu ile araÃ§ arasÄ±nda gÃ¼venilir veri aktarÄ±mÄ±,
+    /// - Hydronom Runtime ile Gateway arasÄ±nda baÄŸlantÄ±,
+    /// - NDJSON / JSON tabanlÄ± mesaj akÄ±ÅŸÄ±,
+    /// - GeliÅŸtirme ve test ortamlarÄ±.
     /// 
     /// Avantaj:
-    /// - Güvenilir ve sıralı veri aktarımı sağlar.
+    /// - GÃ¼venilir ve sÄ±ralÄ± veri aktarÄ±mÄ± saÄŸlar.
     /// 
     /// Dezavantaj:
-    /// - Bağlantı kopmalarında yeniden bağlantı yönetimi gerekir.
+    /// - BaÄŸlantÄ± kopmalarÄ±nda yeniden baÄŸlantÄ± yÃ¶netimi gerekir.
     /// </summary>
     Tcp = 1,
 
     /// <summary>
-    /// UDP tabanlı bağlantı.
+    /// UDP tabanlÄ± baÄŸlantÄ±.
     /// 
-    /// Kullanım alanları:
-    /// - Düşük gecikmeli telemetry,
-    /// - Video/stream benzeri hızlı veri aktarımı,
-    /// - Paket kaybının tolere edilebildiği durumlar.
+    /// KullanÄ±m alanlarÄ±:
+    /// - DÃ¼ÅŸÃ¼k gecikmeli telemetry,
+    /// - Video/stream benzeri hÄ±zlÄ± veri aktarÄ±mÄ±,
+    /// - Paket kaybÄ±nÄ±n tolere edilebildiÄŸi durumlar.
     /// 
     /// Avantaj:
-    /// - TCP'ye göre daha düşük gecikme sunabilir.
+    /// - TCP'ye gÃ¶re daha dÃ¼ÅŸÃ¼k gecikme sunabilir.
     /// 
     /// Dezavantaj:
     /// - Paket teslim garantisi yoktur.
-    /// - Paket sırası garanti edilmez.
+    /// - Paket sÄ±rasÄ± garanti edilmez.
     /// </summary>
     Udp = 2,
 
     /// <summary>
-    /// WebSocket tabanlı bağlantı.
+    /// WebSocket tabanlÄ± baÄŸlantÄ±.
     /// 
-    /// Kullanım alanları:
-    /// - Hydronom Ops frontend ile Gateway arasında canlı veri akışı,
-    /// - Tarayıcı tabanlı yer istasyonu arayüzü,
-    /// - Gerçek zamanlı telemetry ve fleet dashboard güncellemeleri.
+    /// KullanÄ±m alanlarÄ±:
+    /// - Hydronom Ops frontend ile Gateway arasÄ±nda canlÄ± veri akÄ±ÅŸÄ±,
+    /// - TarayÄ±cÄ± tabanlÄ± yer istasyonu arayÃ¼zÃ¼,
+    /// - GerÃ§ek zamanlÄ± telemetry ve fleet dashboard gÃ¼ncellemeleri.
     /// 
     /// Avantaj:
-    /// - Web uygulamalarıyla doğal uyumludur.
-    /// - Çift yönlü iletişim sağlar.
+    /// - Web uygulamalarÄ±yla doÄŸal uyumludur.
+    /// - Ã‡ift yÃ¶nlÃ¼ iletiÅŸim saÄŸlar.
     /// </summary>
     WebSocket = 3,
 
     /// <summary>
-    /// Seri port tabanlı haberleşme.
+    /// Seri port tabanlÄ± haberleÅŸme.
     /// 
-    /// Kullanım alanları:
-    /// - STM32, Arduino, Jetson yardımcı kartları,
-    /// - RF modemlerin seri arayüzleri,
-    /// - USB-TTL dönüştürücüler,
-    /// - Donanım testleri.
+    /// KullanÄ±m alanlarÄ±:
+    /// - STM32, Arduino, Jetson yardÄ±mcÄ± kartlarÄ±,
+    /// - RF modemlerin seri arayÃ¼zleri,
+    /// - USB-TTL dÃ¶nÃ¼ÅŸtÃ¼rÃ¼cÃ¼ler,
+    /// - DonanÄ±m testleri.
     /// 
     /// Not:
-    /// Serial transport bazen doğrudan araç içi modül haberleşmesi için,
-    /// bazen de RF/LoRa cihazına erişmek için alt kanal olarak kullanılabilir.
+    /// Serial transport bazen doÄŸrudan araÃ§ iÃ§i modÃ¼l haberleÅŸmesi iÃ§in,
+    /// bazen de RF/LoRa cihazÄ±na eriÅŸmek iÃ§in alt kanal olarak kullanÄ±labilir.
     /// </summary>
     Serial = 10,
 
     /// <summary>
-    /// LoRa tabanlı düşük bant genişlikli, uzun menzilli haberleşme.
+    /// LoRa tabanlÄ± dÃ¼ÅŸÃ¼k bant geniÅŸlikli, uzun menzilli haberleÅŸme.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - Light telemetry,
     /// - Mini konum paketi,
     /// - Heartbeat,
-    /// - Basit görev komutları,
+    /// - Basit gÃ¶rev komutlarÄ±,
     /// - Acil durum sinyalleri.
     /// 
     /// Avantaj:
     /// - Uzun menzil.
-    /// - Düşük güç tüketimi.
+    /// - DÃ¼ÅŸÃ¼k gÃ¼Ã§ tÃ¼ketimi.
     /// 
     /// Dezavantaj:
-    /// - Düşük veri hızı.
-    /// - Büyük telemetry veya video için uygun değildir.
+    /// - DÃ¼ÅŸÃ¼k veri hÄ±zÄ±.
+    /// - BÃ¼yÃ¼k telemetry veya video iÃ§in uygun deÄŸildir.
     /// </summary>
     LoRa = 11,
 
     /// <summary>
-    /// RF modem tabanlı haberleşme.
+    /// RF modem tabanlÄ± haberleÅŸme.
     /// 
-    /// Kullanım alanları:
-    /// - Araç ↔ yer istasyonu bağlantısı,
-    /// - Görev komutları,
+    /// KullanÄ±m alanlarÄ±:
+    /// - AraÃ§ â†” yer istasyonu baÄŸlantÄ±sÄ±,
+    /// - GÃ¶rev komutlarÄ±,
     /// - Normal telemetry,
-    /// - Daha klasik radyo modem altyapıları.
+    /// - Daha klasik radyo modem altyapÄ±larÄ±.
     /// 
     /// Not:
-    /// RF modemler kullanılan modele göre seri port, USB veya farklı bir arayüz
-    /// üzerinden sisteme bağlanabilir. Bu enum, fiziksel cihaz sınıfını temsil eder.
+    /// RF modemler kullanÄ±lan modele gÃ¶re seri port, USB veya farklÄ± bir arayÃ¼z
+    /// Ã¼zerinden sisteme baÄŸlanabilir. Bu enum, fiziksel cihaz sÄ±nÄ±fÄ±nÄ± temsil eder.
     /// </summary>
     RfModem = 12,
 
     /// <summary>
-    /// MQTT tabanlı mesajlaşma.
+    /// MQTT tabanlÄ± mesajlaÅŸma.
     /// 
-    /// Kullanım alanları:
-    /// - Bulut bağlantısı,
+    /// KullanÄ±m alanlarÄ±:
+    /// - Bulut baÄŸlantÄ±sÄ±,
     /// - Uzak monitoring,
-    /// - IoT tarzı telemetry yayınlama,
-    /// - Araç/yer istasyonu dışındaki servislerle entegrasyon.
+    /// - IoT tarzÄ± telemetry yayÄ±nlama,
+    /// - AraÃ§/yer istasyonu dÄ±ÅŸÄ±ndaki servislerle entegrasyon.
     /// 
     /// Not:
-    /// Gerçek zamanlı motor kontrolü için ana kanal olmamalıdır.
-    /// Daha çok telemetry, status ve cloud integration için uygundur.
+    /// GerÃ§ek zamanlÄ± motor kontrolÃ¼ iÃ§in ana kanal olmamalÄ±dÄ±r.
+    /// Daha Ã§ok telemetry, status ve cloud integration iÃ§in uygundur.
     /// </summary>
     Mqtt = 20,
 
     /// <summary>
-    /// Hücresel ağ tabanlı haberleşme.
+    /// HÃ¼cresel aÄŸ tabanlÄ± haberleÅŸme.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - 4G
     /// - 5G
     /// - LTE modem
     /// 
-    /// Kullanım alanları:
-    /// - Geniş alan operasyonları,
+    /// KullanÄ±m alanlarÄ±:
+    /// - GeniÅŸ alan operasyonlarÄ±,
     /// - Uzak telemetry,
-    /// - Harita/veri aktarımı,
-    /// - Yer istasyonu dışından izleme.
+    /// - Harita/veri aktarÄ±mÄ±,
+    /// - Yer istasyonu dÄ±ÅŸÄ±ndan izleme.
     /// 
     /// Avantaj:
-    /// - Altyapı varsa uzun mesafede kullanılabilir.
+    /// - AltyapÄ± varsa uzun mesafede kullanÄ±labilir.
     /// 
     /// Dezavantaj:
-    /// - Operatör bağımlılığı vardır.
-    /// - Gecikme ve bağlantı kararlılığı değişken olabilir.
+    /// - OperatÃ¶r baÄŸÄ±mlÄ±lÄ±ÄŸÄ± vardÄ±r.
+    /// - Gecikme ve baÄŸlantÄ± kararlÄ±lÄ±ÄŸÄ± deÄŸiÅŸken olabilir.
     /// </summary>
     Cellular = 21,
 
     /// <summary>
-    /// Mesh ağ tabanlı haberleşme.
+    /// Mesh aÄŸ tabanlÄ± haberleÅŸme.
     /// 
-    /// Kullanım alanları:
-    /// - Araçların birbirini relay olarak kullanması,
-    /// - Çoklu araç operasyonları,
-    /// - Ground Station'a doğrudan ulaşamayan aracın başka araç üzerinden bağlanması,
-    /// - Swarm / fleet görevleri.
+    /// KullanÄ±m alanlarÄ±:
+    /// - AraÃ§larÄ±n birbirini relay olarak kullanmasÄ±,
+    /// - Ã‡oklu araÃ§ operasyonlarÄ±,
+    /// - Ground Station'a doÄŸrudan ulaÅŸamayan aracÄ±n baÅŸka araÃ§ Ã¼zerinden baÄŸlanmasÄ±,
+    /// - Swarm / fleet gÃ¶revleri.
     /// 
     /// Not:
-    /// Hydronom Fleet mimarisinde ileride çok kritik hale gelebilecek transport türlerinden biridir.
+    /// Hydronom Fleet mimarisinde ileride Ã§ok kritik hale gelebilecek transport tÃ¼rlerinden biridir.
     /// </summary>
     Mesh = 22,
 
     /// <summary>
-    /// Dosya veya kayıt üzerinden tekrar oynatma transport'u.
+    /// Dosya veya kayÄ±t Ã¼zerinden tekrar oynatma transport'u.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - Replay sistemi,
-    /// - Test senaryoları,
-    /// - Simülasyon,
-    /// - Yarışma sonrası analiz,
+    /// - Test senaryolarÄ±,
+    /// - SimÃ¼lasyon,
+    /// - YarÄ±ÅŸma sonrasÄ± analiz,
     /// - Recorded telemetry ile debugging.
     /// 
-    /// Gerçek bir fiziksel haberleşme kanalı değildir.
-    /// Ama sistemin diğer transport'larla aynı arayüzden test edilmesini sağlar.
+    /// GerÃ§ek bir fiziksel haberleÅŸme kanalÄ± deÄŸildir.
+    /// Ama sistemin diÄŸer transport'larla aynÄ± arayÃ¼zden test edilmesini saÄŸlar.
     /// </summary>
     FileReplay = 100,
 
     /// <summary>
     /// Mock / sahte transport.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - Unit test,
-    /// - Geliştirme ortamı,
-    /// - Donanım yokken sistem akışını test etme,
-    /// - Simülasyon modu.
+    /// - GeliÅŸtirme ortamÄ±,
+    /// - DonanÄ±m yokken sistem akÄ±ÅŸÄ±nÄ± test etme,
+    /// - SimÃ¼lasyon modu.
     /// 
-    /// Gerçek donanıma ihtiyaç duymadan CommunicationRouter,
-    /// GroundStation ve Fleet katmanlarını test etmeyi sağlar.
+    /// GerÃ§ek donanÄ±ma ihtiyaÃ§ duymadan CommunicationRouter,
+    /// GroundStation ve Fleet katmanlarÄ±nÄ± test etmeyi saÄŸlar.
     /// </summary>
     Mock = 101
 }

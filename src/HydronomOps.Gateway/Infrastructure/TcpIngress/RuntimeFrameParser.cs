@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using HydronomOps.Gateway.Contracts.Actuators;
@@ -13,7 +13,7 @@ using HydronomOps.Gateway.Services.State;
 namespace HydronomOps.Gateway.Infrastructure.TcpIngress;
 
 /// <summary>
-/// Runtime'tan gelen ham NDJSON satırlarını parse eder ve gateway state store'a işler.
+/// Runtime'tan gelen ham NDJSON satÄ±rlarÄ±nÄ± parse eder ve gateway state store'a iÅŸler.
 /// </summary>
 public sealed class RuntimeFrameParser
 {
@@ -40,7 +40,7 @@ public sealed class RuntimeFrameParser
     private double _lastPitchRateDeg;
     private double _lastYawRateDeg;
 
-    // GPS -> yerel XY dönüşümü için referans origin
+    // GPS -> yerel XY dÃ¶nÃ¼ÅŸÃ¼mÃ¼ iÃ§in referans origin
     private bool _gpsOriginInitialized;
     private double _originLatDeg;
     private double _originLonDeg;
@@ -72,7 +72,7 @@ public sealed class RuntimeFrameParser
                 {
                     Level = "debug",
                     Category = "parser",
-                    Message = "Type alanı olmayan runtime satırı alındı.",
+                    Message = "Type alanÄ± olmayan runtime satÄ±rÄ± alÄ±ndÄ±.",
                     Detail = TrimForLog(line),
                     TimestampUtc = DateTime.UtcNow
                 });
@@ -125,7 +125,7 @@ public sealed class RuntimeFrameParser
                     {
                         Level = "debug",
                         Category = "parser",
-                        Message = $"Bilinmeyen mesaj tipi alındı: {type}",
+                        Message = $"Bilinmeyen mesaj tipi alÄ±ndÄ±: {type}",
                         Detail = TrimForLog(line),
                         TimestampUtc = DateTime.UtcNow
                     });
@@ -140,7 +140,7 @@ public sealed class RuntimeFrameParser
             {
                 Level = "error",
                 Category = "parser",
-                Message = $"Frame parse hatası: {ex.Message}",
+                Message = $"Frame parse hatasÄ±: {ex.Message}",
                 Detail = TrimForLog(line),
                 TimestampUtc = DateTime.UtcNow
             });
@@ -194,8 +194,8 @@ public sealed class RuntimeFrameParser
         if (mapped.DistanceToGoalM is not null) existing.DistanceToGoalM = mapped.DistanceToGoalM;
         if (mapped.HeadingErrorDeg is not null) existing.HeadingErrorDeg = mapped.HeadingErrorDeg;
 
-        // ExternalState çoğu zaman pose/twist taşır.
-        // Bu yüzden boş obstacle/landmark listeleri gelirse mevcut harita bilgisini ezmeyelim.
+        // ExternalState Ã§oÄŸu zaman pose/twist taÅŸÄ±r.
+        // Bu yÃ¼zden boÅŸ obstacle/landmark listeleri gelirse mevcut harita bilgisini ezmeyelim.
         if (mapped.Obstacles is not null && mapped.Obstacles.Count > 0)
         {
             existing.Obstacles = CloneObstacles(mapped.Obstacles);
@@ -583,7 +583,7 @@ public sealed class RuntimeFrameParser
         {
             Level = "debug",
             Category = "parser-sample",
-            Message = $"Ham runtime örneği alındı. Type={type}, Index={count}",
+            Message = $"Ham runtime Ã¶rneÄŸi alÄ±ndÄ±. Type={type}, Index={count}",
             Detail = TrimForLog(line),
             TimestampUtc = DateTime.UtcNow
         });

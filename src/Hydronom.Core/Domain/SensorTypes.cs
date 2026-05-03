@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
     /// <summary>IMU verisi (m/s^2 ve rad/s; euler opsiyoneldir).</summary>
     public readonly record struct ImuData(
         DateTime Stamp,
-        // İvme (m/s^2)
+        // Ä°vme (m/s^2)
         double Ax, double Ay, double Az,
-        // Açısal hız (rad/s)
+        // AÃ§Ä±sal hÄ±z (rad/s)
         double Gx, double Gy, double Gz,
-        // Opsiyonel euler (deg) – yoksa NaN bırak
+        // Opsiyonel euler (deg) â€“ yoksa NaN bÄ±rak
         double RollDeg, double PitchDeg, double YawDeg
     );
 
-    /// <summary>2D LiDAR taraması (ROS LaserScan ile uyumlu alan adları).</summary>
+    /// <summary>2D LiDAR taramasÄ± (ROS LaserScan ile uyumlu alan adlarÄ±).</summary>
     public sealed record LaserScanData(
         DateTime Stamp,
         string FrameId,
@@ -26,13 +26,14 @@ namespace Hydronom.Core.Domain
         float[]? Intensities  // opsiyonel
     );
 
-    /// <summary>Kamera karesi referansı (ham piksel taşımayız—referans taşır).</summary>
+    /// <summary>Kamera karesi referansÄ± (ham piksel taÅŸÄ±mayÄ±zâ€”referans taÅŸÄ±r).</summary>
     public sealed record CameraFrameRef(
         DateTime Stamp,
         string FrameId,
         int Width,
         int Height,
-        string Encoding,      // örn: "rgb8", "bgr8", "mono8"
-        string BufferRef      // paylaşımlı bellek yolu / dosya yolu / handle
+        string Encoding,      // Ã¶rn: "rgb8", "bgr8", "mono8"
+        string BufferRef      // paylaÅŸÄ±mlÄ± bellek yolu / dosya yolu / handle
     );
 }
+

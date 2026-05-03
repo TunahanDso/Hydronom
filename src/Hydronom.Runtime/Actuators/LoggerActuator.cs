@@ -1,9 +1,9 @@
-using Hydronom.Core.Domain;
+﻿using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 
 namespace Hydronom.Runtime.Actuators
 {
-    /// <summary>Komutu sadece loglar (debug/test için).</summary>
+    /// <summary>Komutu sadece loglar (debug/test iÃ§in).</summary>
     public class LoggerActuator : IActuator
     {
         public void Apply(DecisionCommand cmd)
@@ -12,3 +12,4 @@ namespace Hydronom.Runtime.Actuators
         }
     }
 }
+

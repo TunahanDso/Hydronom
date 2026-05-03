@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
@@ -17,14 +17,14 @@ namespace Hydronom.Core.Domain
         public static Vec3 operator +(Vec3 a, Vec3 b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
         public static Vec3 operator -(Vec3 a, Vec3 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
-        // Skaler çarpma (sağdan ve soldan)
+        // Skaler Ã§arpma (saÄŸdan ve soldan)
         public static Vec3 operator *(Vec3 a, double k) => new(a.X * k, a.Y * k, a.Z * k);
         public static Vec3 operator *(double k, Vec3 a) => new(a.X * k, a.Y * k, a.Z * k);
 
-        // Skaler bölme
+        // Skaler bÃ¶lme
         public static Vec3 operator /(Vec3 a, double k) => (Math.Abs(k) < 1e-12) ? Zero : new(a.X / k, a.Y / k, a.Z / k);
 
-        // Noktasal ve vektörel çarpım
+        // Noktasal ve vektÃ¶rel Ã§arpÄ±m
         public static double Dot(Vec3 a, Vec3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
         public double Dot(in Vec3 b) => Dot(this, b);
 
@@ -34,3 +34,4 @@ namespace Hydronom.Core.Domain
                    a.X * b.Y - a.Y * b.X);
     }
 }
+

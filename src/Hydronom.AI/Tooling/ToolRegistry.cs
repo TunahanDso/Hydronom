@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hydronom.Core.Domain.AI;
@@ -20,7 +20,7 @@ public sealed class ToolRegistry
     {
         var name = tool.Spec?.Name;
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("ToolSpec.Name boş olamaz.");
+            throw new ArgumentException("ToolSpec.Name boÅŸ olamaz.");
 
         _tools[name] = tool;
     }

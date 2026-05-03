@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +7,7 @@ partial class Program
 {
     /// <summary>
     /// Runtime config builder.
-    /// appsettings.json ve Configs klasöründeki tüm json dosyalarını yükler.
+    /// appsettings.json ve Configs klasÃ¶rÃ¼ndeki tÃ¼m json dosyalarÄ±nÄ± yÃ¼kler.
     /// </summary>
     private static IConfigurationRoot BuildRuntimeConfiguration()
     {
@@ -26,8 +26,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime genelinde invariant culture kullanılır.
-    /// Log, JSON, double parse ve komut değerlerinde virgül/nokta karışıklığını azaltır.
+    /// Runtime genelinde invariant culture kullanÄ±lÄ±r.
+    /// Log, JSON, double parse ve komut deÄŸerlerinde virgÃ¼l/nokta karÄ±ÅŸÄ±klÄ±ÄŸÄ±nÄ± azaltÄ±r.
     /// </summary>
     private static void ConfigureRuntimeCulture()
     {
@@ -36,7 +36,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime mode ve logging seçeneklerini config üzerinden okur.
+    /// Runtime mode ve logging seÃ§eneklerini config Ã¼zerinden okur.
     /// </summary>
     private static RuntimeOptions ReadRuntimeOptions(IConfiguration config)
     {
@@ -85,7 +85,7 @@ partial class Program
     }
 
     /// <summary>
-    /// 6-DoF synthetic physics parametrelerini config üzerinden okur.
+    /// 6-DoF synthetic physics parametrelerini config Ã¼zerinden okur.
     /// </summary>
     private static PhysicsOptions ReadPhysicsOptions(IConfiguration config)
     {
@@ -137,7 +137,7 @@ partial class Program
     }
 
     /// <summary>
-    /// External pose reconciliation ayarlarını config üzerinden okur.
+    /// External pose reconciliation ayarlarÄ±nÄ± config Ã¼zerinden okur.
     /// </summary>
     private static ExternalPoseOptions ReadExternalPoseOptions(
         IConfiguration config,
@@ -184,48 +184,48 @@ partial class Program
     }
 
     /// <summary>
-    /// Bootstrap aşamasında okunmuş temel runtime ayarlarını konsola basar.
+    /// Bootstrap aÅŸamasÄ±nda okunmuÅŸ temel runtime ayarlarÄ±nÄ± konsola basar.
     /// </summary>
     private static void PrintBootstrapSummary(
         RuntimeOptions runtime,
         PhysicsOptions physics,
         ExternalPoseOptions externalPose)
     {
-        Console.WriteLine($"[CFG] Logging → Mode={runtime.LogMode}, LoopEvery={runtime.LoopLogEvery}, HeartbeatEvery={runtime.HeartbeatEvery}");
+        Console.WriteLine($"[CFG] Logging â†’ Mode={runtime.LogMode}, LoopEvery={runtime.LoopLogEvery}, HeartbeatEvery={runtime.HeartbeatEvery}");
 
         Console.WriteLine(
-            $"[CFG] Modes → Dev={runtime.DevMode} Sim={runtime.SimMode} " +
+            $"[CFG] Modes â†’ Dev={runtime.DevMode} Sim={runtime.SimMode} " +
             $"AllowExtInSim={runtime.AllowExternalPoseOverrideInSim} " +
             $"SyntheticState={runtime.UseSyntheticStateWhenNoExternal}"
         );
 
-        Console.WriteLine("[CFG] Obstacle Policy → Runtime obstacle üretmez. Obstacle yalnızca Python/TcpJson fresh frame'den alınır.");
+        Console.WriteLine("[CFG] Obstacle Policy â†’ Runtime obstacle Ã¼retmez. Obstacle yalnÄ±zca Python/TcpJson fresh frame'den alÄ±nÄ±r.");
 
         Console.WriteLine(
-            $"[CFG] Physics → Mass={physics.MassKg:F2}kg " +
+            $"[CFG] Physics â†’ Mass={physics.MassKg:F2}kg " +
             $"Inertia=({physics.Inertia.X:F2},{physics.Inertia.Y:F2},{physics.Inertia.Z:F2}) " +
             $"LinDrag=({physics.LinearDragBody.X:F2},{physics.LinearDragBody.Y:F2},{physics.LinearDragBody.Z:F2}) " +
             $"QuadDrag=({physics.QuadraticDragBody.X:F2},{physics.QuadraticDragBody.Y:F2},{physics.QuadraticDragBody.Z:F2})"
         );
 
         Console.WriteLine(
-            $"[CFG] AngularDrag → Lin=({physics.AngularLinearDragBody.X:F2},{physics.AngularLinearDragBody.Y:F2},{physics.AngularLinearDragBody.Z:F2}) " +
+            $"[CFG] AngularDrag â†’ Lin=({physics.AngularLinearDragBody.X:F2},{physics.AngularLinearDragBody.Y:F2},{physics.AngularLinearDragBody.Z:F2}) " +
             $"Quad=({physics.AngularQuadraticDragBody.X:F2},{physics.AngularQuadraticDragBody.Y:F2},{physics.AngularQuadraticDragBody.Z:F2}) " +
             $"MaxLinSpeed={physics.MaxSyntheticLinearSpeed:F2}m/s " +
             $"MaxAngSpeed={physics.MaxSyntheticAngularSpeedDeg:F1}deg/s"
         );
 
         Console.WriteLine(
-            $"[CFG] ExternalPose → VelBlend={externalPose.VelocityBlend:F2} " +
+            $"[CFG] ExternalPose â†’ VelBlend={externalPose.VelocityBlend:F2} " +
             $"YawRateBlend={externalPose.YawRateBlend:F2} " +
             $"ResetOnTeleport={externalPose.ResetVelocityOnTeleport} " +
             $"TeleportDist={externalPose.TeleportDistanceM:F2}m " +
-            $"TeleportYaw={externalPose.TeleportYawDeg:F1}°"
+            $"TeleportYaw={externalPose.TeleportYawDeg:F1}Â°"
         );
 
         if (runtime.SimMode && !runtime.AllowExternalPoseOverrideInSim && externalPose.PreferExternalConfig)
-            Console.WriteLine("[CFG] PreferExternal → Sim/Hybrid mod: DISABLED (Simulation:AllowExternalPoseOverride=false).");
+            Console.WriteLine("[CFG] PreferExternal â†’ Sim/Hybrid mod: DISABLED (Simulation:AllowExternalPoseOverride=false).");
         else
-            Console.WriteLine($"[CFG] PreferExternal → {externalPose.PreferExternalEffective} (cfg={externalPose.PreferExternalConfig}, simMode={runtime.SimMode}, allowInSim={runtime.AllowExternalPoseOverrideInSim})");
+            Console.WriteLine($"[CFG] PreferExternal â†’ {externalPose.PreferExternalEffective} (cfg={externalPose.PreferExternalConfig}, simMode={runtime.SimMode}, allowInSim={runtime.AllowExternalPoseOverrideInSim})");
     }
 }

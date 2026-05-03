@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -32,10 +32,10 @@ public sealed record ToolResult
         Error = NormalizeOptional(error);
 
         if (Ok && !string.IsNullOrWhiteSpace(Error))
-            throw new ArgumentException("Başarılı ToolResult için Error dolu olamaz.", nameof(error));
+            throw new ArgumentException("BaÅŸarÄ±lÄ± ToolResult iÃ§in Error dolu olamaz.", nameof(error));
 
         if (!Ok && string.IsNullOrWhiteSpace(Error))
-            throw new ArgumentException("Başarısız ToolResult için Error boş olamaz.", nameof(error));
+            throw new ArgumentException("BaÅŸarÄ±sÄ±z ToolResult iÃ§in Error boÅŸ olamaz.", nameof(error));
     }
 
     public static ToolResult Success(
@@ -70,7 +70,7 @@ public sealed record ToolResult
     private static string RequireText(string? value, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Alan boş olamaz.", paramName);
+            throw new ArgumentException("Alan boÅŸ olamaz.", paramName);
 
         return value.Trim();
     }

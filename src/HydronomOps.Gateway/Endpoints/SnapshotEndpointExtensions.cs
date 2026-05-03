@@ -1,9 +1,9 @@
-using HydronomOps.Gateway.Services.State;
+﻿using HydronomOps.Gateway.Services.State;
 
 namespace HydronomOps.Gateway.Endpoints;
 
 /// <summary>
-/// Anlık gateway snapshot endpoint'ini map eder.
+/// AnlÄ±k gateway snapshot endpoint'ini map eder.
 /// </summary>
 public static class SnapshotEndpointExtensions
 {

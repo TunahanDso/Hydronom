@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.Configuration;
+﻿using HydronomOps.Gateway.Configuration;
 using HydronomOps.Gateway.Contracts.Common;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Infrastructure.Broadcast;
@@ -9,8 +9,8 @@ using Microsoft.Extensions.Options;
 namespace HydronomOps.Gateway.Infrastructure.TcpIngress;
 
 /// <summary>
-/// Runtime TCP istemcisini arka planda çalıştırır, gelen frame'leri parse eder
-/// ve gateway tarafına yayın tetiklerini iletir.
+/// Runtime TCP istemcisini arka planda Ã§alÄ±ÅŸtÄ±rÄ±r, gelen frame'leri parse eder
+/// ve gateway tarafÄ±na yayÄ±n tetiklerini iletir.
 /// </summary>
 public sealed class RuntimeIngressHostedService : BackgroundService
 {
@@ -40,13 +40,13 @@ public sealed class RuntimeIngressHostedService : BackgroundService
     }
 
     /// <summary>
-    /// Arka plan ana döngüsü.
-    /// Runtime bağlantısını canlı tutar, satırları işler ve hata durumunda tekrar dener.
+    /// Arka plan ana dÃ¶ngÃ¼sÃ¼.
+    /// Runtime baÄŸlantÄ±sÄ±nÄ± canlÄ± tutar, satÄ±rlarÄ± iÅŸler ve hata durumunda tekrar dener.
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation(
-            "Runtime ingress başlatıldı. Host={Host}, Port={Port}",
+            "Runtime ingress baÅŸlatÄ±ldÄ±. Host={Host}, Port={Port}",
             _options.Host,
             _options.Port);
 
@@ -62,13 +62,13 @@ public sealed class RuntimeIngressHostedService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Runtime ingress döngüsünde hata oluştu.");
+                _logger.LogError(ex, "Runtime ingress dÃ¶ngÃ¼sÃ¼nde hata oluÅŸtu.");
 
                 var log = new GatewayLogDto
                 {
                     Level = "error",
                     Category = "runtime-ingress",
-                    Message = $"Runtime ingress hatası: {ex.Message}",
+                    Message = $"Runtime ingress hatasÄ±: {ex.Message}",
                     TimestampUtc = DateTime.UtcNow
                 };
 
@@ -82,7 +82,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
                 }
                 catch
                 {
-                    // Yayın katmanı da düşerse ana retry mekanizmasını bozma.
+                    // YayÄ±n katmanÄ± da dÃ¼ÅŸerse ana retry mekanizmasÄ±nÄ± bozma.
                 }
 
                 await DelaySafeAsync(_options.ReconnectDelayMs, stoppingToken);
@@ -93,7 +93,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
     }
 
     /// <summary>
-    /// Tek bir bağlantı oturumunu yürütür.
+    /// Tek bir baÄŸlantÄ± oturumunu yÃ¼rÃ¼tÃ¼r.
     /// </summary>
     private async Task RunIngressLoopAsync(CancellationToken stoppingToken)
     {
@@ -104,7 +104,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
         {
             Level = "info",
             Category = "runtime-ingress",
-            Message = $"Runtime bağlantısı kuruldu: {_options.Host}:{_options.Port}",
+            Message = $"Runtime baÄŸlantÄ±sÄ± kuruldu: {_options.Host}:{_options.Port}",
             TimestampUtc = DateTime.UtcNow
         };
 
@@ -122,7 +122,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
 
                 if (line is null)
                 {
-                    throw new IOException("Runtime bağlantısı kapandı.");
+                    throw new IOException("Runtime baÄŸlantÄ±sÄ± kapandÄ±.");
                 }
 
                 _frameParser.ProcessLine(line);
@@ -138,7 +138,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
             {
                 Level = "warn",
                 Category = "runtime-ingress",
-                Message = "Runtime bağlantısı kapandı.",
+                Message = "Runtime baÄŸlantÄ±sÄ± kapandÄ±.",
                 TimestampUtc = DateTime.UtcNow
             };
 
@@ -152,13 +152,13 @@ public sealed class RuntimeIngressHostedService : BackgroundService
             }
             catch
             {
-                // Kapanış anındaki broadcast hatası kritik değil.
+                // KapanÄ±ÅŸ anÄ±ndaki broadcast hatasÄ± kritik deÄŸil.
             }
         }
     }
 
     /// <summary>
-    /// Güncel store snapshot'ını websocket istemcilerine iter.
+    /// GÃ¼ncel store snapshot'Ä±nÄ± websocket istemcilerine iter.
     /// </summary>
     private async Task BroadcastCurrentStateAsync(CancellationToken cancellationToken)
     {
@@ -201,7 +201,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
     }
 
     /// <summary>
-    /// Ortak envelope oluşturur.
+    /// Ortak envelope oluÅŸturur.
     /// </summary>
     private GatewayEnvelope CreateEnvelope(string type, object payload, string? vehicleId = null)
     {
@@ -217,7 +217,7 @@ public sealed class RuntimeIngressHostedService : BackgroundService
     }
 
     /// <summary>
-    /// İptal dostu gecikme uygular.
+    /// Ä°ptal dostu gecikme uygular.
     /// </summary>
     private static Task DelaySafeAsync(int delayMs, CancellationToken cancellationToken)
     {

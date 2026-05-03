@@ -1,30 +1,30 @@
-namespace Hydronom.GroundStation.Coordination;
+﻿namespace Hydronom.GroundStation.Coordination;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Ground Station tarafında görev isteğini filo koordinasyon sonucuna çeviren ana koordinasyon sınıfıdır.
+/// Ground Station tarafÄ±nda gÃ¶rev isteÄŸini filo koordinasyon sonucuna Ã§eviren ana koordinasyon sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// FleetCoordinator şu zinciri kurar:
-/// - MissionRequest alır,
-/// - MissionAllocator ile en uygun aracı seçer,
-/// - Seçilen araç için FleetCommand üretir,
-/// - CommandTracker'a kaydedilecek HydronomEnvelope üretir.
+/// FleetCoordinator ÅŸu zinciri kurar:
+/// - MissionRequest alÄ±r,
+/// - MissionAllocator ile en uygun aracÄ± seÃ§er,
+/// - SeÃ§ilen araÃ§ iÃ§in FleetCommand Ã¼retir,
+/// - CommandTracker'a kaydedilecek HydronomEnvelope Ã¼retir.
 /// 
-/// Bu sınıf PDF'deki FleetCoordinator mantığının ilk çekirdeğidir.
-/// Şimdilik gerçek transport gönderimi yapmaz.
-/// Sadece koordinasyon kararını ve gönderilmeye hazır komut envelope'unu üretir.
+/// Bu sÄ±nÄ±f PDF'deki FleetCoordinator mantÄ±ÄŸÄ±nÄ±n ilk Ã§ekirdeÄŸidir.
+/// Åimdilik gerÃ§ek transport gÃ¶nderimi yapmaz.
+/// Sadece koordinasyon kararÄ±nÄ± ve gÃ¶nderilmeye hazÄ±r komut envelope'unu Ã¼retir.
 /// </summary>
 public sealed class FleetCoordinator
 {
     /// <summary>
-    /// Göreve uygun araç seçimini yapan allocator.
+    /// GÃ¶reve uygun araÃ§ seÃ§imini yapan allocator.
     /// </summary>
     private readonly MissionAllocator _missionAllocator;
 
     /// <summary>
-    /// FleetCoordinator oluşturur.
+    /// FleetCoordinator oluÅŸturur.
     /// </summary>
     public FleetCoordinator(MissionAllocator? missionAllocator = null)
     {
@@ -32,10 +32,10 @@ public sealed class FleetCoordinator
     }
 
     /// <summary>
-    /// Görev isteğini değerlendirir, uygun aracı seçer ve görev komutu üretir.
+    /// GÃ¶rev isteÄŸini deÄŸerlendirir, uygun aracÄ± seÃ§er ve gÃ¶rev komutu Ã¼retir.
     /// 
-    /// Bu metot komutu fiziksel olarak göndermez.
-    /// Dönen Envelope, ileride CommunicationRouter / TransportManager tarafından gönderilecektir.
+    /// Bu metot komutu fiziksel olarak gÃ¶ndermez.
+    /// DÃ¶nen Envelope, ileride CommunicationRouter / TransportManager tarafÄ±ndan gÃ¶nderilecektir.
     /// </summary>
     public FleetCoordinationResult CoordinateMission(
         MissionRequest request,
@@ -86,11 +86,11 @@ public sealed class FleetCoordinator
     }
 
     /// <summary>
-    /// MissionRequest + MissionAllocationResult bilgisinden AssignMission komutu üretir.
+    /// MissionRequest + MissionAllocationResult bilgisinden AssignMission komutu Ã¼retir.
     /// 
-    /// Bu komut araç tarafında:
-    /// CommandValidator → AuthorityManager → SafetyGate → TaskManager
-    /// zincirinden geçmelidir.
+    /// Bu komut araÃ§ tarafÄ±nda:
+    /// CommandValidator â†’ AuthorityManager â†’ SafetyGate â†’ TaskManager
+    /// zincirinden geÃ§melidir.
     /// </summary>
     private static FleetCommand CreateAssignMissionCommand(
         MissionRequest request,

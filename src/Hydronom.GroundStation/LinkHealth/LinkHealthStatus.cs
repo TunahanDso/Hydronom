@@ -1,32 +1,32 @@
-namespace Hydronom.GroundStation.LinkHealth;
+﻿namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Bir bağlantının operasyonel sağlık durumunu temsil eder.
-/// Bu enum ileride routing, diagnostics ve telemetry profil seçimi için kullanılacaktır.
+/// Bir baÄŸlantÄ±nÄ±n operasyonel saÄŸlÄ±k durumunu temsil eder.
+/// Bu enum ileride routing, diagnostics ve telemetry profil seÃ§imi iÃ§in kullanÄ±lacaktÄ±r.
 /// </summary>
 public enum LinkHealthStatus
 {
     Unknown = 0,
 
     /// <summary>
-    /// Bağlantı iyi durumda. Gecikme düşük, başarı oranı yüksek.
+    /// BaÄŸlantÄ± iyi durumda. Gecikme dÃ¼ÅŸÃ¼k, baÅŸarÄ± oranÄ± yÃ¼ksek.
     /// </summary>
     Good = 1,
 
     /// <summary>
-    /// Bağlantı kullanılabilir ama zayıflama belirtileri var.
-    /// Telemetry profili düşürülebilir.
+    /// BaÄŸlantÄ± kullanÄ±labilir ama zayÄ±flama belirtileri var.
+    /// Telemetry profili dÃ¼ÅŸÃ¼rÃ¼lebilir.
     /// </summary>
     Degraded = 2,
 
     /// <summary>
-    /// Bağlantı kritik seviyede kötü.
-    /// Sadece düşük bant genişlikli veya acil mesajlar tercih edilmeli.
+    /// BaÄŸlantÄ± kritik seviyede kÃ¶tÃ¼.
+    /// Sadece dÃ¼ÅŸÃ¼k bant geniÅŸlikli veya acil mesajlar tercih edilmeli.
     /// </summary>
     Critical = 3,
 
     /// <summary>
-    /// Bağlantı kayıp veya uzun süredir doğrulanmadı.
+    /// BaÄŸlantÄ± kayÄ±p veya uzun sÃ¼redir doÄŸrulanmadÄ±.
     /// </summary>
     Lost = 4
 }

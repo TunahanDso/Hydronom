@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
@@ -12,14 +12,14 @@ namespace Hydronom.AI.Clients
 {
     /// <summary>
     /// LLaMA JSON client.
-    /// Beklenen akış:
+    /// Beklenen akÄ±ÅŸ:
     /// context + tools + policy (+ recentResults) -> MissionPlan JSON
     ///
-    /// Desteklenen response biçimleri:
-    /// 1) Doğrudan MissionPlan JSON
+    /// Desteklenen response biÃ§imleri:
+    /// 1) DoÄŸrudan MissionPlan JSON
     /// 2) { "plan": { ... } }
     /// 3) { "response": "{...json...}" }
-    /// 4) Markdown code fence içindeki JSON
+    /// 4) Markdown code fence iÃ§indeki JSON
     /// </summary>
     public sealed class LlamaJsonClient : IAiClient
     {
@@ -41,7 +41,7 @@ namespace Hydronom.AI.Clients
         {
             _http = http ?? throw new ArgumentNullException(nameof(http));
             _endpointUrl = string.IsNullOrWhiteSpace(endpointUrl)
-                ? throw new ArgumentException("endpointUrl boş olamaz.", nameof(endpointUrl))
+                ? throw new ArgumentException("endpointUrl boÅŸ olamaz.", nameof(endpointUrl))
                 : endpointUrl.Trim();
         }
 
@@ -101,7 +101,7 @@ namespace Hydronom.AI.Clients
             catch (Exception ex)
             {
                 throw new InvalidOperationException(
-                    $"LLaMA endpoint'e bağlanılamadı: {_endpointUrl}. Detay: {ex.Message}",
+                    $"LLaMA endpoint'e baÄŸlanÄ±lamadÄ±: {_endpointUrl}. Detay: {ex.Message}",
                     ex);
             }
 
@@ -110,7 +110,7 @@ namespace Hydronom.AI.Clients
             if (!response.IsSuccessStatusCode)
             {
                 throw new InvalidOperationException(
-                    $"LLaMA endpoint hata döndürdü. HTTP {(int)response.StatusCode} {response.ReasonPhrase}. Body: {Trim(body, 1000)}");
+                    $"LLaMA endpoint hata dÃ¶ndÃ¼rdÃ¼. HTTP {(int)response.StatusCode} {response.ReasonPhrase}. Body: {Trim(body, 1000)}");
             }
 
             var extractedJson = ExtractPlanJson(body);
@@ -136,7 +136,7 @@ namespace Hydronom.AI.Clients
         private static string ExtractPlanJson(string body)
         {
             if (string.IsNullOrWhiteSpace(body))
-                throw new InvalidOperationException("LLaMA endpoint boş response döndürdü.");
+                throw new InvalidOperationException("LLaMA endpoint boÅŸ response dÃ¶ndÃ¼rdÃ¼.");
 
             var trimmed = body.Trim();
 
@@ -167,7 +167,7 @@ namespace Hydronom.AI.Clients
                     {
                         var inner = responseElement.GetString();
                         if (string.IsNullOrWhiteSpace(inner))
-                            throw new InvalidOperationException("LLaMA response alanı boş.");
+                            throw new InvalidOperationException("LLaMA response alanÄ± boÅŸ.");
 
                         var innerTrimmed = inner.Trim();
 
@@ -181,14 +181,14 @@ namespace Hydronom.AI.Clients
                 }
                 catch (JsonException)
                 {
-                    // Ham içerik son şans olarak aşağıda yeniden denenir.
+                    // Ham iÃ§erik son ÅŸans olarak aÅŸaÄŸÄ±da yeniden denenir.
                 }
             }
 
             if (LooksLikeJsonObject(trimmed))
                 return trimmed;
 
-            throw new InvalidOperationException("Response içinden MissionPlan JSON ayıklanamadı.");
+            throw new InvalidOperationException("Response iÃ§inden MissionPlan JSON ayÄ±klanamadÄ±.");
         }
 
         private static bool LooksLikeMissionPlan(JsonElement element)
@@ -204,10 +204,10 @@ namespace Hydronom.AI.Clients
         private static void ValidatePlan(MissionPlan plan)
         {
             if (string.IsNullOrWhiteSpace(plan.Id))
-                throw new InvalidOperationException("MissionPlan.Id boş olamaz.");
+                throw new InvalidOperationException("MissionPlan.Id boÅŸ olamaz.");
 
             if (string.IsNullOrWhiteSpace(plan.Goal))
-                throw new InvalidOperationException("MissionPlan.Goal boş olamaz.");
+                throw new InvalidOperationException("MissionPlan.Goal boÅŸ olamaz.");
 
             if (plan.Steps is null)
                 throw new InvalidOperationException("MissionPlan.Steps null olamaz.");
@@ -217,10 +217,10 @@ namespace Hydronom.AI.Clients
                 var step = plan.Steps[i];
 
                 if (string.IsNullOrWhiteSpace(step.Title))
-                    throw new InvalidOperationException($"MissionStep[{i}].Title boş olamaz.");
+                    throw new InvalidOperationException($"MissionStep[{i}].Title boÅŸ olamaz.");
 
                 if (string.IsNullOrWhiteSpace(step.Description))
-                    throw new InvalidOperationException($"MissionStep[{i}].Description boş olamaz.");
+                    throw new InvalidOperationException($"MissionStep[{i}].Description boÅŸ olamaz.");
 
                 if (step.ExpectedTools is null)
                     throw new InvalidOperationException($"MissionStep[{i}].ExpectedTools null olamaz.");

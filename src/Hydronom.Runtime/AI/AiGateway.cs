@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,9 +9,9 @@ using Hydronom.Core.Domain.AI;
 namespace Hydronom.Runtime.AI
 {
     /// <summary>
-    /// Runtime tarafında Hydronom.AI orkestratörünü çalıştıran köprü.
-    /// Şimdilik yalnızca Suggest Mode üzerinden plan üretir.
-    /// Tool execution yapmaz; sadece plan alır ve runtime'a geri verir.
+    /// Runtime tarafÄ±nda Hydronom.AI orkestratÃ¶rÃ¼nÃ¼ Ã§alÄ±ÅŸtÄ±ran kÃ¶prÃ¼.
+    /// Åimdilik yalnÄ±zca Suggest Mode Ã¼zerinden plan Ã¼retir.
+    /// Tool execution yapmaz; sadece plan alÄ±r ve runtime'a geri verir.
     /// </summary>
     public sealed class AiGateway
     {
@@ -35,7 +35,7 @@ namespace Hydronom.Runtime.AI
             ct.ThrowIfCancellationRequested();
 
             if (string.IsNullOrWhiteSpace(goal))
-                throw new ArgumentException("Goal boş olamaz.", nameof(goal));
+                throw new ArgumentException("Goal boÅŸ olamaz.", nameof(goal));
 
             goal = goal.Trim();
 
@@ -43,7 +43,7 @@ namespace Hydronom.Runtime.AI
             var tools = _toolRegistry.GetAllToolSpecs();
             var context = BuildSuggestContext(goal, extraContext);
 
-            Console.WriteLine("[AI] SuggestPlanAsync başladı.");
+            Console.WriteLine("[AI] SuggestPlanAsync baÅŸladÄ±.");
             Console.WriteLine($"[AI] Goal: {goal}");
             Console.WriteLine($"[AI] Tool count: {tools.Count}");
             Console.WriteLine($"[AI] Context count: {context.Count}");
@@ -54,7 +54,7 @@ namespace Hydronom.Runtime.AI
 
             ValidatePlan(plan);
 
-            Console.WriteLine($"[AI] Plan oluşturuldu. Id={plan.Id}, Steps={plan.Steps.Count}");
+            Console.WriteLine($"[AI] Plan oluÅŸturuldu. Id={plan.Id}, Steps={plan.Steps.Count}");
 
             return plan;
         }
@@ -88,13 +88,13 @@ namespace Hydronom.Runtime.AI
         private static void ValidatePlan(MissionPlan? plan)
         {
             if (plan is null)
-                throw new InvalidOperationException("AI null MissionPlan döndürdü.");
+                throw new InvalidOperationException("AI null MissionPlan dÃ¶ndÃ¼rdÃ¼.");
 
             if (string.IsNullOrWhiteSpace(plan.Id))
-                throw new InvalidOperationException("MissionPlan.Id boş olamaz.");
+                throw new InvalidOperationException("MissionPlan.Id boÅŸ olamaz.");
 
             if (string.IsNullOrWhiteSpace(plan.Goal))
-                throw new InvalidOperationException("MissionPlan.Goal boş olamaz.");
+                throw new InvalidOperationException("MissionPlan.Goal boÅŸ olamaz.");
 
             if (plan.Steps is null)
                 throw new InvalidOperationException("MissionPlan.Steps null olamaz.");
@@ -104,10 +104,10 @@ namespace Hydronom.Runtime.AI
                 var step = plan.Steps[i];
 
                 if (string.IsNullOrWhiteSpace(step.Title))
-                    throw new InvalidOperationException($"MissionStep[{i}].Title boş olamaz.");
+                    throw new InvalidOperationException($"MissionStep[{i}].Title boÅŸ olamaz.");
 
                 if (string.IsNullOrWhiteSpace(step.Description))
-                    throw new InvalidOperationException($"MissionStep[{i}].Description boş olamaz.");
+                    throw new InvalidOperationException($"MissionStep[{i}].Description boÅŸ olamaz.");
 
                 if (step.ExpectedTools is null)
                     throw new InvalidOperationException($"MissionStep[{i}].ExpectedTools null olamaz.");

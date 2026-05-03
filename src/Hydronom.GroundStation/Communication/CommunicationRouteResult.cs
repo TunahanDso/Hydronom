@@ -1,33 +1,33 @@
-namespace Hydronom.GroundStation.Communication;
+﻿namespace Hydronom.GroundStation.Communication;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Routing;
 
 /// <summary>
-/// CommunicationRouter tarafından üretilen route sonucunu temsil eder.
+/// CommunicationRouter tarafÄ±ndan Ã¼retilen route sonucunu temsil eder.
 /// 
-/// Bu model gerçek gönderim sonucunu değil, gönderimden önceki yönlendirme kararını taşır.
-/// Yani şu sorulara cevap verir:
+/// Bu model gerÃ§ek gÃ¶nderim sonucunu deÄŸil, gÃ¶nderimden Ã¶nceki yÃ¶nlendirme kararÄ±nÄ± taÅŸÄ±r.
+/// Yani ÅŸu sorulara cevap verir:
 /// - Envelope route edilebilir mi?
 /// - Hedef node biliniyor mu?
 /// - Hedef node hangi transport'lara sahip?
-/// - Policy hangi transport'ları önerdi?
-/// - Filtre sonrası hangi transport'lar gerçekten kullanılabilir?
+/// - Policy hangi transport'larÄ± Ã¶nerdi?
+/// - Filtre sonrasÄ± hangi transport'lar gerÃ§ekten kullanÄ±labilir?
 /// - Broadcast gerekiyor mu?
 /// - ACK gerekiyor mu?
 /// 
-/// İleride gerçek gönderim katmanı eklenince bu model:
+/// Ä°leride gerÃ§ek gÃ¶nderim katmanÄ± eklenince bu model:
 /// - Send attempt result,
 /// - Retry plan,
 /// - Selected transport instance,
 /// - Link quality,
 /// - Failure reason
-/// bilgileriyle genişletilebilir.
+/// bilgileriyle geniÅŸletilebilir.
 /// </summary>
 public sealed record CommunicationRouteResult
 {
     /// <summary>
-    /// Route edilen envelope mesaj kimliği.
+    /// Route edilen envelope mesaj kimliÄŸi.
     /// </summary>
     public string MessageId { get; init; } = string.Empty;
 
@@ -37,76 +37,76 @@ public sealed record CommunicationRouteResult
     public string MessageType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın kaynak node kimliği.
+    /// MesajÄ±n kaynak node kimliÄŸi.
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın hedef node kimliği.
+    /// MesajÄ±n hedef node kimliÄŸi.
     /// </summary>
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Hedef node FleetRegistry içinde bulundu mu?
+    /// Hedef node FleetRegistry iÃ§inde bulundu mu?
     /// 
-    /// Broadcast mesajlarında veya henüz registry'ye düşmemiş hedeflerde false olabilir.
+    /// Broadcast mesajlarÄ±nda veya henÃ¼z registry'ye dÃ¼ÅŸmemiÅŸ hedeflerde false olabilir.
     /// </summary>
     public bool TargetKnown { get; init; }
 
     /// <summary>
-    /// Route kararının uygulanabilir olup olmadığını belirtir.
+    /// Route kararÄ±nÄ±n uygulanabilir olup olmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
-    /// true ise en az bir kullanılabilir transport bulunmuştur veya broadcast için uygun kanal vardır.
+    /// true ise en az bir kullanÄ±labilir transport bulunmuÅŸtur veya broadcast iÃ§in uygun kanal vardÄ±r.
     /// </summary>
     public bool CanRoute { get; init; }
 
     /// <summary>
-    /// Route edilememe veya route edilebilme sebebinin kısa açıklaması.
+    /// Route edilememe veya route edilebilme sebebinin kÄ±sa aÃ§Ä±klamasÄ±.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Hedef node'un bildirdiği kullanılabilir transport listesi.
+    /// Hedef node'un bildirdiÄŸi kullanÄ±labilir transport listesi.
     /// </summary>
     public IReadOnlyList<TransportKind> TargetAvailableTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// TransportRoutingPolicy tarafından üretilen ham route kararı.
+    /// TransportRoutingPolicy tarafÄ±ndan Ã¼retilen ham route kararÄ±.
     /// </summary>
     public TransportRouteDecision? PolicyDecision { get; init; }
 
     /// <summary>
-    /// AvailableTransportFilter sonrası pratikte uygulanabilir route kararı.
+    /// AvailableTransportFilter sonrasÄ± pratikte uygulanabilir route kararÄ±.
     /// </summary>
     public TransportRouteDecision? FilteredDecision { get; init; }
 
     /// <summary>
-    /// Filtrelenmiş karardaki birincil transport listesi.
+    /// FiltrelenmiÅŸ karardaki birincil transport listesi.
     /// </summary>
     public IReadOnlyList<TransportKind> PrimaryTransports =>
         FilteredDecision?.PrimaryTransports ?? Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Filtrelenmiş karardaki fallback transport listesi.
+    /// FiltrelenmiÅŸ karardaki fallback transport listesi.
     /// </summary>
     public IReadOnlyList<TransportKind> FallbackTransports =>
         FilteredDecision?.FallbackTransports ?? Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Mesaj tüm uygun bağlantılardan yayınlanmalı mı?
+    /// Mesaj tÃ¼m uygun baÄŸlantÄ±lardan yayÄ±nlanmalÄ± mÄ±?
     /// </summary>
     public bool BroadcastAllAvailableLinks =>
         FilteredDecision?.BroadcastAllAvailableLinks == true;
 
     /// <summary>
-    /// Mesaj için ACK bekleniyor mu?
+    /// Mesaj iÃ§in ACK bekleniyor mu?
     /// </summary>
     public bool RequiresAck =>
         FilteredDecision?.RequiresAck == true;
 
     /// <summary>
-    /// Başarısız route sonucu üretir.
+    /// BaÅŸarÄ±sÄ±z route sonucu Ã¼retir.
     /// </summary>
     public static CommunicationRouteResult Failed(
         HydronomEnvelope envelope,
@@ -132,7 +132,7 @@ public sealed record CommunicationRouteResult
     }
 
     /// <summary>
-    /// Başarılı route sonucu üretir.
+    /// BaÅŸarÄ±lÄ± route sonucu Ã¼retir.
     /// </summary>
     public static CommunicationRouteResult Succeeded(
         HydronomEnvelope envelope,

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
@@ -7,13 +7,13 @@ using Hydronom.Core.Modules;
 partial class Program
 {
     /// <summary>
-    /// Runtime döngüsünde kullanılacak frame bilgisini üretir.
+    /// Runtime dÃ¶ngÃ¼sÃ¼nde kullanÄ±lacak frame bilgisini Ã¼retir.
     ///
-    /// İlke:
-    /// - Runtime kendi obstacle üretmez.
-    /// - Obstacle yalnızca IFrameSource üzerinden gelen fresh frame'den alınır.
-    /// - Position ve heading ise runtime'ın güncel VehicleState değerinden alınır.
-    /// - Target, aktif task hedefinden 2D izdüşüm olarak frame'e eklenir.
+    /// Ä°lke:
+    /// - Runtime kendi obstacle Ã¼retmez.
+    /// - Obstacle yalnÄ±zca IFrameSource Ã¼zerinden gelen fresh frame'den alÄ±nÄ±r.
+    /// - Position ve heading ise runtime'Ä±n gÃ¼ncel VehicleState deÄŸerinden alÄ±nÄ±r.
+    /// - Target, aktif task hedefinden 2D izdÃ¼ÅŸÃ¼m olarak frame'e eklenir.
     /// </summary>
     private static FusedFrame BuildRuntimeFrame(
         IFrameSource frameSource,
@@ -73,8 +73,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Aktif task'a göre hedef telemetri bilgisini üretir.
-    /// Log ve heartbeat tarafında kullanılır.
+    /// Aktif task'a gÃ¶re hedef telemetri bilgisini Ã¼retir.
+    /// Log ve heartbeat tarafÄ±nda kullanÄ±lÄ±r.
     /// </summary>
     private static TargetTelemetrySnapshot BuildTargetTelemetrySnapshot(
         ITaskManager tasks,
@@ -110,7 +110,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Task değişimini algılar ve sadece değiştiğinde detaylı task logu basar.
+    /// Task deÄŸiÅŸimini algÄ±lar ve sadece deÄŸiÅŸtiÄŸinde detaylÄ± task logu basar.
     /// </summary>
     private static void LogTaskChangeIfNeeded(
         ITaskManager tasks,

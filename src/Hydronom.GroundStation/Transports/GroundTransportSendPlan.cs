@@ -1,22 +1,22 @@
-namespace Hydronom.GroundStation.Transports;
+﻿namespace Hydronom.GroundStation.Transports;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 
 /// <summary>
-/// GroundTransportManager'ın bir envelope için oluşturduğu gönderim planıdır.
+/// GroundTransportManager'Ä±n bir envelope iÃ§in oluÅŸturduÄŸu gÃ¶nderim planÄ±dÄ±r.
 /// 
 /// Plan:
 /// - Route sonucunu,
-/// - Denenecek transport türlerini,
-/// - ACK gerekip gerekmediğini,
-/// - Broadcast davranışını
+/// - Denenecek transport tÃ¼rlerini,
+/// - ACK gerekip gerekmediÄŸini,
+/// - Broadcast davranÄ±ÅŸÄ±nÄ±
 /// tek modelde toplar.
 /// </summary>
 public sealed record GroundTransportSendPlan
 {
     /// <summary>
-    /// Gönderilecek envelope mesaj ID'si.
+    /// GÃ¶nderilecek envelope mesaj ID'si.
     /// </summary>
     public string MessageId { get; init; } = string.Empty;
 
@@ -31,7 +31,7 @@ public sealed record GroundTransportSendPlan
     public CommunicationRouteResult? RouteResult { get; init; }
 
     /// <summary>
-    /// Denenecek transport türleri.
+    /// Denenecek transport tÃ¼rleri.
     /// </summary>
     public IReadOnlyList<TransportKind> CandidateTransports { get; init; } =
         Array.Empty<TransportKind>();
@@ -42,23 +42,23 @@ public sealed record GroundTransportSendPlan
     public bool RequiresAck { get; init; }
 
     /// <summary>
-    /// Broadcast gönderimi mi?
+    /// Broadcast gÃ¶nderimi mi?
     /// </summary>
     public bool IsBroadcast { get; init; }
 
     /// <summary>
-    /// Plan gönderilebilir mi?
+    /// Plan gÃ¶nderilebilir mi?
     /// </summary>
     public bool CanSend =>
         RouteResult?.CanRoute == true && CandidateTransports.Count > 0;
 
     /// <summary>
-    /// Plan açıklaması.
+    /// Plan aÃ§Ä±klamasÄ±.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Route sonucundan gönderim planı üretir.
+    /// Route sonucundan gÃ¶nderim planÄ± Ã¼retir.
     /// </summary>
     public static GroundTransportSendPlan FromRoute(
         HydronomEnvelope envelope,

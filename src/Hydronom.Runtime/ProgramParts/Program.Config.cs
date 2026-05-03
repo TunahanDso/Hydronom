@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 
 partial class Program
 {
     /// <summary>
-    /// Config içinden double değer okur.
-    /// Önce invariant culture, sonra mevcut culture denenir.
-    /// Okunamazsa fallback döner.
+    /// Config iÃ§inden double deÄŸer okur.
+    /// Ã–nce invariant culture, sonra mevcut culture denenir.
+    /// Okunamazsa fallback dÃ¶ner.
     /// </summary>
     private static double ReadDouble(IConfiguration config, string key, double fallback)
     {
@@ -38,8 +38,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden nullable double değer okur.
-    /// Değer yoksa veya parse edilemezse null döner.
+    /// Config iÃ§inden nullable double deÄŸer okur.
+    /// DeÄŸer yoksa veya parse edilemezse null dÃ¶ner.
     /// </summary>
     private static double? ReadNullableDouble(IConfiguration config, string key)
     {
@@ -70,8 +70,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden int değer okur.
-    /// Okunamazsa fallback döner.
+    /// Config iÃ§inden int deÄŸer okur.
+    /// Okunamazsa fallback dÃ¶ner.
     /// </summary>
     private static int ReadInt(IConfiguration config, string key, int fallback)
     {
@@ -102,8 +102,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden nullable bool değer okur.
-    /// Değer yoksa veya parse edilemezse null döner.
+    /// Config iÃ§inden nullable bool deÄŸer okur.
+    /// DeÄŸer yoksa veya parse edilemezse null dÃ¶ner.
     /// </summary>
     private static bool? ReadNullableBool(IConfiguration config, string key)
     {
@@ -119,8 +119,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden bool değer okur.
-    /// Okunamazsa fallback döner.
+    /// Config iÃ§inden bool deÄŸer okur.
+    /// Okunamazsa fallback dÃ¶ner.
     /// </summary>
     private static bool ReadBool(IConfiguration config, string key, bool fallback)
     {
@@ -136,8 +136,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden string değer okur.
-    /// Boşsa fallback döner.
+    /// Config iÃ§inden string deÄŸer okur.
+    /// BoÅŸsa fallback dÃ¶ner.
     /// </summary>
     private static string ReadString(IConfiguration config, string key, string fallback)
     {
@@ -150,8 +150,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Config içinden enum değer okur.
-    /// Okunamazsa fallback döner.
+    /// Config iÃ§inden enum deÄŸer okur.
+    /// Okunamazsa fallback dÃ¶ner.
     /// </summary>
     private static TEnum ReadEnum<TEnum>(IConfiguration config, string key, TEnum fallback)
         where TEnum : struct, Enum
@@ -168,8 +168,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Double değeri güvenli aralığa çeker.
-    /// NaN/Infinity gelirse fallback döner.
+    /// Double deÄŸeri gÃ¼venli aralÄ±ÄŸa Ã§eker.
+    /// NaN/Infinity gelirse fallback dÃ¶ner.
     /// </summary>
     private static double ClampDouble(double value, double min, double max, double fallback)
     {
@@ -180,7 +180,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Int değeri güvenli aralığa çeker.
+    /// Int deÄŸeri gÃ¼venli aralÄ±ÄŸa Ã§eker.
     /// </summary>
     private static int ClampInt(int value, int min, int max)
     {

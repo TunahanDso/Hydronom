@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net.Http;
 using Hydronom.AI.Clients;
 using Hydronom.AI.Orchestration;
@@ -16,8 +16,8 @@ using Microsoft.Extensions.Configuration;
 partial class Program
 {
     /// <summary>
-    /// Runtime analiz modülünü oluşturur.
-    /// Şimdilik varsayılan olarak AdvancedAnalysis kullanılır.
+    /// Runtime analiz modÃ¼lÃ¼nÃ¼ oluÅŸturur.
+    /// Åimdilik varsayÄ±lan olarak AdvancedAnalysis kullanÄ±lÄ±r.
     /// </summary>
     private static AdvancedAnalysis CreateAnalysisModule(IConfiguration config)
     {
@@ -38,29 +38,29 @@ partial class Program
         );
 
         Console.WriteLine(
-            $"[CFG] Analysis → AdvancedAnalysis Ahead={analysis.AheadDistanceM:F1} m, " +
-            $"HalfFov={analysis.HalfFovDeg:F0}°, Sectors={analysis.SectorCount}"
+            $"[CFG] Analysis â†’ AdvancedAnalysis Ahead={analysis.AheadDistanceM:F1} m, " +
+            $"HalfFov={analysis.HalfFovDeg:F0}Â°, Sectors={analysis.SectorCount}"
         );
 
         return analysis;
     }
 
     /// <summary>
-    /// Karar modülünü oluşturur.
+    /// Karar modÃ¼lÃ¼nÃ¼ oluÅŸturur.
     /// </summary>
     private static IDecisionModule CreateDecisionModule(IConfiguration config)
     {
         var type = ReadString(config, "Decision:Type", "AdvancedDecision");
 
         if (!type.Equals("AdvancedDecision", StringComparison.OrdinalIgnoreCase))
-            Console.WriteLine($"[CFG] Decision:Type={type} desteklenmiyor, AdvancedDecision kullanılacak.");
+            Console.WriteLine($"[CFG] Decision:Type={type} desteklenmiyor, AdvancedDecision kullanÄ±lacak.");
 
-        Console.WriteLine("[CFG] Decision → AdvancedDecision");
+        Console.WriteLine("[CFG] Decision â†’ AdvancedDecision");
         return new AdvancedDecision();
     }
 
     /// <summary>
-    /// Görev yöneticisini oluşturur.
+    /// GÃ¶rev yÃ¶neticisini oluÅŸturur.
     /// </summary>
     private static AdvancedTaskManager CreateTaskManager(IConfiguration config)
     {
@@ -75,7 +75,7 @@ partial class Program
         );
 
         Console.WriteLine(
-            "[CFG] TaskManager → AdvancedTaskManager " +
+            "[CFG] TaskManager â†’ AdvancedTaskManager " +
             $"arrive={manager.LastReport.EffectiveArrivalThresholdM:F2}m"
         );
 
@@ -83,36 +83,36 @@ partial class Program
     }
 
     /// <summary>
-    /// Feedback recorder oluşturur.
+    /// Feedback recorder oluÅŸturur.
     /// </summary>
     private static IFeedbackRecorder CreateFeedbackRecorder(IConfiguration config)
     {
         var type = ReadString(config, "Feedback:Type", "Console");
 
         if (!type.Equals("Console", StringComparison.OrdinalIgnoreCase))
-            Console.WriteLine($"[CFG] Feedback:Type={type} desteklenmiyor, ConsoleFeedbackRecorder kullanılacak.");
+            Console.WriteLine($"[CFG] Feedback:Type={type} desteklenmiyor, ConsoleFeedbackRecorder kullanÄ±lacak.");
 
-        Console.WriteLine("[CFG] Feedback → ConsoleFeedbackRecorder");
+        Console.WriteLine("[CFG] Feedback â†’ ConsoleFeedbackRecorder");
         return new ConsoleFeedbackRecorder();
     }
 
     /// <summary>
-    /// Motor controller oluşturur.
-    /// Şimdilik mock controller kullanılır.
+    /// Motor controller oluÅŸturur.
+    /// Åimdilik mock controller kullanÄ±lÄ±r.
     /// </summary>
     private static IMotorController CreateMotorController(IConfiguration config)
     {
         var type = ReadString(config, "MotorController:Type", "Mock");
 
         if (!type.Equals("Mock", StringComparison.OrdinalIgnoreCase))
-            Console.WriteLine($"[CFG] MotorController:Type={type} desteklenmiyor, MockMotorController kullanılacak.");
+            Console.WriteLine($"[CFG] MotorController:Type={type} desteklenmiyor, MockMotorController kullanÄ±lacak.");
 
-        Console.WriteLine("[CFG] MotorController → MockMotorController");
+        Console.WriteLine("[CFG] MotorController â†’ MockMotorController");
         return new MockMotorController();
     }
 
     /// <summary>
-    /// ActuatorManager ve ActuatorBus oluşturur.
+    /// ActuatorManager ve ActuatorBus oluÅŸturur.
     /// </summary>
     private static (ActuatorManager Manager, ActuatorBus Bus) CreateActuatorSystem(
         IConfiguration config,
@@ -129,19 +129,19 @@ partial class Program
 
         var serialBaud = ReadInt(config, "Actuator:Serial:Baud", 115200);
 
-        Console.WriteLine($"[CFG] Actuator Serial → {(serialPortName ?? "<disabled>")} @ {serialBaud}");
+        Console.WriteLine($"[CFG] Actuator Serial â†’ {(serialPortName ?? "<disabled>")} @ {serialBaud}");
 
         var thrusterDescs = LoadThrusterDescriptions(config);
         var actuatorManager = new ActuatorManager(thrusterDescs, motors, serialPortName, serialBaud);
         var actuatorBus = new ActuatorBus(new IActuator[] { actuatorManager });
 
-        Console.WriteLine($"[CFG] Actuator Authority → {actuatorManager.AuthorityProfile}");
+        Console.WriteLine($"[CFG] Actuator Authority â†’ {actuatorManager.AuthorityProfile}");
 
         return (actuatorManager, actuatorBus);
     }
 
     /// <summary>
-    /// SafetyLimiter oluşturur ve config'teki eksen bazlı ayarları uygular.
+    /// SafetyLimiter oluÅŸturur ve config'teki eksen bazlÄ± ayarlarÄ± uygular.
     /// </summary>
     private static SafetyLimiter CreateSafetyLimiter(IConfiguration config)
     {
@@ -184,13 +184,13 @@ partial class Program
             turnTzAbsThreshold: ReadNullableDouble(config, "Control:Limiter:TurnAssist:TurnTzAbsThreshold")
         );
 
-        Console.WriteLine($"[CFG] Limiter → FxRate={limiter.ThrottleRatePerSec:F2} TzRate={limiter.RudderRatePerSec:F2}");
+        Console.WriteLine($"[CFG] Limiter â†’ FxRate={limiter.ThrottleRatePerSec:F2} TzRate={limiter.RudderRatePerSec:F2}");
 
         return limiter;
     }
 
     /// <summary>
-    /// Inline tuner oluşturur.
+    /// Inline tuner oluÅŸturur.
     /// </summary>
     private static InlineTuner CreateInlineTuner(
         AdvancedAnalysis analysis,
@@ -223,7 +223,7 @@ partial class Program
     }
 
     /// <summary>
-    /// AI tool registry oluşturur.
+    /// AI tool registry oluÅŸturur.
     /// </summary>
     private static ToolRegistry CreateToolRegistry()
     {
@@ -236,14 +236,14 @@ partial class Program
             new TelemetrySnapshotTool()
         });
 
-        Console.WriteLine($"[AI] Tools → {string.Join(", ", toolRegistry.GetAllToolNames())}");
+        Console.WriteLine($"[AI] Tools â†’ {string.Join(", ", toolRegistry.GetAllToolNames())}");
 
         return toolRegistry;
     }
 
     /// <summary>
-    /// AI client oluşturur.
-    /// Config'e göre LLaMA veya fake client seçer.
+    /// AI client oluÅŸturur.
+    /// Config'e gÃ¶re LLaMA veya fake client seÃ§er.
     /// </summary>
     private static IAiClient CreateAiClient(IConfiguration config)
     {
@@ -254,7 +254,7 @@ partial class Program
         {
             if (string.IsNullOrWhiteSpace(llamaEndpoint))
             {
-                Console.WriteLine("[AI] UYARI: AI:Provider=llama seçilmiş ama endpoint boş. FakeAiClient fallback kullanılacak.");
+                Console.WriteLine("[AI] UYARI: AI:Provider=llama seÃ§ilmiÅŸ ama endpoint boÅŸ. FakeAiClient fallback kullanÄ±lacak.");
                 return new FakeAiClient();
             }
 
@@ -276,7 +276,7 @@ partial class Program
     }
 
     /// <summary>
-    /// AI gateway oluşturur.
+    /// AI gateway oluÅŸturur.
     /// </summary>
     private static AiGateway CreateAiGateway(IConfiguration config)
     {

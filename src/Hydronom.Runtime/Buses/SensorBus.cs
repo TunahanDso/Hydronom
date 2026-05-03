@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using Hydronom.Core.Interfaces;
 
 namespace Hydronom.Runtime.Buses
 {
     /// <summary>
-    /// Son bilinen sensör/fused örneklerini thread-safe tutar.
-    /// Adapters Publish eder; Core TryGetLast ile tüketir.
+    /// Son bilinen sensÃ¶r/fused Ã¶rneklerini thread-safe tutar.
+    /// Adapters Publish eder; Core TryGetLast ile tÃ¼ketir.
     /// </summary>
     public class SensorBus : ISensorBus
     {
@@ -14,8 +14,8 @@ namespace Hydronom.Runtime.Buses
         private readonly ConcurrentDictionary<Type, DateTime> _stamp = new();
 
         /// <summary>
-        /// Adapter’lar için yayın (tip güvenli).
-        /// T hem class hem struct olabilir; boxing doğal olarak gerçekleşir.
+        /// Adapterâ€™lar iÃ§in yayÄ±n (tip gÃ¼venli).
+        /// T hem class hem struct olabilir; boxing doÄŸal olarak gerÃ§ekleÅŸir.
         /// </summary>
         public void Publish<T>(T data, DateTime stamp)
         {
@@ -24,8 +24,8 @@ namespace Hydronom.Runtime.Buses
         }
 
         /// <summary>
-        /// Son bilinen veriyi döndürür (varsa true).
-        /// T hem referans tip hem değer tipi olabilir.
+        /// Son bilinen veriyi dÃ¶ndÃ¼rÃ¼r (varsa true).
+        /// T hem referans tip hem deÄŸer tipi olabilir.
         /// </summary>
         public bool TryGetLast<T>(out T data)
         {
@@ -40,7 +40,7 @@ namespace Hydronom.Runtime.Buses
         }
 
         /// <summary>
-        /// İlgili tipin son zaman damgasını döndürür (yoksa null).
+        /// Ä°lgili tipin son zaman damgasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r (yoksa null).
         /// </summary>
         public DateTime? LastStampOf<T>()
         {
@@ -48,3 +48,4 @@ namespace Hydronom.Runtime.Buses
         }
     }
 }
+

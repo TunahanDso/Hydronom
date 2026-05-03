@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +11,7 @@ public sealed class TimeNowTool : IAiTool
 {
     private static readonly ToolSpec _spec = new(
         Name: "time.now",
-        Description: "Runtime'ın UTC saatini döndürür.",
+        Description: "Runtime'Ä±n UTC saatini dÃ¶ndÃ¼rÃ¼r.",
         Args: Array.Empty<ToolArgSpec>(),
         Dangerous: false
     );

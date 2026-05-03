@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,8 +9,8 @@ using Hydronom.Core.Domain.AI;
 namespace Hydronom.AI.Clients
 {
     /// <summary>
-    /// Gerçek LLaMA/LLM entegrasyonu gelene kadar sistemi uçtan uca derleyip çalıştırmak için
-    /// deterministik MissionPlan üreten sahte istemci.
+    /// GerÃ§ek LLaMA/LLM entegrasyonu gelene kadar sistemi uÃ§tan uca derleyip Ã§alÄ±ÅŸtÄ±rmak iÃ§in
+    /// deterministik MissionPlan Ã¼reten sahte istemci.
     /// </summary>
     public sealed class FakeAiClient : IAiClient
     {

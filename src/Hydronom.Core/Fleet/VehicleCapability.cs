@@ -1,29 +1,29 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Bir Hydronom aracının veya node'un sahip olduğu kabiliyetleri temsil eder.
+/// Bir Hydronom aracÄ±nÄ±n veya node'un sahip olduÄŸu kabiliyetleri temsil eder.
 /// 
-/// Fleet & Ground Station mimarisinde yer istasyonu sadece aracın var olduğunu bilmemeli;
-/// o aracın ne yapabildiğini de bilmelidir.
+/// Fleet & Ground Station mimarisinde yer istasyonu sadece aracÄ±n var olduÄŸunu bilmemeli;
+/// o aracÄ±n ne yapabildiÄŸini de bilmelidir.
 /// 
-/// Örneğin:
-/// - Bu araç navigation yapabiliyor mu?
-/// - LiDAR var mı?
-/// - Kamera var mı?
+/// Ã–rneÄŸin:
+/// - Bu araÃ§ navigation yapabiliyor mu?
+/// - LiDAR var mÄ±?
+/// - Kamera var mÄ±?
 /// - Mapping destekliyor mu?
-/// - RF veya LoRa linki var mı?
-/// - Manipülatör / özel görev ekipmanı var mı?
+/// - RF veya LoRa linki var mÄ±?
+/// - ManipÃ¼latÃ¶r / Ã¶zel gÃ¶rev ekipmanÄ± var mÄ±?
 /// 
-/// FleetCoordinator ve MissionAllocator ileride görev dağıtırken bu kabiliyetleri kullanır.
+/// FleetCoordinator ve MissionAllocator ileride gÃ¶rev daÄŸÄ±tÄ±rken bu kabiliyetleri kullanÄ±r.
 /// </summary>
 public sealed record VehicleCapability
 {
     /// <summary>
-    /// Kabiliyetin benzersiz adı.
+    /// Kabiliyetin benzersiz adÄ±.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "navigation"
     /// - "lidar"
     /// - "camera"
@@ -35,70 +35,70 @@ public sealed record VehicleCapability
     /// - "relay"
     /// - "water_quality_sensor"
     /// 
-    /// Küçük harfli ve snake_case tutulması önerilir.
+    /// KÃ¼Ã§Ã¼k harfli ve snake_case tutulmasÄ± Ã¶nerilir.
     /// </summary>
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
-    /// Kabiliyetin kısa açıklaması.
+    /// Kabiliyetin kÄ±sa aÃ§Ä±klamasÄ±.
     /// 
-    /// Bu alan özellikle Hydronom Ops tarafında aracın detay ekranında
-    /// operatöre okunabilir bilgi göstermek için kullanılabilir.
+    /// Bu alan Ã¶zellikle Hydronom Ops tarafÄ±nda aracÄ±n detay ekranÄ±nda
+    /// operatÃ¶re okunabilir bilgi gÃ¶stermek iÃ§in kullanÄ±labilir.
     /// </summary>
     public string Description { get; init; } = string.Empty;
 
     /// <summary>
-    /// Kabiliyetin aktif olup olmadığını belirtir.
+    /// Kabiliyetin aktif olup olmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
     /// true:
-    /// - Kabiliyet mevcut ve kullanılabilir.
+    /// - Kabiliyet mevcut ve kullanÄ±labilir.
     /// 
     /// false:
-    /// - Kabiliyet araçta var ama şu anda devre dışı olabilir.
-    /// - Sensör arızalı olabilir.
-    /// - Yazılım modülü kapatılmış olabilir.
+    /// - Kabiliyet araÃ§ta var ama ÅŸu anda devre dÄ±ÅŸÄ± olabilir.
+    /// - SensÃ¶r arÄ±zalÄ± olabilir.
+    /// - YazÄ±lÄ±m modÃ¼lÃ¼ kapatÄ±lmÄ±ÅŸ olabilir.
     /// </summary>
     public bool IsEnabled { get; init; } = true;
 
     /// <summary>
-    /// Kabiliyetin sağlık / kullanılabilirlik durumu.
+    /// Kabiliyetin saÄŸlÄ±k / kullanÄ±labilirlik durumu.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "OK"
     /// - "Warning"
     /// - "Fault"
     /// - "Unavailable"
     /// - "Simulated"
     /// 
-    /// Şimdilik string bırakıyoruz.
-    /// Çünkü health modelini ileride daha geniş bir yapıya bağlayabiliriz.
+    /// Åimdilik string bÄ±rakÄ±yoruz.
+    /// Ã‡Ã¼nkÃ¼ health modelini ileride daha geniÅŸ bir yapÄ±ya baÄŸlayabiliriz.
     /// </summary>
     public string Health { get; init; } = "OK";
 
     /// <summary>
-    /// Bu kabiliyetin simülasyon üzerinden mi sağlandığını belirtir.
+    /// Bu kabiliyetin simÃ¼lasyon Ã¼zerinden mi saÄŸlandÄ±ÄŸÄ±nÄ± belirtir.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Sim LiDAR
     /// - Sim GPS
     /// - Mock actuator
     /// - FileReplay telemetry
     /// 
-    /// FleetRegistry ve Ops UI bu bilgiyi kullanarak gerçek/sim ayrımı gösterebilir.
+    /// FleetRegistry ve Ops UI bu bilgiyi kullanarak gerÃ§ek/sim ayrÄ±mÄ± gÃ¶sterebilir.
     /// </summary>
     public bool IsSimulated { get; init; }
 
     /// <summary>
-    /// Bu kabiliyetin ilişkili olduğu haberleşme transport türleri.
+    /// Bu kabiliyetin iliÅŸkili olduÄŸu haberleÅŸme transport tÃ¼rleri.
     /// 
-    /// Özellikle haberleşme kabiliyetleri için önemlidir.
+    /// Ã–zellikle haberleÅŸme kabiliyetleri iÃ§in Ã¶nemlidir.
     /// 
-    /// Örnek:
-    /// - LoRa modülü için: TransportKind.LoRa
-    /// - RF modem için: TransportKind.RfModem
-    /// - Wi-Fi/TCP bağlantı için: TransportKind.Tcp
+    /// Ã–rnek:
+    /// - LoRa modÃ¼lÃ¼ iÃ§in: TransportKind.LoRa
+    /// - RF modem iÃ§in: TransportKind.RfModem
+    /// - Wi-Fi/TCP baÄŸlantÄ± iÃ§in: TransportKind.Tcp
     /// 
-    /// Sensör kabiliyetlerinde boş kalabilir.
+    /// SensÃ¶r kabiliyetlerinde boÅŸ kalabilir.
     /// </summary>
     public IReadOnlyList<TransportKind> RelatedTransports { get; init; } =
         Array.Empty<TransportKind>();
@@ -106,24 +106,24 @@ public sealed record VehicleCapability
     /// <summary>
     /// Kabiliyetle ilgili ek metadata bilgileri.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "rangeMeters": "2000"
     /// - "maxPayloadBytes": "240"
     /// - "bandwidthClass": "Low"
     /// - "latencyClass": "High"
     /// - "sensorModel": "RPLidar A1"
     /// 
-    /// Şimdilik string/string dictionary kullanıyoruz.
-    /// İleride daha güçlü capability schema'larına geçilebilir.
+    /// Åimdilik string/string dictionary kullanÄ±yoruz.
+    /// Ä°leride daha gÃ¼Ã§lÃ¼ capability schema'larÄ±na geÃ§ilebilir.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Kabiliyet kaydının temel olarak geçerli olup olmadığını döndürür.
+    /// Kabiliyet kaydÄ±nÄ±n temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından Name dolu olmalıdır.
-    /// Çünkü görev dağıtımı ve filtreleme bu ad üzerinden yapılır.
+    /// En azÄ±ndan Name dolu olmalÄ±dÄ±r.
+    /// Ã‡Ã¼nkÃ¼ gÃ¶rev daÄŸÄ±tÄ±mÄ± ve filtreleme bu ad Ã¼zerinden yapÄ±lÄ±r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(Name);

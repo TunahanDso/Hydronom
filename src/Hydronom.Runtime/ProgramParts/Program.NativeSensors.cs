@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using Hydronom.Core.Domain;
 
@@ -7,8 +7,8 @@ partial class Program
     /// <summary>
     /// Native sensor bridge.
     ///
-    /// hydro_sensors native çekirdeği varsa runtime ona tick gönderebilir.
-    /// DLL yoksa sistem sessizce managed runtime ile çalışmaya devam eder.
+    /// hydro_sensors native Ã§ekirdeÄŸi varsa runtime ona tick gÃ¶nderebilir.
+    /// DLL yoksa sistem sessizce managed runtime ile Ã§alÄ±ÅŸmaya devam eder.
     /// </summary>
     private static class NativeSensors
     {
@@ -59,21 +59,21 @@ partial class Program
             {
                 hs_init();
                 _available = true;
-                Console.WriteLine("[NATIVE] hydro_sensors çekirdeği yüklendi (C sensör mimarisi aktif).");
+                Console.WriteLine("[NATIVE] hydro_sensors Ã§ekirdeÄŸi yÃ¼klendi (C sensÃ¶r mimarisi aktif).");
             }
             catch (DllNotFoundException)
             {
-                Console.WriteLine("[NATIVE] hydro_sensors.dll bulunamadı, native sensör çekirdeği pasif kalacak.");
+                Console.WriteLine("[NATIVE] hydro_sensors.dll bulunamadÄ±, native sensÃ¶r Ã§ekirdeÄŸi pasif kalacak.");
                 _available = false;
             }
             catch (EntryPointNotFoundException ex)
             {
-                Console.WriteLine($"[NATIVE] hydro_sensors entrypoint bulunamadı: {ex.Message}");
+                Console.WriteLine($"[NATIVE] hydro_sensors entrypoint bulunamadÄ±: {ex.Message}");
                 _available = false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[NATIVE] hs_init başarısız: {ex.Message}");
+                Console.WriteLine($"[NATIVE] hs_init baÅŸarÄ±sÄ±z: {ex.Message}");
                 _available = false;
             }
         }
@@ -141,7 +141,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[NATIVE] hs_tick çağrısında hata: {ex.Message}");
+                Console.WriteLine($"[NATIVE] hs_tick Ã§aÄŸrÄ±sÄ±nda hata: {ex.Message}");
             }
         }
 

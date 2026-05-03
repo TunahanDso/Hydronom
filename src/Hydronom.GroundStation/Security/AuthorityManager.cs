@@ -1,10 +1,10 @@
-namespace Hydronom.GroundStation.Security;
+﻿namespace Hydronom.GroundStation.Security;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Ground Station tarafında komut yetki politikasını değerlendirir.
+/// Ground Station tarafÄ±nda komut yetki politikasÄ±nÄ± deÄŸerlendirir.
 /// </summary>
 public sealed class AuthorityManager
 {
@@ -18,7 +18,7 @@ public sealed class AuthorityManager
     }
 
     /// <summary>
-    /// Komutun authority seviyesini ve replay/duplicate riskini değerlendirir.
+    /// Komutun authority seviyesini ve replay/duplicate riskini deÄŸerlendirir.
     /// </summary>
     public CommandValidationResult Evaluate(FleetCommand? command, DateTimeOffset? nowUtc = null)
     {

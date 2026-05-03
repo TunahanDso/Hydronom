@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
@@ -6,8 +6,8 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Runtime.Actuators
 {
     /// <summary>
-    /// Mevcut IMotorController'ı IActuatorBus ekosistemine bağlayan adaptör.
-    /// Not: Apply senkron imza; içeride async'i fire-and-forget çalıştırıyoruz.
+    /// Mevcut IMotorController'Ä± IActuatorBus ekosistemine baÄŸlayan adaptÃ¶r.
+    /// Not: Apply senkron imza; iÃ§eride async'i fire-and-forget Ã§alÄ±ÅŸtÄ±rÄ±yoruz.
     /// </summary>
     public class MotorControllerActuator : IActuator
     {
@@ -22,8 +22,9 @@ namespace Hydronom.Runtime.Actuators
 
         public void Apply(DecisionCommand cmd)
         {
-            // Motor denetimi async olduğu için beklemeyelim; hata motor tarafında loglanır.
+            // Motor denetimi async olduÄŸu iÃ§in beklemeyelim; hata motor tarafÄ±nda loglanÄ±r.
             _ = Task.Run(() => _motor.ApplyAsync(cmd, _ct), _ct);
         }
     }
 }
+

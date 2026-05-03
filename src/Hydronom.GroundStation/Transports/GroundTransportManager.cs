@@ -1,20 +1,20 @@
-namespace Hydronom.GroundStation.Transports;
+﻿namespace Hydronom.GroundStation.Transports;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
-/// Ground Station tarafında route kararını gerçek transport gönderimine bağlayan manager sınıfıdır.
+/// Ground Station tarafÄ±nda route kararÄ±nÄ± gerÃ§ek transport gÃ¶nderimine baÄŸlayan manager sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// Bu sınıf:
-/// - Envelope için route sonucu üretmez, dışarıdan route sonucu alır.
-/// - Route sonucundaki candidate transport'lara göre registry'den transport bulur.
-/// - ITransport.SendAsync çağırır.
-/// - Send sonucunu GroundTransportExecutionTracker'a işler.
-/// - Timeout / exception durumlarını standart TransportSendResult akışına dönüştürür.
+/// Bu sÄ±nÄ±f:
+/// - Envelope iÃ§in route sonucu Ã¼retmez, dÄ±ÅŸarÄ±dan route sonucu alÄ±r.
+/// - Route sonucundaki candidate transport'lara gÃ¶re registry'den transport bulur.
+/// - ITransport.SendAsync Ã§aÄŸÄ±rÄ±r.
+/// - Send sonucunu GroundTransportExecutionTracker'a iÅŸler.
+/// - Timeout / exception durumlarÄ±nÄ± standart TransportSendResult akÄ±ÅŸÄ±na dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
 /// 
-/// Böylece mevcut ITransport arayüzünü değiştirmeden gerçek gönderim zinciri kurulmuş olur.
+/// BÃ¶ylece mevcut ITransport arayÃ¼zÃ¼nÃ¼ deÄŸiÅŸtirmeden gerÃ§ek gÃ¶nderim zinciri kurulmuÅŸ olur.
 /// </summary>
 public sealed class GroundTransportManager
 {
@@ -30,12 +30,12 @@ public sealed class GroundTransportManager
     }
 
     /// <summary>
-    /// Kayıtlı transport registry.
+    /// KayÄ±tlÄ± transport registry.
     /// </summary>
     public GroundTransportRegistry Registry => _registry;
 
     /// <summary>
-    /// Envelope ve route sonucundan gönderim planı üretir.
+    /// Envelope ve route sonucundan gÃ¶nderim planÄ± Ã¼retir.
     /// </summary>
     public GroundTransportSendPlan BuildPlan(
         HydronomEnvelope envelope,
@@ -60,14 +60,14 @@ public sealed class GroundTransportManager
     }
 
     /// <summary>
-    /// Route sonucu üzerinden envelope göndermeye çalışır.
+    /// Route sonucu Ã¼zerinden envelope gÃ¶ndermeye Ã§alÄ±ÅŸÄ±r.
     /// 
     /// Bu metot:
-    /// - execution kaydı başlatır,
-    /// - candidate transport seçer,
-    /// - SendAsync çağırır,
-    /// - sonucu execution tracker'a işler,
-    /// - execution kaydını döndürür.
+    /// - execution kaydÄ± baÅŸlatÄ±r,
+    /// - candidate transport seÃ§er,
+    /// - SendAsync Ã§aÄŸÄ±rÄ±r,
+    /// - sonucu execution tracker'a iÅŸler,
+    /// - execution kaydÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public async Task<RouteExecutionRecord> SendAsync(
         GroundTransportSendRequest request,
@@ -78,7 +78,7 @@ public sealed class GroundTransportManager
             throw new ArgumentNullException(nameof(request));
 
         if (request.Envelope is null)
-            throw new ArgumentException("Request envelope boş olamaz.", nameof(request));
+            throw new ArgumentException("Request envelope boÅŸ olamaz.", nameof(request));
 
         if (routeResult is null)
             throw new ArgumentNullException(nameof(routeResult));
@@ -203,7 +203,7 @@ public sealed class GroundTransportManager
     }
 
     /// <summary>
-    /// Gönderim planına göre kullanılacak bağlı transport instance'larını seçer.
+    /// GÃ¶nderim planÄ±na gÃ¶re kullanÄ±lacak baÄŸlÄ± transport instance'larÄ±nÄ± seÃ§er.
     /// </summary>
     private IReadOnlyList<ITransport> SelectTransports(
         GroundTransportSendPlan plan,

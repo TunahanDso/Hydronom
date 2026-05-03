@@ -1,34 +1,34 @@
-namespace Hydronom.GroundStation.Routing;
+﻿namespace Hydronom.GroundStation.Routing;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Bir HydronomEnvelope mesajının hangi transport davranışıyla gönderilmesi gerektiğini
+/// Bir HydronomEnvelope mesajÄ±nÄ±n hangi transport davranÄ±ÅŸÄ±yla gÃ¶nderilmesi gerektiÄŸini
 /// tarif eden routing karar modelidir.
 /// 
-/// Bu sınıf gerçek gönderim yapmaz.
-/// Sadece CommunicationRouter / TransportManager için karar üretir.
+/// Bu sÄ±nÄ±f gerÃ§ek gÃ¶nderim yapmaz.
+/// Sadece CommunicationRouter / TransportManager iÃ§in karar Ã¼retir.
 /// 
-/// Örnek:
-/// - EmergencyStop mesajı tüm bağlantılardan yayınlanmalı.
-/// - Full telemetry yüksek bant genişlikli bağlantıdan gitmeli.
-/// - Heartbeat düşük bant genişlikli güvenilir kanaldan gidebilir.
-/// - LoRa varsa sadece küçük/light mesajlar seçilmeli.
+/// Ã–rnek:
+/// - EmergencyStop mesajÄ± tÃ¼m baÄŸlantÄ±lardan yayÄ±nlanmalÄ±.
+/// - Full telemetry yÃ¼ksek bant geniÅŸlikli baÄŸlantÄ±dan gitmeli.
+/// - Heartbeat dÃ¼ÅŸÃ¼k bant geniÅŸlikli gÃ¼venilir kanaldan gidebilir.
+/// - LoRa varsa sadece kÃ¼Ã§Ã¼k/light mesajlar seÃ§ilmeli.
 /// </summary>
 public sealed record TransportRouteDecision
 {
     /// <summary>
-    /// Kararın hangi mesaj için üretildiğini belirtir.
+    /// KararÄ±n hangi mesaj iÃ§in Ã¼retildiÄŸini belirtir.
     /// 
-    /// HydronomEnvelope.MessageId ile eşleşir.
-    /// Loglama, debugging ve replay için kullanılır.
+    /// HydronomEnvelope.MessageId ile eÅŸleÅŸir.
+    /// Loglama, debugging ve replay iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public string MessageId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın mantıksal tipi.
+    /// MesajÄ±n mantÄ±ksal tipi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - FleetHeartbeat
     /// - FleetCommand
     /// - FleetCommandResult
@@ -39,17 +39,17 @@ public sealed record TransportRouteDecision
     public string MessageType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Routing kararının açıklaması.
+    /// Routing kararÄ±nÄ±n aÃ§Ä±klamasÄ±.
     /// 
-    /// Hydronom Ops diagnostics ekranında veya loglarda gösterilebilir.
+    /// Hydronom Ops diagnostics ekranÄ±nda veya loglarda gÃ¶sterilebilir.
     /// </summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mesajın gönderilmesi için seçilen birincil transport türleri.
+    /// MesajÄ±n gÃ¶nderilmesi iÃ§in seÃ§ilen birincil transport tÃ¼rleri.
     /// 
-    /// CommunicationRouter bu listeyi sırayla deneyebilir.
-    /// Örneğin:
+    /// CommunicationRouter bu listeyi sÄ±rayla deneyebilir.
+    /// Ã–rneÄŸin:
     /// - Tcp, WebSocket
     /// - RfModem, LoRa
     /// - Cellular, Tcp
@@ -58,54 +58,54 @@ public sealed record TransportRouteDecision
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Birincil transport'lar kullanılamazsa denenebilecek yedek transport türleri.
+    /// Birincil transport'lar kullanÄ±lamazsa denenebilecek yedek transport tÃ¼rleri.
     /// </summary>
     public IReadOnlyList<TransportKind> FallbackTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Mesajın mümkün olan tüm uygun bağlantılardan gönderilip gönderilmeyeceğini belirtir.
+    /// MesajÄ±n mÃ¼mkÃ¼n olan tÃ¼m uygun baÄŸlantÄ±lardan gÃ¶nderilip gÃ¶nderilmeyeceÄŸini belirtir.
     /// 
-    /// true ise CommunicationRouter tek kanal seçmek yerine
-    /// tüm kullanılabilir kanallardan yayınlamaya çalışabilir.
+    /// true ise CommunicationRouter tek kanal seÃ§mek yerine
+    /// tÃ¼m kullanÄ±labilir kanallardan yayÄ±nlamaya Ã§alÄ±ÅŸabilir.
     /// 
-    /// Özellikle:
+    /// Ã–zellikle:
     /// - EmergencyStop
     /// - Critical safety broadcast
-    /// - Filo genel güvenlik uyarıları
-    /// için önemlidir.
+    /// - Filo genel gÃ¼venlik uyarÄ±larÄ±
+    /// iÃ§in Ã¶nemlidir.
     /// </summary>
     public bool BroadcastAllAvailableLinks { get; init; }
 
     /// <summary>
-    /// Mesaj için ACK beklenip beklenmediğini belirtir.
+    /// Mesaj iÃ§in ACK beklenip beklenmediÄŸini belirtir.
     /// 
     /// true ise:
-    /// - Alıcıdan onay beklenir.
-    /// - Timeout / retry politikası uygulanabilir.
+    /// - AlÄ±cÄ±dan onay beklenir.
+    /// - Timeout / retry politikasÄ± uygulanabilir.
     /// </summary>
     public bool RequiresAck { get; init; }
 
     /// <summary>
-    /// Mesajın öncelik seviyesi.
+    /// MesajÄ±n Ã¶ncelik seviyesi.
     /// 
-    /// Route kararında envelope priority'si korunur.
-    /// CommunicationRouter ileride bu bilgiyle queue sıralaması yapabilir.
+    /// Route kararÄ±nda envelope priority'si korunur.
+    /// CommunicationRouter ileride bu bilgiyle queue sÄ±ralamasÄ± yapabilir.
     /// </summary>
     public MessagePriority Priority { get; init; } = MessagePriority.Normal;
 
     /// <summary>
-    /// Mesaj için önerilen maksimum gecikme.
+    /// Mesaj iÃ§in Ã¶nerilen maksimum gecikme.
     /// 
-    /// EmergencyStop gibi kritik komutlarda düşük olmalıdır.
+    /// EmergencyStop gibi kritik komutlarda dÃ¼ÅŸÃ¼k olmalÄ±dÄ±r.
     /// Telemetry/diagnostic gibi mesajlarda daha esnek olabilir.
     /// </summary>
     public TimeSpan? MaxLatency { get; init; }
 
     /// <summary>
-    /// Kararın temel olarak geçerli olup olmadığını döndürür.
+    /// KararÄ±n temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından MessageId, MessageType ve bir transport davranışı belirlenmiş olmalıdır.
+    /// En azÄ±ndan MessageId, MessageType ve bir transport davranÄ±ÅŸÄ± belirlenmiÅŸ olmalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(MessageId) &&

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using HydronomOps.Gateway.Contracts.Actuators;
 using HydronomOps.Gateway.Contracts.Common;
@@ -11,7 +11,7 @@ using HydronomOps.Gateway.Infrastructure.Time;
 namespace HydronomOps.Gateway.Services.Mapping;
 
 /// <summary>
-/// Runtime'tan gelen ham JSON verisini gateway DTO'larına dönüştürür.
+/// Runtime'tan gelen ham JSON verisini gateway DTO'larÄ±na dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
 /// </summary>
 public sealed class RuntimeToGatewayMapper
 {
@@ -146,7 +146,7 @@ public sealed class RuntimeToGatewayMapper
         // ---------- occupancy / mapping normalize ----------
         NormalizeOccupancyTelemetry(metrics, fields, landmarks);
 
-        // Kullanışlı bazı üst seviye alanları da ayrıca ekleyelim
+        // KullanÄ±ÅŸlÄ± bazÄ± Ã¼st seviye alanlarÄ± da ayrÄ±ca ekleyelim
         fields["mapper.vehicleId"] = vehicleId;
         fields["mapper.timestampUtc"] = timestampUtc.ToString("O", CultureInfo.InvariantCulture);
 

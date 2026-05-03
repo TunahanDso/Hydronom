@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -8,21 +8,21 @@ using Hydronom.Core.Interfaces.AI;
 namespace Hydronom.Runtime.AI
 {
     /// <summary>
-    /// Runtime içindeki IAiTool implementasyonlarını kayıt eder ve
-    /// LLM'e verilecek ToolSpec listesini üretir.
+    /// Runtime iÃ§indeki IAiTool implementasyonlarÄ±nÄ± kayÄ±t eder ve
+    /// LLM'e verilecek ToolSpec listesini Ã¼retir.
     ///
-    /// Amaç:
-    /// - Tool'ları tek yerde toplayıp isimle erişmek
-    /// - AiGateway tarafına "hangi tool'lar var" bilgisini vermek
+    /// AmaÃ§:
+    /// - Tool'larÄ± tek yerde toplayÄ±p isimle eriÅŸmek
+    /// - AiGateway tarafÄ±na "hangi tool'lar var" bilgisini vermek
     /// </summary>
     public sealed class ToolRegistry
     {
-        // Tool adı -> tool instance
+        // Tool adÄ± -> tool instance
         private readonly Dictionary<string, IAiTool> _toolsByName =
             new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Tool kaydı ekler. Aynı isim varsa hata fırlatır.
+        /// Tool kaydÄ± ekler. AynÄ± isim varsa hata fÄ±rlatÄ±r.
         /// </summary>
         public void Register(IAiTool tool)
         {
@@ -34,13 +34,13 @@ namespace Hydronom.Runtime.AI
             var name = NormalizeToolName(tool.Spec.Name, nameof(tool));
 
             if (_toolsByName.ContainsKey(name))
-                throw new InvalidOperationException($"ToolRegistry: '{name}' zaten kayıtlı.");
+                throw new InvalidOperationException($"ToolRegistry: '{name}' zaten kayÄ±tlÄ±.");
 
             _toolsByName[name] = tool;
         }
 
         /// <summary>
-        /// Birden fazla tool'u sırayla kaydeder.
+        /// Birden fazla tool'u sÄ±rayla kaydeder.
         /// </summary>
         public void RegisterRange(IEnumerable<IAiTool> tools)
         {
@@ -51,7 +51,7 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// Tool varsa döndürür, yoksa false.
+        /// Tool varsa dÃ¶ndÃ¼rÃ¼r, yoksa false.
         /// </summary>
         public bool TryGet(string toolName, out IAiTool tool)
         {
@@ -64,18 +64,18 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// Tool'u zorunlu olarak getirir. Yoksa hata fırlatır.
+        /// Tool'u zorunlu olarak getirir. Yoksa hata fÄ±rlatÄ±r.
         /// </summary>
         public IAiTool GetRequired(string toolName)
         {
             if (!TryGet(toolName, out var tool))
-                throw new KeyNotFoundException($"ToolRegistry: '{toolName}' adlı tool bulunamadı.");
+                throw new KeyNotFoundException($"ToolRegistry: '{toolName}' adlÄ± tool bulunamadÄ±.");
 
             return tool;
         }
 
         /// <summary>
-        /// Kayıtlı tüm tool'ları döndürür.
+        /// KayÄ±tlÄ± tÃ¼m tool'larÄ± dÃ¶ndÃ¼rÃ¼r.
         /// </summary>
         public IReadOnlyList<IAiTool> GetAllTools()
         {
@@ -87,7 +87,7 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// LLM'e verilecek ToolSpec listesini döndürür.
+        /// LLM'e verilecek ToolSpec listesini dÃ¶ndÃ¼rÃ¼r.
         /// </summary>
         public IReadOnlyList<ToolSpec> GetAllToolSpecs()
         {
@@ -100,7 +100,7 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// Kayıtlı tool adlarını deterministik sıralı döndürür.
+        /// KayÄ±tlÄ± tool adlarÄ±nÄ± deterministik sÄ±ralÄ± dÃ¶ndÃ¼rÃ¼r.
         /// </summary>
         public IReadOnlyList<string> GetAllToolNames()
         {
@@ -112,7 +112,7 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// Belirli isimde tool kayıtlı mı?
+        /// Belirli isimde tool kayÄ±tlÄ± mÄ±?
         /// </summary>
         public bool Contains(string toolName)
         {
@@ -123,14 +123,14 @@ namespace Hydronom.Runtime.AI
         }
 
         /// <summary>
-        /// Toplam tool sayısı.
+        /// Toplam tool sayÄ±sÄ±.
         /// </summary>
         public int Count => _toolsByName.Count;
 
         private static string NormalizeToolName(string? value, string paramName)
         {
             if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException("ToolSpec.Name boş olamaz.", paramName);
+                throw new ArgumentException("ToolSpec.Name boÅŸ olamaz.", paramName);
 
             return value.Trim();
         }

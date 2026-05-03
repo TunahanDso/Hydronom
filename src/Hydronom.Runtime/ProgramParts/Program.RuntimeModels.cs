@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Modules;
@@ -7,8 +7,8 @@ using Hydronom.Runtime.Actuators;
 partial class Program
 {
     /// <summary>
-    /// Runtime mod / logging / simülasyon seçenekleri.
-    /// Program.cs içinde dağınık duran bool/int/string ayarlarını tek paket halinde taşır.
+    /// Runtime mod / logging / simÃ¼lasyon seÃ§enekleri.
+    /// Program.cs iÃ§inde daÄŸÄ±nÄ±k duran bool/int/string ayarlarÄ±nÄ± tek paket halinde taÅŸÄ±r.
     /// </summary>
     private readonly record struct RuntimeOptions(
         bool DevMode,
@@ -23,7 +23,7 @@ partial class Program
     );
 
     /// <summary>
-    /// 6-DoF synthetic physics entegrasyonu için kullanılan fizik parametreleri.
+    /// 6-DoF synthetic physics entegrasyonu iÃ§in kullanÄ±lan fizik parametreleri.
     /// </summary>
     private readonly record struct PhysicsOptions(
         double MassKg,
@@ -37,7 +37,7 @@ partial class Program
     );
 
     /// <summary>
-    /// External pose reconciliation ayarları.
+    /// External pose reconciliation ayarlarÄ±.
     /// </summary>
     private readonly record struct ExternalPoseOptions(
         bool PreferExternalConfig,
@@ -50,8 +50,8 @@ partial class Program
     );
 
     /// <summary>
-    /// External pose geçmişi.
-    /// Runtime frame'lerinden gelen pose bilgisinden velocity/yaw-rate türetmek için kullanılır.
+    /// External pose geÃ§miÅŸi.
+    /// Runtime frame'lerinden gelen pose bilgisinden velocity/yaw-rate tÃ¼retmek iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     private struct ExternalPoseState
     {
@@ -64,8 +64,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime ana döngüsünde taşınan mutable durum.
-    /// Büyük Program.cs içinde dağınık duran flag/counter/state değerlerini gruplar.
+    /// Runtime ana dÃ¶ngÃ¼sÃ¼nde taÅŸÄ±nan mutable durum.
+    /// BÃ¼yÃ¼k Program.cs iÃ§inde daÄŸÄ±nÄ±k duran flag/counter/state deÄŸerlerini gruplar.
     /// </summary>
     private struct LoopRuntimeState
     {
@@ -91,8 +91,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime'ın bir döngüde ürettiği karar/komut bağlamı.
-    /// Log, limiter, actuator ve feedback aşamaları bu paketi kullanabilir.
+    /// Runtime'Ä±n bir dÃ¶ngÃ¼de Ã¼rettiÄŸi karar/komut baÄŸlamÄ±.
+    /// Log, limiter, actuator ve feedback aÅŸamalarÄ± bu paketi kullanabilir.
     /// </summary>
     private readonly record struct ControlSelectionResult(
         DecisionCommand DesiredCommand,
@@ -102,7 +102,7 @@ partial class Program
     );
 
     /// <summary>
-    /// Bir döngüde loglanacak hedef/telemetry yardımcı değerleri.
+    /// Bir dÃ¶ngÃ¼de loglanacak hedef/telemetry yardÄ±mcÄ± deÄŸerleri.
     /// </summary>
     private readonly record struct TargetTelemetrySnapshot(
         double DistanceToTargetM,
@@ -112,7 +112,7 @@ partial class Program
     );
 
     /// <summary>
-    /// Loop log / heartbeat için ortak telemetry paketi.
+    /// Loop log / heartbeat iÃ§in ortak telemetry paketi.
     /// </summary>
     private readonly record struct RuntimeDiagnosticsSnapshot(
         string ControlMode,

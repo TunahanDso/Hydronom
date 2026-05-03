@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 partial class Program
 {
     /// <summary>
-    /// Açıyı -180 / +180 derece aralığına normalize eder.
+    /// AÃ§Ä±yÄ± -180 / +180 derece aralÄ±ÄŸÄ±na normalize eder.
     /// </summary>
     private static double NormalizeAngleDeg(double deg)
     {
@@ -26,7 +26,7 @@ partial class Program
 
     /// <summary>
     /// Lineer interpolasyon.
-    /// t değeri 0..1 aralığına sıkıştırılır.
+    /// t deÄŸeri 0..1 aralÄ±ÄŸÄ±na sÄ±kÄ±ÅŸtÄ±rÄ±lÄ±r.
     /// </summary>
     private static double Lerp(double a, double b, double t)
     {
@@ -49,13 +49,13 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime ana döngüsü için hibrit bekleme.
+    /// Runtime ana dÃ¶ngÃ¼sÃ¼ iÃ§in hibrit bekleme.
     ///
-    /// Mantık:
-    /// - Kalan süre büyükse Task.Delay kullanır.
-    /// - Kalan süre küçükse SpinWait ile daha hassas deadline yakalamaya çalışır.
+    /// MantÄ±k:
+    /// - Kalan sÃ¼re bÃ¼yÃ¼kse Task.Delay kullanÄ±r.
+    /// - Kalan sÃ¼re kÃ¼Ã§Ã¼kse SpinWait ile daha hassas deadline yakalamaya Ã§alÄ±ÅŸÄ±r.
     ///
-    /// Bu yöntem Windows üzerinde normal Task.Delay jitter'ını azaltmak için kullanılır.
+    /// Bu yÃ¶ntem Windows Ã¼zerinde normal Task.Delay jitter'Ä±nÄ± azaltmak iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     private static async Task HybridWaitUntilAsync(long targetTicks, CancellationToken ct)
     {
@@ -86,7 +86,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Stopwatch tick farkını milisaniyeye çevirir.
+    /// Stopwatch tick farkÄ±nÄ± milisaniyeye Ã§evirir.
     /// </summary>
     private static double StopwatchTicksToMs(long ticks)
     {
@@ -94,7 +94,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Stopwatch tick farkını saniyeye çevirir.
+    /// Stopwatch tick farkÄ±nÄ± saniyeye Ã§evirir.
     /// </summary>
     private static double StopwatchTicksToSeconds(long ticks)
     {
@@ -102,8 +102,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Tick süresinden period tick sayısı üretir.
-    /// Minimum 1 tick döner.
+    /// Tick sÃ¼resinden period tick sayÄ±sÄ± Ã¼retir.
+    /// Minimum 1 tick dÃ¶ner.
     /// </summary>
     private static long ComputePeriodTicks(int tickMs)
     {
@@ -114,7 +114,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Ölçülen dt değerini fizik/kontrol için güvenli aralığa çeker.
+    /// Ã–lÃ§Ã¼len dt deÄŸerini fizik/kontrol iÃ§in gÃ¼venli aralÄ±ÄŸa Ã§eker.
     /// </summary>
     private static double NormalizeLoopDt(double measuredDtSeconds, int fallbackTickMs)
     {

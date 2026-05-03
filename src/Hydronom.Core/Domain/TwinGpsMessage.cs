@@ -1,23 +1,23 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// C# runtime içindeki dijital ikiz/twin durumundan türetilen GPS benzeri mesaj.
+    /// C# runtime iÃ§indeki dijital ikiz/twin durumundan tÃ¼retilen GPS benzeri mesaj.
     ///
-    /// Amaç:
-    /// - Python tarafındaki csharp_sim GPS backend'ini beslemek
-    /// - Runtime iç durumunu GPS fix formatına yakın bir yapıyla dışarı yayınlamak
+    /// AmaÃ§:
+    /// - Python tarafÄ±ndaki csharp_sim GPS backend'ini beslemek
+    /// - Runtime iÃ§ durumunu GPS fix formatÄ±na yakÄ±n bir yapÄ±yla dÄ±ÅŸarÄ± yayÄ±nlamak
     ///
     /// Notlar:
-    /// - Lat/Lon alanları WGS84 derece cinsindendir.
+    /// - Lat/Lon alanlarÄ± WGS84 derece cinsindendir.
     /// - Alt metre cinsindendir.
-    /// - Fix alanı basit durum kodudur:
+    /// - Fix alanÄ± basit durum kodudur:
     ///   0 = no-fix
     ///   1 = GPS
     ///   2 = DGPS
-    ///   3 = yüksek güven / sim-twin fix
-    /// - t_gps alanı Unix epoch saniyesidir.
+    ///   3 = yÃ¼ksek gÃ¼ven / sim-twin fix
+    /// - t_gps alanÄ± Unix epoch saniyesidir.
     /// </summary>
     public sealed record TwinGpsMessage
     {
@@ -37,36 +37,36 @@ namespace Hydronom.Core.Domain
         public double Lon { get; init; }
 
         /// <summary>
-        /// İrtifa [m]
+        /// Ä°rtifa [m]
         /// </summary>
         public double Alt { get; init; }
 
         /// <summary>
         /// GPS fix seviyesi.
-        /// Twin senaryosunda varsayılan olarak 3 verilebilir.
+        /// Twin senaryosunda varsayÄ±lan olarak 3 verilebilir.
         /// </summary>
         public int Fix { get; init; } = 3;
 
         /// <summary>
-        /// HDOP benzeri kalite değeri.
-        /// Twin senaryosunda sabit küçük bir değer kullanılabilir.
+        /// HDOP benzeri kalite deÄŸeri.
+        /// Twin senaryosunda sabit kÃ¼Ã§Ã¼k bir deÄŸer kullanÄ±labilir.
         /// </summary>
         public double Hdop { get; init; } = 0.7;
 
         /// <summary>
-        /// GPS zamanı benzeri epoch saniyesi.
-        /// Python tarafı bunu t_gps olarak kullanır.
+        /// GPS zamanÄ± benzeri epoch saniyesi.
+        /// Python tarafÄ± bunu t_gps olarak kullanÄ±r.
         /// </summary>
         public double TGps { get; init; }
 
         /// <summary>
-        /// İsteğe bağlı kaynak etiketi.
-        /// Debug ve log için faydalıdır.
+        /// Ä°steÄŸe baÄŸlÄ± kaynak etiketi.
+        /// Debug ve log iÃ§in faydalÄ±dÄ±r.
         /// </summary>
         public string Source { get; init; } = "csharp-twin";
 
         /// <summary>
-        /// Mevcut UTC zamandan, basit bir twin GPS mesajı üretir.
+        /// Mevcut UTC zamandan, basit bir twin GPS mesajÄ± Ã¼retir.
         /// </summary>
         public static TwinGpsMessage Create(
             double lat,

@@ -1,20 +1,20 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Domain
 {
     /// <summary>
-    /// C# runtime içindeki dijital ikiz/twin durumundan türetilen IMU benzeri mesaj.
+    /// C# runtime iÃ§indeki dijital ikiz/twin durumundan tÃ¼retilen IMU benzeri mesaj.
     ///
-    /// Amaç:
-    /// - Python tarafındaki csharp_sim IMU backend'ini beslemek
-    /// - Runtime iç durumunu IMU sample formatına yakın bir yapıyla dışarı yayınlamak
+    /// AmaÃ§:
+    /// - Python tarafÄ±ndaki csharp_sim IMU backend'ini beslemek
+    /// - Runtime iÃ§ durumunu IMU sample formatÄ±na yakÄ±n bir yapÄ±yla dÄ±ÅŸarÄ± yayÄ±nlamak
     ///
     /// Notlar:
-    /// - Açısal hızlar rad/s cinsindendir.
-    /// - İvme alanları m/s² cinsindendir.
-    /// - Roll/Pitch/Yaw açıları derece cinsindendir.
-    /// - TImu alanı Unix epoch saniyesidir.
-    /// - İlk sürümde ax/ay/az için basit değerler kullanılabilir; asıl kritik alanlar
+    /// - AÃ§Ä±sal hÄ±zlar rad/s cinsindendir.
+    /// - Ä°vme alanlarÄ± m/sÂ² cinsindendir.
+    /// - Roll/Pitch/Yaw aÃ§Ä±larÄ± derece cinsindendir.
+    /// - TImu alanÄ± Unix epoch saniyesidir.
+    /// - Ä°lk sÃ¼rÃ¼mde ax/ay/az iÃ§in basit deÄŸerler kullanÄ±labilir; asÄ±l kritik alanlar
     ///   gz, roll_deg, pitch_deg ve gerekirse yaw_deg bilgisidir.
     /// </summary>
     public sealed record TwinImuMessage
@@ -25,32 +25,32 @@ namespace Hydronom.Core.Domain
         public string Type { get; init; } = "TwinImu";
 
         /// <summary>
-        /// Lineer ivme X [m/s²]
+        /// Lineer ivme X [m/sÂ²]
         /// </summary>
         public double Ax { get; init; }
 
         /// <summary>
-        /// Lineer ivme Y [m/s²]
+        /// Lineer ivme Y [m/sÂ²]
         /// </summary>
         public double Ay { get; init; }
 
         /// <summary>
-        /// Lineer ivme Z [m/s²]
+        /// Lineer ivme Z [m/sÂ²]
         /// </summary>
         public double Az { get; init; }
 
         /// <summary>
-        /// Açısal hız X [rad/s]
+        /// AÃ§Ä±sal hÄ±z X [rad/s]
         /// </summary>
         public double Gx { get; init; }
 
         /// <summary>
-        /// Açısal hız Y [rad/s]
+        /// AÃ§Ä±sal hÄ±z Y [rad/s]
         /// </summary>
         public double Gy { get; init; }
 
         /// <summary>
-        /// Açısal hız Z [rad/s]
+        /// AÃ§Ä±sal hÄ±z Z [rad/s]
         /// </summary>
         public double Gz { get; init; }
 
@@ -70,33 +70,33 @@ namespace Hydronom.Core.Domain
         public double? Mz { get; init; }
 
         /// <summary>
-        /// Roll açısı [deg]
+        /// Roll aÃ§Ä±sÄ± [deg]
         /// </summary>
         public double RollDeg { get; init; }
 
         /// <summary>
-        /// Pitch açısı [deg]
+        /// Pitch aÃ§Ä±sÄ± [deg]
         /// </summary>
         public double PitchDeg { get; init; }
 
         /// <summary>
-        /// Yaw açısı [deg]
+        /// Yaw aÃ§Ä±sÄ± [deg]
         /// </summary>
         public double YawDeg { get; init; }
 
         /// <summary>
-        /// IMU zamanı benzeri epoch saniyesi.
-        /// Python tarafı bunu t_imu olarak kullanabilir.
+        /// IMU zamanÄ± benzeri epoch saniyesi.
+        /// Python tarafÄ± bunu t_imu olarak kullanabilir.
         /// </summary>
         public double TImu { get; init; }
 
         /// <summary>
-        /// İsteğe bağlı kaynak etiketi.
+        /// Ä°steÄŸe baÄŸlÄ± kaynak etiketi.
         /// </summary>
         public string Source { get; init; } = "csharp-twin";
 
         /// <summary>
-        /// Basit twin IMU mesajı üretir.
+        /// Basit twin IMU mesajÄ± Ã¼retir.
         /// </summary>
         public static TwinImuMessage Create(
             double gx,

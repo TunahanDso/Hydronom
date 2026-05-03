@@ -1,26 +1,26 @@
-namespace Hydronom.GroundStation.Ack;
+﻿namespace Hydronom.GroundStation.Ack;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Bir FleetCommand ile onun route execution kaydı arasındaki ACK/result korelasyon kaydıdır.
+/// Bir FleetCommand ile onun route execution kaydÄ± arasÄ±ndaki ACK/result korelasyon kaydÄ±dÄ±r.
 /// 
-/// Bu kayıt şunu bağlar:
+/// Bu kayÄ±t ÅŸunu baÄŸlar:
 /// - CommandId
 /// - MessageId
 /// - ExecutionId
-/// - Hedef araç
-/// - Kullanılan transport
+/// - Hedef araÃ§
+/// - KullanÄ±lan transport
 /// - Gelen FleetCommandResult durumu
 /// 
-/// Amaç:
-/// SendAsync başarılı oldu diye ACK varsaymak yerine,
-/// araçtan gerçekten FleetCommandResult geldiğinde ilgili route execution kaydını güncelleyebilmektir.
+/// AmaÃ§:
+/// SendAsync baÅŸarÄ±lÄ± oldu diye ACK varsaymak yerine,
+/// araÃ§tan gerÃ§ekten FleetCommandResult geldiÄŸinde ilgili route execution kaydÄ±nÄ± gÃ¼ncelleyebilmektir.
 /// </summary>
 public sealed class CommandAckCorrelationRecord
 {
     /// <summary>
-    /// Korelasyon kayıt ID'si.
+    /// Korelasyon kayÄ±t ID'si.
     /// </summary>
     public string CorrelationId { get; } = Guid.NewGuid().ToString("N");
 
@@ -45,36 +45,36 @@ public sealed class CommandAckCorrelationRecord
     public string TargetNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Komutu gönderen node ID'si.
+    /// Komutu gÃ¶nderen node ID'si.
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gönderimde kullanılan veya tercih edilen transport türü.
+    /// GÃ¶nderimde kullanÄ±lan veya tercih edilen transport tÃ¼rÃ¼.
     /// 
-    /// Route üzerinde birden fazla candidate varsa ilk kullanılan/uygun transport burada tutulur.
+    /// Route Ã¼zerinde birden fazla candidate varsa ilk kullanÄ±lan/uygun transport burada tutulur.
     /// </summary>
     public TransportKind TransportKind { get; init; } = TransportKind.Unknown;
 
     /// <summary>
-    /// Korelasyon kaydının oluşturulduğu UTC zaman.
+    /// Korelasyon kaydÄ±nÄ±n oluÅŸturulduÄŸu UTC zaman.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// İlk ACK/result alındığı UTC zaman.
+    /// Ä°lk ACK/result alÄ±ndÄ±ÄŸÄ± UTC zaman.
     /// </summary>
     public DateTimeOffset? AckReceivedUtc { get; private set; }
 
     /// <summary>
-    /// Son result alındığı UTC zaman.
+    /// Son result alÄ±ndÄ±ÄŸÄ± UTC zaman.
     /// </summary>
     public DateTimeOffset? LastResultUtc { get; private set; }
 
     /// <summary>
-    /// Son command result status değeri.
+    /// Son command result status deÄŸeri.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Accepted
     /// - Applied
     /// - Rejected
@@ -89,17 +89,17 @@ public sealed class CommandAckCorrelationRecord
     public string LastProcessingStage { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Son result mesajı.
+    /// Son result mesajÄ±.
     /// </summary>
     public string LastMessage { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Bu komut için araçtan herhangi bir sonuç geldi mi?
+    /// Bu komut iÃ§in araÃ§tan herhangi bir sonuÃ§ geldi mi?
     /// </summary>
     public bool IsAcked => AckReceivedUtc.HasValue;
 
     /// <summary>
-    /// Komut sonuçlandı mı?
+    /// Komut sonuÃ§landÄ± mÄ±?
     /// </summary>
     public bool IsCompleted =>
         string.Equals(LastStatus, "Applied", StringComparison.OrdinalIgnoreCase) ||
@@ -110,7 +110,7 @@ public sealed class CommandAckCorrelationRecord
         string.Equals(LastStatus, "Timeout", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Komut başarılı sonuçlandı mı?
+    /// Komut baÅŸarÄ±lÄ± sonuÃ§landÄ± mÄ±?
     /// </summary>
     public bool IsSuccessful =>
         string.Equals(LastStatus, "Accepted", StringComparison.OrdinalIgnoreCase) ||
@@ -118,7 +118,7 @@ public sealed class CommandAckCorrelationRecord
         string.Equals(LastStatus, "Completed", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Komut başarısız sonuçlandı mı?
+    /// Komut baÅŸarÄ±sÄ±z sonuÃ§landÄ± mÄ±?
     /// </summary>
     public bool IsFailed =>
         string.Equals(LastStatus, "Rejected", StringComparison.OrdinalIgnoreCase) ||
@@ -143,7 +143,7 @@ public sealed class CommandAckCorrelationRecord
             : null;
 
     /// <summary>
-    /// FleetCommandResult bilgisini korelasyon kaydına uygular.
+    /// FleetCommandResult bilgisini korelasyon kaydÄ±na uygular.
     /// </summary>
     public void ApplyResult(
         string status,

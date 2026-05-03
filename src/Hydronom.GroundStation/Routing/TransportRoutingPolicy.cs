@@ -1,36 +1,36 @@
-namespace Hydronom.GroundStation.Routing;
+﻿namespace Hydronom.GroundStation.Routing;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Ground Station tarafında bir HydronomEnvelope için hangi transport/routing davranışının
-/// seçileceğini belirleyen basit routing policy sınıfıdır.
+/// Ground Station tarafÄ±nda bir HydronomEnvelope iÃ§in hangi transport/routing davranÄ±ÅŸÄ±nÄ±n
+/// seÃ§ileceÄŸini belirleyen basit routing policy sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// Bu sınıf gerçek gönderim yapmaz.
-/// Sadece şu soruya cevap verir:
-/// "Bu mesaj hangi haberleşme mantığıyla gönderilmeli?"
+/// Bu sÄ±nÄ±f gerÃ§ek gÃ¶nderim yapmaz.
+/// Sadece ÅŸu soruya cevap verir:
+/// "Bu mesaj hangi haberleÅŸme mantÄ±ÄŸÄ±yla gÃ¶nderilmeli?"
 /// 
-/// PDF'deki CommunicationRouter mantığının ilk küçük çekirdeğidir.
-/// İleride bu sınıf:
+/// PDF'deki CommunicationRouter mantÄ±ÄŸÄ±nÄ±n ilk kÃ¼Ã§Ã¼k Ã§ekirdeÄŸidir.
+/// Ä°leride bu sÄ±nÄ±f:
 /// - Link quality,
 /// - Vehicle available transports,
 /// - Payload boyutu,
 /// - Telemetry profile,
-/// - ACK/retry politikası,
+/// - ACK/retry politikasÄ±,
 /// - Emergency broadcast,
-/// - LoRa/RF/Wi-Fi/Cellular öncelikleri
-/// gibi verilerle genişletilecektir.
+/// - LoRa/RF/Wi-Fi/Cellular Ã¶ncelikleri
+/// gibi verilerle geniÅŸletilecektir.
 /// </summary>
 public sealed class TransportRoutingPolicy
 {
     /// <summary>
-    /// Gelen envelope için route kararı üretir.
+    /// Gelen envelope iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Öncelik sırası:
-    /// 1. Emergency mesajlar tüm uygun bağlantılardan yayınlanır.
-    /// 2. Envelope içinde TransportHints varsa onlar temel alınır.
-    /// 3. MessageType özel kuralları uygulanır.
-    /// 4. Hiçbiri yoksa varsayılan TCP/RF route seçilir.
+    /// Ã–ncelik sÄ±rasÄ±:
+    /// 1. Emergency mesajlar tÃ¼m uygun baÄŸlantÄ±lardan yayÄ±nlanÄ±r.
+    /// 2. Envelope iÃ§inde TransportHints varsa onlar temel alÄ±nÄ±r.
+    /// 3. MessageType Ã¶zel kurallarÄ± uygulanÄ±r.
+    /// 4. HiÃ§biri yoksa varsayÄ±lan TCP/RF route seÃ§ilir.
     /// </summary>
     public TransportRouteDecision Decide(HydronomEnvelope envelope)
     {
@@ -56,10 +56,10 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// Mesajın emergency/acil durum mesajı olup olmadığını belirler.
+    /// MesajÄ±n emergency/acil durum mesajÄ± olup olmadÄ±ÄŸÄ±nÄ± belirler.
     /// 
-    /// EmergencyStop gibi mesajlar tek bir kanala güvenmemelidir.
-    /// Bu yüzden tüm uygun bağlantılardan yayınlanacak şekilde route edilir.
+    /// EmergencyStop gibi mesajlar tek bir kanala gÃ¼venmemelidir.
+    /// Bu yÃ¼zden tÃ¼m uygun baÄŸlantÄ±lardan yayÄ±nlanacak ÅŸekilde route edilir.
     /// </summary>
     private static bool IsEmergency(HydronomEnvelope envelope)
     {
@@ -68,7 +68,7 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// Envelope içindeki TransportHints alanının gerçekten yönlendirici bilgi içerip içermediğini kontrol eder.
+    /// Envelope iÃ§indeki TransportHints alanÄ±nÄ±n gerÃ§ekten yÃ¶nlendirici bilgi iÃ§erip iÃ§ermediÄŸini kontrol eder.
     /// </summary>
     private static bool HasExplicitHints(TransportHints hints)
     {
@@ -80,12 +80,12 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// Emergency mesajlar için route kararı üretir.
+    /// Emergency mesajlar iÃ§in route kararÄ± Ã¼retir.
     /// 
     /// Bu mesajlar:
-    /// - Tüm uygun bağlantılardan yayınlanır,
+    /// - TÃ¼m uygun baÄŸlantÄ±lardan yayÄ±nlanÄ±r,
     /// - ACK bekler,
-    /// - Çok düşük latency hedefler.
+    /// - Ã‡ok dÃ¼ÅŸÃ¼k latency hedefler.
     /// </summary>
     private static TransportRouteDecision CreateEmergencyDecision(HydronomEnvelope envelope)
     {
@@ -112,10 +112,10 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// Envelope içindeki TransportHints bilgisine göre route kararı üretir.
+    /// Envelope iÃ§indeki TransportHints bilgisine gÃ¶re route kararÄ± Ã¼retir.
     /// 
     /// Bu en esnek yoldur.
-    /// Mesaj kendi preferred/fallback/ack/latency bilgisini taşıyorsa policy bunu dikkate alır.
+    /// Mesaj kendi preferred/fallback/ack/latency bilgisini taÅŸÄ±yorsa policy bunu dikkate alÄ±r.
     /// </summary>
     private static TransportRouteDecision CreateFromHints(HydronomEnvelope envelope)
     {
@@ -136,11 +136,11 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// FleetHeartbeat için route kararı üretir.
+    /// FleetHeartbeat iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Heartbeat mesajları düzenli gelir.
-    /// Bu yüzden düşük/orta bant genişliği yeterlidir.
-    /// ACK zorunlu değildir.
+    /// Heartbeat mesajlarÄ± dÃ¼zenli gelir.
+    /// Bu yÃ¼zden dÃ¼ÅŸÃ¼k/orta bant geniÅŸliÄŸi yeterlidir.
+    /// ACK zorunlu deÄŸildir.
     /// </summary>
     private static TransportRouteDecision CreateHeartbeatDecision(HydronomEnvelope envelope)
     {
@@ -166,9 +166,9 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// FleetCommand için route kararı üretir.
+    /// FleetCommand iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Komut mesajları telemetry'den daha önemlidir.
+    /// Komut mesajlarÄ± telemetry'den daha Ã¶nemlidir.
     /// Genellikle ACK beklemelidir.
     /// </summary>
     private static TransportRouteDecision CreateCommandDecision(HydronomEnvelope envelope)
@@ -196,10 +196,10 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// FleetCommandResult için route kararı üretir.
+    /// FleetCommandResult iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Komut sonuçları Ground Station command history için önemlidir.
-    /// Fakat çoğu durumda command kadar kritik değildir.
+    /// Komut sonuÃ§larÄ± Ground Station command history iÃ§in Ã¶nemlidir.
+    /// Fakat Ã§oÄŸu durumda command kadar kritik deÄŸildir.
     /// </summary>
     private static TransportRouteDecision CreateCommandResultDecision(HydronomEnvelope envelope)
     {
@@ -225,11 +225,11 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// TelemetryFrame için route kararı üretir.
+    /// TelemetryFrame iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Full telemetry yüksek bant genişliği ister.
-    /// Bu yüzden TCP/WebSocket/Cellular gibi kanallar önceliklidir.
-    /// LoRa fallback olarak verilmez; çünkü büyük telemetry için uygun değildir.
+    /// Full telemetry yÃ¼ksek bant geniÅŸliÄŸi ister.
+    /// Bu yÃ¼zden TCP/WebSocket/Cellular gibi kanallar Ã¶nceliklidir.
+    /// LoRa fallback olarak verilmez; Ã§Ã¼nkÃ¼ bÃ¼yÃ¼k telemetry iÃ§in uygun deÄŸildir.
     /// </summary>
     private static TransportRouteDecision CreateTelemetryDecision(HydronomEnvelope envelope)
     {
@@ -256,10 +256,10 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// GroundWorldUpdate için route kararı üretir.
+    /// GroundWorldUpdate iÃ§in route kararÄ± Ã¼retir.
     /// 
-    /// Ortak dünya modeli ve harita güncellemeleri genellikle daha büyük veri taşır.
-    /// Bu yüzden yüksek bant genişlikli kanallar tercih edilir.
+    /// Ortak dÃ¼nya modeli ve harita gÃ¼ncellemeleri genellikle daha bÃ¼yÃ¼k veri taÅŸÄ±r.
+    /// Bu yÃ¼zden yÃ¼ksek bant geniÅŸlikli kanallar tercih edilir.
     /// </summary>
     private static TransportRouteDecision CreateGroundWorldDecision(HydronomEnvelope envelope)
     {
@@ -283,7 +283,7 @@ public sealed class TransportRoutingPolicy
     }
 
     /// <summary>
-    /// Özel kuralı olmayan mesajlar için varsayılan route kararı üretir.
+    /// Ã–zel kuralÄ± olmayan mesajlar iÃ§in varsayÄ±lan route kararÄ± Ã¼retir.
     /// </summary>
     private static TransportRouteDecision CreateDefaultDecision(HydronomEnvelope envelope)
     {

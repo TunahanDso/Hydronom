@@ -1,14 +1,14 @@
-namespace HydronomOps.Gateway.Configuration;
+﻿namespace HydronomOps.Gateway.Configuration;
 
 /// <summary>
-/// Gateway genel davranış ayarları.
+/// Gateway genel davranÄ±ÅŸ ayarlarÄ±.
 /// </summary>
 public sealed class GatewayOptions
 {
     public const string SectionName = "Gateway";
 
     /// <summary>
-    /// Gateway heartbeat yayını açık mı.
+    /// Gateway heartbeat yayÄ±nÄ± aÃ§Ä±k mÄ±.
     /// </summary>
     public bool EnableHeartbeat { get; set; } = true;
 
@@ -23,17 +23,17 @@ public sealed class GatewayOptions
     public bool EnableStatusEndpoint { get; set; } = true;
 
     /// <summary>
-    /// Gelen veriler loglansın mı.
+    /// Gelen veriler loglansÄ±n mÄ±.
     /// </summary>
     public bool LogIncomingFrames { get; set; } = false;
 
     /// <summary>
-    /// Giden yayınlar loglansın mı.
+    /// Giden yayÄ±nlar loglansÄ±n mÄ±.
     /// </summary>
     public bool LogOutgoingBroadcasts { get; set; } = false;
 
     /// <summary>
-    /// Varsayılan araç kimliği.
+    /// VarsayÄ±lan araÃ§ kimliÄŸi.
     /// </summary>
     public string DefaultVehicleId { get; set; } = "hydronom-main";
 }

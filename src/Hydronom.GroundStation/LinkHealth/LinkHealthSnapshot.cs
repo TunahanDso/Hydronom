@@ -1,9 +1,9 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Diagnostics, Ops UI ve smoke test için immutable bağlantı özeti.
+/// Diagnostics, Ops UI ve smoke test iÃ§in immutable baÄŸlantÄ± Ã¶zeti.
 /// </summary>
 public sealed record LinkHealthSnapshot(
     string VehicleId,

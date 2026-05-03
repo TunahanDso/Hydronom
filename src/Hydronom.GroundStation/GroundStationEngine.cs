@@ -1,4 +1,4 @@
-namespace Hydronom.GroundStation;
+﻿namespace Hydronom.GroundStation;
 
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
@@ -18,131 +18,131 @@ using Hydronom.GroundStation.WorldModel;
 using FleetRegistryStore = Hydronom.GroundStation.FleetRegistry.FleetRegistry;
 
 /// <summary>
-/// Hydronom Ground Station tarafının ana giriş sınıfıdır.
+/// Hydronom Ground Station tarafÄ±nÄ±n ana giriÅŸ sÄ±nÄ±fÄ±dÄ±r.
 /// 
-/// Bu sınıf, yer istasyonunun ana koordinasyon kabuğudur.
-/// Amacı:
-/// - FleetRegistry'yi tek merkezden yönetmek,
-/// - CommandTracker ile gönderilen komutları ve sonuçlarını takip etmek,
-/// - CommandAckCorrelator ile gönderilen command ile gerçek FleetCommandResult cevabını eşleştirmek,
-/// - GroundWorldModel ile ortak operasyon dünyasını tutmak,
-/// - MissionAllocator ile görev için uygun araç seçimini başlatmak,
-/// - FleetCoordinator ile görev isteğinden komut üretmek,
-/// - GroundCommandSafetyGate ile gönderilecek komutları security/authority/safety ön filtresinden geçirmek,
-/// - CommunicationRouter ile gönderilecek mesajların route kararını üretmek,
-/// - TelemetryRoutePlanner ile route sonucuna göre telemetry yoğunluğu planlamak,
-/// - LinkHealthTracker ile araç/transport bazlı bağlantı sağlığını takip etmek,
-/// - GroundTransportExecutionTracker ile route/gönderim sonuçlarını takip etmek,
-/// - GroundTransportManager ile route kararını gerçek ITransport.SendAsync zincirine bağlamak,
-/// - GroundTransportReceiver ile transportlardan gelen envelope'ları otomatik dinlemek,
-/// - GroundDiagnosticsEngine ile tek çağrıda operasyon snapshot'ı üretmek,
-/// - Gelen HydronomEnvelope mesajlarını dispatcher üzerinden yorumlamak,
-/// - Yer istasyonu tarafında büyüyecek modüller için ana koordinasyon noktası olmaktır.
+/// Bu sÄ±nÄ±f, yer istasyonunun ana koordinasyon kabuÄŸudur.
+/// AmacÄ±:
+/// - FleetRegistry'yi tek merkezden yÃ¶netmek,
+/// - CommandTracker ile gÃ¶nderilen komutlarÄ± ve sonuÃ§larÄ±nÄ± takip etmek,
+/// - CommandAckCorrelator ile gÃ¶nderilen command ile gerÃ§ek FleetCommandResult cevabÄ±nÄ± eÅŸleÅŸtirmek,
+/// - GroundWorldModel ile ortak operasyon dÃ¼nyasÄ±nÄ± tutmak,
+/// - MissionAllocator ile gÃ¶rev iÃ§in uygun araÃ§ seÃ§imini baÅŸlatmak,
+/// - FleetCoordinator ile gÃ¶rev isteÄŸinden komut Ã¼retmek,
+/// - GroundCommandSafetyGate ile gÃ¶nderilecek komutlarÄ± security/authority/safety Ã¶n filtresinden geÃ§irmek,
+/// - CommunicationRouter ile gÃ¶nderilecek mesajlarÄ±n route kararÄ±nÄ± Ã¼retmek,
+/// - TelemetryRoutePlanner ile route sonucuna gÃ¶re telemetry yoÄŸunluÄŸu planlamak,
+/// - LinkHealthTracker ile araÃ§/transport bazlÄ± baÄŸlantÄ± saÄŸlÄ±ÄŸÄ±nÄ± takip etmek,
+/// - GroundTransportExecutionTracker ile route/gÃ¶nderim sonuÃ§larÄ±nÄ± takip etmek,
+/// - GroundTransportManager ile route kararÄ±nÄ± gerÃ§ek ITransport.SendAsync zincirine baÄŸlamak,
+/// - GroundTransportReceiver ile transportlardan gelen envelope'larÄ± otomatik dinlemek,
+/// - GroundDiagnosticsEngine ile tek Ã§aÄŸrÄ±da operasyon snapshot'Ä± Ã¼retmek,
+/// - Gelen HydronomEnvelope mesajlarÄ±nÄ± dispatcher Ã¼zerinden yorumlamak,
+/// - Yer istasyonu tarafÄ±nda bÃ¼yÃ¼yecek modÃ¼ller iÃ§in ana koordinasyon noktasÄ± olmaktÄ±r.
 /// </summary>
 public sealed class GroundStationEngine
 {
     /// <summary>
-    /// Yer istasyonunun araç/node kayıt defteri.
+    /// Yer istasyonunun araÃ§/node kayÄ±t defteri.
     /// </summary>
     public FleetRegistryStore FleetRegistry { get; } = new();
 
     /// <summary>
-    /// Yer istasyonu tarafından gönderilen komutları ve araçlardan dönen sonuçları takip eder.
+    /// Yer istasyonu tarafÄ±ndan gÃ¶nderilen komutlarÄ± ve araÃ§lardan dÃ¶nen sonuÃ§larÄ± takip eder.
     /// </summary>
     public CommandTracker CommandTracker { get; } = new();
 
     /// <summary>
-    /// Yer istasyonu tarafından gönderilen komutlar ile araçtan gelen gerçek FleetCommandResult cevaplarını eşleştirir.
+    /// Yer istasyonu tarafÄ±ndan gÃ¶nderilen komutlar ile araÃ§tan gelen gerÃ§ek FleetCommandResult cevaplarÄ±nÄ± eÅŸleÅŸtirir.
     /// 
-    /// Bu yapı, SendAsync başarılı oldu diye ACK varsaymak yerine,
-    /// gerçek command result geldiğinde ilgili route execution kaydını günceller.
+    /// Bu yapÄ±, SendAsync baÅŸarÄ±lÄ± oldu diye ACK varsaymak yerine,
+    /// gerÃ§ek command result geldiÄŸinde ilgili route execution kaydÄ±nÄ± gÃ¼nceller.
     /// </summary>
     public CommandAckCorrelator CommandAckCorrelator { get; } = new();
 
     /// <summary>
-    /// Yer istasyonunun ortak dünya modelidir.
+    /// Yer istasyonunun ortak dÃ¼nya modelidir.
     /// </summary>
     public GroundWorldModel WorldModel { get; } = new();
 
     /// <summary>
-    /// Görev isteklerini filo içindeki uygun araca atamaya çalışan ilk görev dağıtım modülüdür.
+    /// GÃ¶rev isteklerini filo iÃ§indeki uygun araca atamaya Ã§alÄ±ÅŸan ilk gÃ¶rev daÄŸÄ±tÄ±m modÃ¼lÃ¼dÃ¼r.
     /// </summary>
     public MissionAllocator MissionAllocator { get; } = new();
 
     /// <summary>
-    /// Görev isteğini alıp uygun aracı seçen ve araca gönderilecek FleetCommand envelope üreten koordinasyon modülüdür.
+    /// GÃ¶rev isteÄŸini alÄ±p uygun aracÄ± seÃ§en ve araca gÃ¶nderilecek FleetCommand envelope Ã¼reten koordinasyon modÃ¼lÃ¼dÃ¼r.
     /// </summary>
     public FleetCoordinator FleetCoordinator { get; }
 
     /// <summary>
-    /// Ground Station seviyesinde komutun yapısal, yetki ve hedef araç bağlamına göre gönderilebilirliğini kontrol eder.
+    /// Ground Station seviyesinde komutun yapÄ±sal, yetki ve hedef araÃ§ baÄŸlamÄ±na gÃ¶re gÃ¶nderilebilirliÄŸini kontrol eder.
     /// 
-    /// Bu gate araç üzerindeki local SafetyGate'in yerine geçmez.
-    /// Sadece yer istasyonu tarafında ön güvenlik filtresi sağlar.
+    /// Bu gate araÃ§ Ã¼zerindeki local SafetyGate'in yerine geÃ§mez.
+    /// Sadece yer istasyonu tarafÄ±nda Ã¶n gÃ¼venlik filtresi saÄŸlar.
     /// </summary>
     public GroundCommandSafetyGate CommandSafetyGate { get; }
 
     /// <summary>
-    /// En son değerlendirilen komutun safety/security sonucu.
+    /// En son deÄŸerlendirilen komutun safety/security sonucu.
     /// 
-    /// Smoke test, diagnostics veya ileride Hydronom Ops tarafında son reddetme sebebini göstermek için kullanılabilir.
+    /// Smoke test, diagnostics veya ileride Hydronom Ops tarafÄ±nda son reddetme sebebini gÃ¶stermek iÃ§in kullanÄ±labilir.
     /// </summary>
     public CommandValidationResult? LastCommandSafetyResult { get; private set; }
     /// <summary>
-    /// En son yapılan mission allocation / görev atama sonucu.
+    /// En son yapÄ±lan mission allocation / gÃ¶rev atama sonucu.
     /// 
-    /// Hydronom Ops, diagnostics ve Gateway tarafında son görev atama kararının
-    /// neden başarılı veya başarısız olduğunu göstermek için kullanılır.
+    /// Hydronom Ops, diagnostics ve Gateway tarafÄ±nda son gÃ¶rev atama kararÄ±nÄ±n
+    /// neden baÅŸarÄ±lÄ± veya baÅŸarÄ±sÄ±z olduÄŸunu gÃ¶stermek iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public MissionAllocationResult? LastMissionAllocationResult { get; private set; }
 
     /// <summary>
-    /// Gönderilecek HydronomEnvelope mesajları için route sonucu üreten iletişim yönlendiricisidir.
+    /// GÃ¶nderilecek HydronomEnvelope mesajlarÄ± iÃ§in route sonucu Ã¼reten iletiÅŸim yÃ¶nlendiricisidir.
     /// </summary>
     public CommunicationRouter CommunicationRouter { get; } = new();
 
     /// <summary>
-    /// CommunicationRouter tarafından üretilen route sonucuna göre telemetry profil planı üretir.
+    /// CommunicationRouter tarafÄ±ndan Ã¼retilen route sonucuna gÃ¶re telemetry profil planÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlanner TelemetryRoutePlanner { get; } = new();
 
     /// <summary>
-    /// Yer istasyonu seviyesinde araçların haberleşme bağlantı kalitesini takip eder.
+    /// Yer istasyonu seviyesinde araÃ§larÄ±n haberleÅŸme baÄŸlantÄ± kalitesini takip eder.
     /// </summary>
     public LinkHealthTracker LinkHealthTracker { get; } = new();
 
     /// <summary>
-    /// Route execution / transport gönderim sonucu takip motorudur.
+    /// Route execution / transport gÃ¶nderim sonucu takip motorudur.
     /// </summary>
     public GroundTransportExecutionTracker TransportExecutionTracker { get; }
 
     /// <summary>
-    /// Ground Station tarafındaki gerçek/mock transport instance'larını tutan registry.
+    /// Ground Station tarafÄ±ndaki gerÃ§ek/mock transport instance'larÄ±nÄ± tutan registry.
     /// </summary>
     public GroundTransportRegistry TransportRegistry { get; } = new();
 
     /// <summary>
-    /// Route kararını gerçek ITransport.SendAsync zincirine bağlayan transport manager.
+    /// Route kararÄ±nÄ± gerÃ§ek ITransport.SendAsync zincirine baÄŸlayan transport manager.
     /// </summary>
     public GroundTransportManager TransportManager { get; }
 
     /// <summary>
-    /// Transportlardan gelen HydronomEnvelope mesajlarını dinleyen receive pipeline'dır.
+    /// Transportlardan gelen HydronomEnvelope mesajlarÄ±nÄ± dinleyen receive pipeline'dÄ±r.
     /// </summary>
     public GroundTransportReceiver TransportReceiver { get; }
 
     /// <summary>
-    /// Ground Station'ın genel durumunu tek bir operasyon snapshot'ına dönüştüren diagnostics motorudur.
+    /// Ground Station'Ä±n genel durumunu tek bir operasyon snapshot'Ä±na dÃ¶nÃ¼ÅŸtÃ¼ren diagnostics motorudur.
     /// </summary>
     public GroundDiagnosticsEngine DiagnosticsEngine { get; } = new();
 
     /// <summary>
-    /// Ground Station tarafında gelen mesajları MessageType değerine göre ilgili handler'a yönlendiren dispatcher.
+    /// Ground Station tarafÄ±nda gelen mesajlarÄ± MessageType deÄŸerine gÃ¶re ilgili handler'a yÃ¶nlendiren dispatcher.
     /// </summary>
     public GroundMessageDispatcher Dispatcher { get; }
 
     /// <summary>
-    /// Yer istasyonunun kendi node kimliği.
+    /// Yer istasyonunun kendi node kimliÄŸi.
     /// </summary>
     public NodeIdentity Identity { get; init; } = new()
     {
@@ -153,7 +153,7 @@ public sealed class GroundStationEngine
     };
 
     /// <summary>
-    /// GroundStationEngine oluşturur.
+    /// GroundStationEngine oluÅŸturur.
     /// </summary>
     public GroundStationEngine()
     {
@@ -174,7 +174,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Gelen HydronomEnvelope mesajını işler.
+    /// Gelen HydronomEnvelope mesajÄ±nÄ± iÅŸler.
     /// </summary>
     public bool HandleEnvelope(HydronomEnvelope envelope)
     {
@@ -182,10 +182,10 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Komutu Ground Station seviyesinde security/authority/safety ön filtresinden geçirir.
+    /// Komutu Ground Station seviyesinde security/authority/safety Ã¶n filtresinden geÃ§irir.
     /// 
-    /// Bu kontrol araç üzerindeki local SafetyGate'in yerine geçmez.
-    /// Araç runtime tarafı yine kendi local safety kararını vermeye devam etmelidir.
+    /// Bu kontrol araÃ§ Ã¼zerindeki local SafetyGate'in yerine geÃ§mez.
+    /// AraÃ§ runtime tarafÄ± yine kendi local safety kararÄ±nÄ± vermeye devam etmelidir.
     /// </summary>
     public CommandValidationResult EvaluateCommandSafety(
         FleetCommand? command,
@@ -200,8 +200,8 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Yer istasyonu tarafından üretilecek/gönderilecek bir komutu safety/security kontrolünden geçirir,
-    /// kayıt altına alır ve aynı komutu HydronomEnvelope içine sararak döndürür.
+    /// Yer istasyonu tarafÄ±ndan Ã¼retilecek/gÃ¶nderilecek bir komutu safety/security kontrolÃ¼nden geÃ§irir,
+    /// kayÄ±t altÄ±na alÄ±r ve aynÄ± komutu HydronomEnvelope iÃ§ine sararak dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public HydronomEnvelope? CreateTrackedCommandEnvelope(FleetCommand command)
     {
@@ -222,12 +222,12 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
+    /// Verilen gÃ¶rev isteÄŸi iÃ§in mevcut fleet snapshot Ã¼zerinden en uygun aracÄ± seÃ§er.
     /// </summary>
     /// <summary>
-    /// Verilen görev isteği için mevcut fleet snapshot üzerinden en uygun aracı seçer.
+    /// Verilen gÃ¶rev isteÄŸi iÃ§in mevcut fleet snapshot Ã¼zerinden en uygun aracÄ± seÃ§er.
     /// 
-    /// Son allocation sonucu LastMissionAllocationResult içinde saklanır.
+    /// Son allocation sonucu LastMissionAllocationResult iÃ§inde saklanÄ±r.
     /// </summary>
     public MissionAllocationResult AllocateMission(MissionRequest request)
     {
@@ -239,7 +239,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteğini filo koordinasyon sonucuna çevirir.
+    /// Verilen gÃ¶rev isteÄŸini filo koordinasyon sonucuna Ã§evirir.
     /// </summary>
     public FleetCoordinationResult CoordinateMission(MissionRequest request)
     {
@@ -276,7 +276,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için mevcut fleet snapshot üzerinden route sonucu üretir.
+    /// Verilen envelope iÃ§in mevcut fleet snapshot Ã¼zerinden route sonucu Ã¼retir.
     /// </summary>
     public CommunicationRouteResult RouteEnvelope(HydronomEnvelope envelope)
     {
@@ -286,7 +286,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için mevcut fleet snapshot ve LinkHealthTracker üzerinden link-aware route sonucu üretir.
+    /// Verilen envelope iÃ§in mevcut fleet snapshot ve LinkHealthTracker Ã¼zerinden link-aware route sonucu Ã¼retir.
     /// </summary>
     public CommunicationRouteResult RouteEnvelopeWithLinkHealth(HydronomEnvelope envelope)
     {
@@ -300,7 +300,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Transport registry içine yeni transport ekler.
+    /// Transport registry iÃ§ine yeni transport ekler.
     /// </summary>
     public bool RegisterTransport(ITransport transport)
     {
@@ -308,7 +308,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Transport registry içinden transport kaldırır.
+    /// Transport registry iÃ§inden transport kaldÄ±rÄ±r.
     /// </summary>
     public bool RemoveTransportByName(string name)
     {
@@ -316,7 +316,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Kayıtlı tüm transport bağlantılarını başlatır.
+    /// KayÄ±tlÄ± tÃ¼m transport baÄŸlantÄ±larÄ±nÄ± baÅŸlatÄ±r.
     /// </summary>
     public Task ConnectAllTransportsAsync(CancellationToken cancellationToken = default)
     {
@@ -324,7 +324,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Kayıtlı tüm transport bağlantılarını kapatır.
+    /// KayÄ±tlÄ± tÃ¼m transport baÄŸlantÄ±larÄ±nÄ± kapatÄ±r.
     /// </summary>
     public Task DisconnectAllTransportsAsync(CancellationToken cancellationToken = default)
     {
@@ -332,7 +332,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Kayıtlı ve bağlı tüm transport'lar için receive pipeline çalıştırır.
+    /// KayÄ±tlÄ± ve baÄŸlÄ± tÃ¼m transport'lar iÃ§in receive pipeline Ã§alÄ±ÅŸtÄ±rÄ±r.
     /// </summary>
     public Task RunTransportReceiversAsync(CancellationToken cancellationToken = default)
     {
@@ -340,7 +340,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir transport için receive pipeline çalıştırır.
+    /// Belirli bir transport iÃ§in receive pipeline Ã§alÄ±ÅŸtÄ±rÄ±r.
     /// </summary>
     public Task RunTransportReceiverAsync(
         ITransport transport,
@@ -352,7 +352,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Transport receive event geçmişinin snapshot listesini döndürür.
+    /// Transport receive event geÃ§miÅŸinin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundTransportReceiveEvent> GetTransportReceiveSnapshot()
     {
@@ -360,15 +360,15 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Kayıtlı receive event sayısını döndürür.
+    /// KayÄ±tlÄ± receive event sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public int TransportReceiveEventCount => TransportReceiver.EventCount;
 
     /// <summary>
-    /// Verilen envelope için route üretir ve transport manager üzerinden gerçek/mock SendAsync zincirini çalıştırır.
+    /// Verilen envelope iÃ§in route Ã¼retir ve transport manager Ã¼zerinden gerÃ§ek/mock SendAsync zincirini Ã§alÄ±ÅŸtÄ±rÄ±r.
     /// 
-    /// Bu metot genel envelope gönderimi içindir.
-    /// FleetCommand correlation gerekiyorsa SendTrackedCommandAsync kullanılmalıdır.
+    /// Bu metot genel envelope gÃ¶nderimi iÃ§indir.
+    /// FleetCommand correlation gerekiyorsa SendTrackedCommandAsync kullanÄ±lmalÄ±dÄ±r.
     /// </summary>
     public async Task<RouteExecutionRecord> SendEnvelopeAsync(
         HydronomEnvelope envelope,
@@ -401,12 +401,12 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// FleetCommand üretir, GroundCommandSafetyGate kontrolünden geçirir, CommandTracker'a kaydeder,
-    /// envelope'a sarar, transport manager üzerinden gönderir ve ACK correlation kaydı açar.
+    /// FleetCommand Ã¼retir, GroundCommandSafetyGate kontrolÃ¼nden geÃ§irir, CommandTracker'a kaydeder,
+    /// envelope'a sarar, transport manager Ã¼zerinden gÃ¶nderir ve ACK correlation kaydÄ± aÃ§ar.
     /// 
-    /// treatSuccessfulSendAsAckWhenRequired false verilirse gerçek ACK/result gelene kadar
-    /// execution yalnızca Sent olarak kalabilir. FleetCommandResult geldiğinde HandleCommandResult
-    /// üzerinden gerçek ACK correlation yapılır.
+    /// treatSuccessfulSendAsAckWhenRequired false verilirse gerÃ§ek ACK/result gelene kadar
+    /// execution yalnÄ±zca Sent olarak kalabilir. FleetCommandResult geldiÄŸinde HandleCommandResult
+    /// Ã¼zerinden gerÃ§ek ACK correlation yapÄ±lÄ±r.
     /// </summary>
     public async Task<RouteExecutionRecord?> SendTrackedCommandAsync(
         FleetCommand command,
@@ -439,8 +439,8 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Görev isteğini koordine eder, command envelope üretir, command'ı safety/security filtresinden geçirir,
-    /// command'ı takip eder, transport manager ile gönderir ve ACK correlation kaydı açar.
+    /// GÃ¶rev isteÄŸini koordine eder, command envelope Ã¼retir, command'Ä± safety/security filtresinden geÃ§irir,
+    /// command'Ä± takip eder, transport manager ile gÃ¶nderir ve ACK correlation kaydÄ± aÃ§ar.
     /// </summary>
     public async Task<RouteExecutionRecord?> CoordinateMissionAndSendAsync(
         MissionRequest request,
@@ -473,7 +473,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için route sonucu üretir ve route execution kaydı başlatır.
+    /// Verilen envelope iÃ§in route sonucu Ã¼retir ve route execution kaydÄ± baÅŸlatÄ±r.
     /// </summary>
     public RouteExecutionRecord BeginRouteExecution(
         HydronomEnvelope envelope,
@@ -488,7 +488,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için link health destekli route sonucu üretir ve route execution kaydı başlatır.
+    /// Verilen envelope iÃ§in link health destekli route sonucu Ã¼retir ve route execution kaydÄ± baÅŸlatÄ±r.
     /// </summary>
     public RouteExecutionRecord BeginRouteExecutionWithLinkHealth(
         HydronomEnvelope envelope,
@@ -503,7 +503,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen route sonucu ve envelope ile manuel execution kaydı başlatır.
+    /// Verilen route sonucu ve envelope ile manuel execution kaydÄ± baÅŸlatÄ±r.
     /// </summary>
     public RouteExecutionRecord BeginRouteExecution(
         HydronomEnvelope envelope,
@@ -517,7 +517,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli execution için transport gönderim denemesi başladığını kaydeder.
+    /// Belirli execution iÃ§in transport gÃ¶nderim denemesi baÅŸladÄ±ÄŸÄ±nÄ± kaydeder.
     /// </summary>
     public bool RecordTransportSendAttempt(
         string executionId,
@@ -531,7 +531,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli execution için başarılı gönderim sonucunu kaydeder.
+    /// Belirli execution iÃ§in baÅŸarÄ±lÄ± gÃ¶nderim sonucunu kaydeder.
     /// </summary>
     public bool RecordTransportSent(
         string executionId,
@@ -551,7 +551,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli execution için ACK alınmış gönderim sonucunu kaydeder.
+    /// Belirli execution iÃ§in ACK alÄ±nmÄ±ÅŸ gÃ¶nderim sonucunu kaydeder.
     /// </summary>
     public bool RecordTransportAcked(
         string executionId,
@@ -571,7 +571,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli execution için timeout sonucunu kaydeder.
+    /// Belirli execution iÃ§in timeout sonucunu kaydeder.
     /// </summary>
     public bool RecordTransportTimeout(
         string executionId,
@@ -589,7 +589,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli execution için başarısız gönderim sonucunu kaydeder.
+    /// Belirli execution iÃ§in baÅŸarÄ±sÄ±z gÃ¶nderim sonucunu kaydeder.
     /// </summary>
     public bool RecordTransportFailure(
         string executionId,
@@ -611,7 +611,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Tüm route execution kayıtlarının snapshot listesini döndürür.
+    /// TÃ¼m route execution kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetRouteExecutionSnapshot()
     {
@@ -619,7 +619,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Pending route execution kayıtlarının snapshot listesini döndürür.
+    /// Pending route execution kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetPendingRouteExecutionSnapshot()
     {
@@ -627,7 +627,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Başarısız route execution kayıtlarının snapshot listesini döndürür.
+    /// BaÅŸarÄ±sÄ±z route execution kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<RouteExecutionSnapshot> GetFailedRouteExecutionSnapshot()
     {
@@ -635,7 +635,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Tüm command ACK correlation kayıtlarının snapshot listesini döndürür.
+    /// TÃ¼m command ACK correlation kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetCommandAckCorrelationSnapshot()
     {
@@ -643,7 +643,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// ACK almış command correlation kayıtlarının snapshot listesini döndürür.
+    /// ACK almÄ±ÅŸ command correlation kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetAckedCommandCorrelationSnapshot()
     {
@@ -651,7 +651,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Henüz gerçek ACK/result almamış command correlation kayıtlarının snapshot listesini döndürür.
+    /// HenÃ¼z gerÃ§ek ACK/result almamÄ±ÅŸ command correlation kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetPendingCommandCorrelationSnapshot()
     {
@@ -659,7 +659,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Başarısız command correlation kayıtlarının snapshot listesini döndürür.
+    /// BaÅŸarÄ±sÄ±z command correlation kayÄ±tlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandAckCorrelationSnapshot> GetFailedCommandCorrelationSnapshot()
     {
@@ -667,7 +667,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli süreden uzun süredir gerçek ACK/result almamış command correlation sayısını döndürür.
+    /// Belirli sÃ¼reden uzun sÃ¼redir gerÃ§ek ACK/result almamÄ±ÅŸ command correlation sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public int CountExpiredPendingCommandCorrelations(
         TimeSpan timeout,
@@ -677,7 +677,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen route sonucuna göre telemetry profil planı üretir.
+    /// Verilen route sonucuna gÃ¶re telemetry profil planÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForRoute(CommunicationRouteResult route)
     {
@@ -685,7 +685,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için önce route sonucu, sonra telemetry route planı üretir.
+    /// Verilen envelope iÃ§in Ã¶nce route sonucu, sonra telemetry route planÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForEnvelope(HydronomEnvelope envelope)
     {
@@ -694,7 +694,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen envelope için link health destekli route sonucu, sonra telemetry route planı üretir.
+    /// Verilen envelope iÃ§in link health destekli route sonucu, sonra telemetry route planÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlan PlanTelemetryForEnvelopeWithLinkHealth(HydronomEnvelope envelope)
     {
@@ -703,7 +703,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için route sonucu üretir.
+    /// Verilen gÃ¶rev isteÄŸini koordine eder ve ortaya Ã§Ä±kan envelope iÃ§in route sonucu Ã¼retir.
     /// </summary>
     public CommunicationRouteResult? CoordinateMissionAndRoute(MissionRequest request)
     {
@@ -716,7 +716,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteğini koordine eder ve ortaya çıkan envelope için link health destekli route sonucu üretir.
+    /// Verilen gÃ¶rev isteÄŸini koordine eder ve ortaya Ã§Ä±kan envelope iÃ§in link health destekli route sonucu Ã¼retir.
     /// </summary>
     public CommunicationRouteResult? CoordinateMissionAndRouteWithLinkHealth(MissionRequest request)
     {
@@ -729,7 +729,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteğini koordine eder, route eder ve telemetry planını üretir.
+    /// Verilen gÃ¶rev isteÄŸini koordine eder, route eder ve telemetry planÄ±nÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetry(MissionRequest request)
     {
@@ -742,7 +742,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Verilen görev isteğini koordine eder, link health destekli route eder ve telemetry planını üretir.
+    /// Verilen gÃ¶rev isteÄŸini koordine eder, link health destekli route eder ve telemetry planÄ±nÄ± Ã¼retir.
     /// </summary>
     public TelemetryRoutePlan? CoordinateMissionRouteAndPlanTelemetryWithLinkHealth(MissionRequest request)
     {
@@ -755,7 +755,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Ground Station'ın mevcut operasyon durumundan tek bakışlık snapshot üretir.
+    /// Ground Station'Ä±n mevcut operasyon durumundan tek bakÄ±ÅŸlÄ±k snapshot Ã¼retir.
     /// </summary>
     public GroundOperationSnapshot CreateOperationSnapshot()
     {
@@ -772,7 +772,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir aracın belirli bir transport üzerinden görüldüğünü LinkHealthTracker'a bildirir.
+    /// Belirli bir aracÄ±n belirli bir transport Ã¼zerinden gÃ¶rÃ¼ldÃ¼ÄŸÃ¼nÃ¼ LinkHealthTracker'a bildirir.
     /// </summary>
     public void MarkLinkSeen(
         string vehicleId,
@@ -786,7 +786,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Bir araca belirli transport üzerinden mesaj gönderme denemesini kayıt altına alır.
+    /// Bir araca belirli transport Ã¼zerinden mesaj gÃ¶nderme denemesini kayÄ±t altÄ±na alÄ±r.
     /// </summary>
     public void RecordLinkSend(
         string vehicleId,
@@ -800,7 +800,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Bir route/gönderim denemesinin başarılı olduğunu bağlantı sağlık metriğine işler.
+    /// Bir route/gÃ¶nderim denemesinin baÅŸarÄ±lÄ± olduÄŸunu baÄŸlantÄ± saÄŸlÄ±k metriÄŸine iÅŸler.
     /// </summary>
     public void RecordLinkRouteSuccess(
         string vehicleId,
@@ -816,7 +816,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Bir route/gönderim denemesinin başarısız olduğunu bağlantı sağlık metriğine işler.
+    /// Bir route/gÃ¶nderim denemesinin baÅŸarÄ±sÄ±z olduÄŸunu baÄŸlantÄ± saÄŸlÄ±k metriÄŸine iÅŸler.
     /// </summary>
     public void RecordLinkRouteFailure(
         string vehicleId,
@@ -830,7 +830,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir transport üzerinden ACK alındığını bağlantı sağlık metriğine işler.
+    /// Belirli bir transport Ã¼zerinden ACK alÄ±ndÄ±ÄŸÄ±nÄ± baÄŸlantÄ± saÄŸlÄ±k metriÄŸine iÅŸler.
     /// </summary>
     public void RecordLinkAck(
         string vehicleId,
@@ -846,7 +846,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir transport üzerinden timeout yaşandığını bağlantı sağlık metriğine işler.
+    /// Belirli bir transport Ã¼zerinden timeout yaÅŸandÄ±ÄŸÄ±nÄ± baÄŸlantÄ± saÄŸlÄ±k metriÄŸine iÅŸler.
     /// </summary>
     public void RecordLinkTimeout(
         string vehicleId,
@@ -860,7 +860,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Tahmini paket kaybı bilgisini bağlantı sağlık metriğine işler.
+    /// Tahmini paket kaybÄ± bilgisini baÄŸlantÄ± saÄŸlÄ±k metriÄŸine iÅŸler.
     /// </summary>
     public void RecordEstimatedLinkPacketLoss(
         string vehicleId,
@@ -876,7 +876,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Tüm araçların bağlantı sağlık snapshot listesini döndürür.
+    /// TÃ¼m araÃ§larÄ±n baÄŸlantÄ± saÄŸlÄ±k snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<VehicleLinkHealthSnapshot> GetLinkHealthSnapshot(DateTime? nowUtc = null)
     {
@@ -884,7 +884,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir araç için en iyi kullanılabilir bağlantıyı döndürür.
+    /// Belirli bir araÃ§ iÃ§in en iyi kullanÄ±labilir baÄŸlantÄ±yÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public TransportLinkMetrics? GetBestAvailableLink(string vehicleId)
     {
@@ -892,7 +892,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli bir araç için kullanılabilir bağlantı listesini kalite skoruna göre döndürür.
+    /// Belirli bir araÃ§ iÃ§in kullanÄ±labilir baÄŸlantÄ± listesini kalite skoruna gÃ¶re dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<TransportLinkMetrics> GetAvailableLinks(string vehicleId)
     {
@@ -900,7 +900,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// GroundWorldModel içine yeni bir dünya nesnesi ekler veya mevcut nesneyi günceller.
+    /// GroundWorldModel iÃ§ine yeni bir dÃ¼nya nesnesi ekler veya mevcut nesneyi gÃ¼nceller.
     /// </summary>
     public bool UpsertWorldObject(GroundWorldObject worldObject)
     {
@@ -908,7 +908,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// GroundWorldModel içindeki tüm dünya nesnelerinin snapshot listesini döndürür.
+    /// GroundWorldModel iÃ§indeki tÃ¼m dÃ¼nya nesnelerinin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetWorldSnapshot()
     {
@@ -916,7 +916,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// GroundWorldModel içindeki aktif dünya nesnelerinin snapshot listesini döndürür.
+    /// GroundWorldModel iÃ§indeki aktif dÃ¼nya nesnelerinin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveWorldSnapshot()
     {
@@ -924,7 +924,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Aktif engellerin snapshot listesini döndürür.
+    /// Aktif engellerin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveObstacles()
     {
@@ -932,7 +932,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Aktif hedeflerin snapshot listesini döndürür.
+    /// Aktif hedeflerin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<GroundWorldObject> GetActiveTargets()
     {
@@ -940,11 +940,11 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// FleetCommandResult mesajlarını işler.
+    /// FleetCommandResult mesajlarÄ±nÄ± iÅŸler.
     /// 
-    /// Bu metot artık sadece CommandTracker'a result uygulamaz.
-    /// Aynı zamanda CommandAckCorrelator üzerinden gerçek ACK/result eşleştirmesi yapar
-    /// ve ilgili RouteExecutionRecord kaydını Acked veya Failed olarak günceller.
+    /// Bu metot artÄ±k sadece CommandTracker'a result uygulamaz.
+    /// AynÄ± zamanda CommandAckCorrelator Ã¼zerinden gerÃ§ek ACK/result eÅŸleÅŸtirmesi yapar
+    /// ve ilgili RouteExecutionRecord kaydÄ±nÄ± Acked veya Failed olarak gÃ¼nceller.
     /// </summary>
     private bool HandleCommandResult(FleetCommandResult result)
     {
@@ -962,7 +962,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Registry içindeki tüm araç/node durumlarının snapshot listesini döndürür.
+    /// Registry iÃ§indeki tÃ¼m araÃ§/node durumlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetFleetSnapshot()
     {
@@ -970,7 +970,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Online kabul edilen araç/node durumlarının snapshot listesini döndürür.
+    /// Online kabul edilen araÃ§/node durumlarÄ±nÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<VehicleNodeStatus> GetOnlineFleetSnapshot()
     {
@@ -978,7 +978,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Kayıtlı tüm komut geçmişinin snapshot listesini döndürür.
+    /// KayÄ±tlÄ± tÃ¼m komut geÃ§miÅŸinin snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetCommandHistorySnapshot()
     {
@@ -986,7 +986,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Henüz sonuç bekleyen komutların snapshot listesini döndürür.
+    /// HenÃ¼z sonuÃ§ bekleyen komutlarÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetPendingCommandSnapshot()
     {
@@ -994,7 +994,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli süre heartbeat göndermeyen araçları offline olarak işaretler.
+    /// Belirli sÃ¼re heartbeat gÃ¶ndermeyen araÃ§larÄ± offline olarak iÅŸaretler.
     /// </summary>
     public int MarkStaleNodesOffline(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -1002,7 +1002,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli süre boyunca sonuç dönmeyen pending komutları expired olarak işaretler.
+    /// Belirli sÃ¼re boyunca sonuÃ§ dÃ¶nmeyen pending komutlarÄ± expired olarak iÅŸaretler.
     /// </summary>
     public int MarkExpiredCommands(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -1010,7 +1010,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Belirli süreden uzun süredir güncellenmeyen aktif dünya nesnelerini pasif hale getirir.
+    /// Belirli sÃ¼reden uzun sÃ¼redir gÃ¼ncellenmeyen aktif dÃ¼nya nesnelerini pasif hale getirir.
     /// </summary>
     public int DeactivateStaleWorldObjects(TimeSpan maxAge, DateTimeOffset? nowUtc = null)
     {
@@ -1018,7 +1018,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Gönderilen FleetCommand ile oluşan route execution kaydı arasında ACK correlation kaydı açar.
+    /// GÃ¶nderilen FleetCommand ile oluÅŸan route execution kaydÄ± arasÄ±nda ACK correlation kaydÄ± aÃ§ar.
     /// </summary>
     private CommandAckCorrelationRecord? TrackCommandAckCorrelation(
         FleetCommand command,
@@ -1037,7 +1037,7 @@ public sealed class GroundStationEngine
     }
 
     /// <summary>
-    /// Gelen FleetCommandResult mesajını daha önce track edilen command execution kaydı ile eşleştirir.
+    /// Gelen FleetCommandResult mesajÄ±nÄ± daha Ã¶nce track edilen command execution kaydÄ± ile eÅŸleÅŸtirir.
     /// </summary>
     private void ApplyCommandAckCorrelation(FleetCommandResult result)
     {

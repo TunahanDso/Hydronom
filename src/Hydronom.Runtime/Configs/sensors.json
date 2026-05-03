@@ -9,6 +9,6 @@
     "FusedStateHz": 10,
     "EventHz": 2,
     "HealthHz": 1,
-    "ExternalState": false
+    "ExternalState": true
   }
 }

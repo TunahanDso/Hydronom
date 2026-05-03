@@ -1,13 +1,13 @@
-namespace Hydronom.GroundStation.Security;
+﻿namespace Hydronom.GroundStation.Security;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Ground Station tarafında komutun hedef araç ve operasyon bağlamına göre gönderilebilirliğini kontrol eder.
+/// Ground Station tarafÄ±nda komutun hedef araÃ§ ve operasyon baÄŸlamÄ±na gÃ¶re gÃ¶nderilebilirliÄŸini kontrol eder.
 /// 
-/// Bu gate araç üzerindeki SafetyGate'in yerine geçmez.
-/// Sadece yer istasyonu seviyesinde ön güvenlik filtresi sağlar.
-/// Araç üzerindeki local safety her zaman son karar kapısı olarak kalmalıdır.
+/// Bu gate araÃ§ Ã¼zerindeki SafetyGate'in yerine geÃ§mez.
+/// Sadece yer istasyonu seviyesinde Ã¶n gÃ¼venlik filtresi saÄŸlar.
+/// AraÃ§ Ã¼zerindeki local safety her zaman son karar kapÄ±sÄ± olarak kalmalÄ±dÄ±r.
 /// </summary>
 public sealed class GroundCommandSafetyGate
 {
@@ -26,7 +26,7 @@ public sealed class GroundCommandSafetyGate
     }
 
     /// <summary>
-    /// Komutu yapısal, yetki ve hedef araç bağlamında değerlendirir.
+    /// Komutu yapÄ±sal, yetki ve hedef araÃ§ baÄŸlamÄ±nda deÄŸerlendirir.
     /// </summary>
     public CommandValidationResult Evaluate(
         FleetCommand? command,

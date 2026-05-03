@@ -1,52 +1,52 @@
-namespace Hydronom.Core.Communication;
+﻿namespace Hydronom.Core.Communication;
 
 /// <summary>
-/// Bir Hydronom mesajının hangi haberleşme kanallarından gönderilmesinin tercih edildiğini
-/// ve gönderim davranışının nasıl olması gerektiğini tarif eder.
+/// Bir Hydronom mesajÄ±nÄ±n hangi haberleÅŸme kanallarÄ±ndan gÃ¶nderilmesinin tercih edildiÄŸini
+/// ve gÃ¶nderim davranÄ±ÅŸÄ±nÄ±n nasÄ±l olmasÄ± gerektiÄŸini tarif eder.
 /// 
-/// Bu sınıf, HydronomEnvelope içinde kullanılır.
-/// Yani mesajın kendisi şunu söyleyebilir:
+/// Bu sÄ±nÄ±f, HydronomEnvelope iÃ§inde kullanÄ±lÄ±r.
+/// Yani mesajÄ±n kendisi ÅŸunu sÃ¶yleyebilir:
 /// - Ben tercihen Wi-Fi/TCP ile gitmek istiyorum.
-/// - Bağlantı kötüleşirse LoRa/RF fallback olabilir.
+/// - BaÄŸlantÄ± kÃ¶tÃ¼leÅŸirse LoRa/RF fallback olabilir.
 /// - Bu mesaj ACK beklemeli.
-/// - Bu mesaj tüm uygun kanallardan yayınlanmalı.
+/// - Bu mesaj tÃ¼m uygun kanallardan yayÄ±nlanmalÄ±.
 /// 
-/// Böylece CommunicationRouter mesajı alıp en uygun transport'u seçebilir.
+/// BÃ¶ylece CommunicationRouter mesajÄ± alÄ±p en uygun transport'u seÃ§ebilir.
 /// </summary>
 public sealed record TransportHints
 {
     /// <summary>
-    /// Mesajın gönderilmesi için tercih edilen transport türleri.
+    /// MesajÄ±n gÃ¶nderilmesi iÃ§in tercih edilen transport tÃ¼rleri.
     /// 
-    /// Örnek:
-    /// - Full telemetry için: Tcp, WebSocket, Cellular
-    /// - Light telemetry için: LoRa, RfModem
-    /// - MissionCommand için: Tcp, RfModem, LoRa
+    /// Ã–rnek:
+    /// - Full telemetry iÃ§in: Tcp, WebSocket, Cellular
+    /// - Light telemetry iÃ§in: LoRa, RfModem
+    /// - MissionCommand iÃ§in: Tcp, RfModem, LoRa
     /// 
-    /// CommunicationRouter bu listeyi ilk tercih olarak değerlendirir.
+    /// CommunicationRouter bu listeyi ilk tercih olarak deÄŸerlendirir.
     /// </summary>
     public IReadOnlyList<TransportKind> Preferred { get; init; } = Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Tercih edilen kanallar kullanılamazsa denenebilecek yedek transport türleri.
+    /// Tercih edilen kanallar kullanÄ±lamazsa denenebilecek yedek transport tÃ¼rleri.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Tcp yoksa RfModem
     /// - RfModem yoksa LoRa
     /// - WebSocket yoksa Tcp
     /// 
-    /// Bu alan, Hydronom'un plug-and-play haberleşme felsefesi için önemlidir.
+    /// Bu alan, Hydronom'un plug-and-play haberleÅŸme felsefesi iÃ§in Ã¶nemlidir.
     /// </summary>
     public IReadOnlyList<TransportKind> Fallback { get; init; } = Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Mesajın alıcı tarafından onaylanması gerekip gerekmediğini belirtir.
+    /// MesajÄ±n alÄ±cÄ± tarafÄ±ndan onaylanmasÄ± gerekip gerekmediÄŸini belirtir.
     /// 
     /// true ise:
-    /// - Alıcı mesajı aldığını ACK ile bildirmelidir.
-    /// - İleride CommunicationRouter tekrar gönderim / timeout mantığı uygulayabilir.
+    /// - AlÄ±cÄ± mesajÄ± aldÄ±ÄŸÄ±nÄ± ACK ile bildirmelidir.
+    /// - Ä°leride CommunicationRouter tekrar gÃ¶nderim / timeout mantÄ±ÄŸÄ± uygulayabilir.
     /// 
-    /// Kullanım örnekleri:
+    /// KullanÄ±m Ã¶rnekleri:
     /// - EmergencyStop: true
     /// - MissionCommand: true
     /// - Heartbeat: genelde false
@@ -55,38 +55,38 @@ public sealed record TransportHints
     public bool RequiresAck { get; init; }
 
     /// <summary>
-    /// Mesajın mümkün olan tüm uygun bağlantılardan yayınlanıp yayınlanmayacağını belirtir.
+    /// MesajÄ±n mÃ¼mkÃ¼n olan tÃ¼m uygun baÄŸlantÄ±lardan yayÄ±nlanÄ±p yayÄ±nlanmayacaÄŸÄ±nÄ± belirtir.
     /// 
-    /// true ise CommunicationRouter tek bir transport seçmek yerine
-    /// mesajı kullanılabilir tüm uygun kanallardan göndermeye çalışabilir.
+    /// true ise CommunicationRouter tek bir transport seÃ§mek yerine
+    /// mesajÄ± kullanÄ±labilir tÃ¼m uygun kanallardan gÃ¶ndermeye Ã§alÄ±ÅŸabilir.
     /// 
-    /// Kullanım örnekleri:
+    /// KullanÄ±m Ã¶rnekleri:
     /// - EmergencyStop
     /// - Critical safety broadcast
-    /// - Filo genel uyarıları
+    /// - Filo genel uyarÄ±larÄ±
     /// 
-    /// Normal telemetry ve standart komutlarda genellikle false kalır.
+    /// Normal telemetry ve standart komutlarda genellikle false kalÄ±r.
     /// </summary>
     public bool BroadcastAllAvailableLinks { get; init; }
 
     /// <summary>
-    /// Mesajın taşınması için önerilen maksimum gecikme süresi.
+    /// MesajÄ±n taÅŸÄ±nmasÄ± iÃ§in Ã¶nerilen maksimum gecikme sÃ¼resi.
     /// 
-    /// Örnek:
-    /// - EmergencyStop için çok düşük olmalı.
-    /// - Telemetry için daha esnek olabilir.
-    /// - Uzun analiz mesajlarında daha yüksek olabilir.
+    /// Ã–rnek:
+    /// - EmergencyStop iÃ§in Ã§ok dÃ¼ÅŸÃ¼k olmalÄ±.
+    /// - Telemetry iÃ§in daha esnek olabilir.
+    /// - Uzun analiz mesajlarÄ±nda daha yÃ¼ksek olabilir.
     /// 
-    /// Bu alan şimdilik sadece metadata olarak kullanılır.
-    /// İleride routing policy ve QoS kararlarında kullanılabilir.
+    /// Bu alan ÅŸimdilik sadece metadata olarak kullanÄ±lÄ±r.
+    /// Ä°leride routing policy ve QoS kararlarÄ±nda kullanÄ±labilir.
     /// </summary>
     public TimeSpan? MaxLatency { get; init; }
 
     /// <summary>
-    /// Varsayılan boş transport hint'i.
+    /// VarsayÄ±lan boÅŸ transport hint'i.
     /// 
-    /// Mesaj özel bir transport tercihi belirtmiyorsa kullanılabilir.
-    /// CommunicationRouter bu durumda kendi varsayılan politikasına göre karar verir.
+    /// Mesaj Ã¶zel bir transport tercihi belirtmiyorsa kullanÄ±labilir.
+    /// CommunicationRouter bu durumda kendi varsayÄ±lan politikasÄ±na gÃ¶re karar verir.
     /// </summary>
     public static TransportHints None { get; } = new();
 }

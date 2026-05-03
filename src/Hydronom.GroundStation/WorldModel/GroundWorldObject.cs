@@ -1,41 +1,41 @@
-namespace Hydronom.GroundStation.WorldModel;
+﻿namespace Hydronom.GroundStation.WorldModel;
 
 /// <summary>
-/// GroundWorldModel içinde tutulan ortak dünya nesnesini temsil eder.
+/// GroundWorldModel iÃ§inde tutulan ortak dÃ¼nya nesnesini temsil eder.
 /// 
-/// Bu model, farklı araçlardan veya yer istasyonundan gelen bilgileri
-/// ortak bir dünya modelinde birleştirmek için kullanılır.
+/// Bu model, farklÄ± araÃ§lardan veya yer istasyonundan gelen bilgileri
+/// ortak bir dÃ¼nya modelinde birleÅŸtirmek iÃ§in kullanÄ±lÄ±r.
 /// 
-/// Örnekler:
-/// - Alpha aracı bir engel görür.
-/// - Beta aynı engeli başka açıdan doğrular.
+/// Ã–rnekler:
+/// - Alpha aracÄ± bir engel gÃ¶rÃ¼r.
+/// - Beta aynÄ± engeli baÅŸka aÃ§Ä±dan doÄŸrular.
 /// - Yer istasyonu bu bilgiyi tek bir GroundWorldObject olarak saklar.
-/// - Operatör haritaya no-go zone ekler.
-/// - MissionPlanner görev alanı oluşturur.
+/// - OperatÃ¶r haritaya no-go zone ekler.
+/// - MissionPlanner gÃ¶rev alanÄ± oluÅŸturur.
 /// 
-/// İlk fazda model bilinçli olarak esnek tutulmuştur.
-/// İleride geometri, güven skoru, kaynak sayısı, sınıflandırma ve zaman aşımı
-/// mantıkları daha detaylı hâle getirilebilir.
+/// Ä°lk fazda model bilinÃ§li olarak esnek tutulmuÅŸtur.
+/// Ä°leride geometri, gÃ¼ven skoru, kaynak sayÄ±sÄ±, sÄ±nÄ±flandÄ±rma ve zaman aÅŸÄ±mÄ±
+/// mantÄ±klarÄ± daha detaylÄ± hÃ¢le getirilebilir.
 /// </summary>
 public sealed record GroundWorldObject
 {
     /// <summary>
-    /// Dünya nesnesinin benzersiz kimliği.
+    /// DÃ¼nya nesnesinin benzersiz kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "OBS-001"
     /// - "TARGET-BUOY-01"
     /// - "NOGO-AREA-A"
     /// - "MISSION-AREA-SEARCH-1"
     /// 
-    /// Varsayılan olarak GUID tabanlı üretilir.
+    /// VarsayÄ±lan olarak GUID tabanlÄ± Ã¼retilir.
     /// </summary>
     public string ObjectId { get; init; } = Guid.NewGuid().ToString("N");
 
     /// <summary>
-    /// Nesnenin türü.
+    /// Nesnenin tÃ¼rÃ¼.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Vehicle
     /// - Obstacle
     /// - Target
@@ -48,141 +48,141 @@ public sealed record GroundWorldObject
     public WorldObjectKind Kind { get; init; } = WorldObjectKind.Unknown;
 
     /// <summary>
-    /// Nesnenin insan tarafından okunabilir adı.
+    /// Nesnenin insan tarafÄ±ndan okunabilir adÄ±.
     /// 
-    /// Hydronom Ops üzerinde harita katmanı, tooltip veya liste ekranlarında gösterilebilir.
+    /// Hydronom Ops Ã¼zerinde harita katmanÄ±, tooltip veya liste ekranlarÄ±nda gÃ¶sterilebilir.
     /// </summary>
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
-    /// Nesneyi ilk bildiren kaynak node kimliği.
+    /// Nesneyi ilk bildiren kaynak node kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "VEHICLE-ALPHA-001"
     /// - "VEHICLE-BETA-001"
     /// - "GROUND-001"
     /// - "OPS-GATEWAY-001"
     /// 
-    /// Bu alan, nesnenin ilk hangi kaynaktan geldiğini izlemek için kullanılır.
+    /// Bu alan, nesnenin ilk hangi kaynaktan geldiÄŸini izlemek iÃ§in kullanÄ±lÄ±r.
     /// </summary>
     public string SourceNodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Nesneyi doğrulayan veya güncelleyen kaynak node kimlikleri.
+    /// Nesneyi doÄŸrulayan veya gÃ¼ncelleyen kaynak node kimlikleri.
     /// 
-    /// Örnek:
-    /// - Alpha engel gördü.
-    /// - Beta aynı engeli doğruladı.
-    /// - SourceNodeId Alpha kalabilir, ContributorNodeIds içinde Alpha ve Beta olabilir.
+    /// Ã–rnek:
+    /// - Alpha engel gÃ¶rdÃ¼.
+    /// - Beta aynÄ± engeli doÄŸruladÄ±.
+    /// - SourceNodeId Alpha kalabilir, ContributorNodeIds iÃ§inde Alpha ve Beta olabilir.
     /// 
-    /// Bu alan multi-vehicle fusion için önemlidir.
+    /// Bu alan multi-vehicle fusion iÃ§in Ã¶nemlidir.
     /// </summary>
     public IReadOnlyList<string> ContributorNodeIds { get; init; } =
         Array.Empty<string>();
 
     /// <summary>
-    /// Nesnenin enlem değeri.
+    /// Nesnenin enlem deÄŸeri.
     /// 
-    /// Noktasal nesneler için kullanılır.
-    /// Alan/poligon gibi nesnelerde merkez veya referans noktası olarak kullanılabilir.
+    /// Noktasal nesneler iÃ§in kullanÄ±lÄ±r.
+    /// Alan/poligon gibi nesnelerde merkez veya referans noktasÄ± olarak kullanÄ±labilir.
     /// </summary>
     public double? Latitude { get; init; }
 
     /// <summary>
-    /// Nesnenin boylam değeri.
+    /// Nesnenin boylam deÄŸeri.
     /// 
-    /// Noktasal nesneler için kullanılır.
-    /// Alan/poligon gibi nesnelerde merkez veya referans noktası olarak kullanılabilir.
+    /// Noktasal nesneler iÃ§in kullanÄ±lÄ±r.
+    /// Alan/poligon gibi nesnelerde merkez veya referans noktasÄ± olarak kullanÄ±labilir.
     /// </summary>
     public double? Longitude { get; init; }
 
     /// <summary>
     /// Nesnenin yerel X konumu.
     /// 
-    /// GPS olmayan simülasyon veya lokal harita koordinatları için kullanılabilir.
-    /// Metre cinsinden düşünülür.
+    /// GPS olmayan simÃ¼lasyon veya lokal harita koordinatlarÄ± iÃ§in kullanÄ±labilir.
+    /// Metre cinsinden dÃ¼ÅŸÃ¼nÃ¼lÃ¼r.
     /// </summary>
     public double? X { get; init; }
 
     /// <summary>
     /// Nesnenin yerel Y konumu.
     /// 
-    /// GPS olmayan simülasyon veya lokal harita koordinatları için kullanılabilir.
-    /// Metre cinsinden düşünülür.
+    /// GPS olmayan simÃ¼lasyon veya lokal harita koordinatlarÄ± iÃ§in kullanÄ±labilir.
+    /// Metre cinsinden dÃ¼ÅŸÃ¼nÃ¼lÃ¼r.
     /// </summary>
     public double? Y { get; init; }
 
     /// <summary>
-    /// Nesnenin tahmini yarıçapı veya etki alanı.
+    /// Nesnenin tahmini yarÄ±Ã§apÄ± veya etki alanÄ±.
     /// 
-    /// Örnek:
-    /// - Engel yarıçapı
-    /// - No-go zone yaklaşık yarıçapı
-    /// - Link quality ölçüm alanı
+    /// Ã–rnek:
+    /// - Engel yarÄ±Ã§apÄ±
+    /// - No-go zone yaklaÅŸÄ±k yarÄ±Ã§apÄ±
+    /// - Link quality Ã¶lÃ§Ã¼m alanÄ±
     /// </summary>
     public double? RadiusMeters { get; init; }
 
     /// <summary>
-    /// Nesnenin güven skoru.
+    /// Nesnenin gÃ¼ven skoru.
     /// 
-    /// 0.0 - 1.0 aralığında düşünülür.
+    /// 0.0 - 1.0 aralÄ±ÄŸÄ±nda dÃ¼ÅŸÃ¼nÃ¼lÃ¼r.
     /// 
-    /// Örnek:
-    /// - Tek araç zayıf tespit yaptıysa 0.4
-    /// - Birden fazla araç doğruladıysa 0.8+
-    /// - Operatör elle eklediyse 1.0
+    /// Ã–rnek:
+    /// - Tek araÃ§ zayÄ±f tespit yaptÄ±ysa 0.4
+    /// - Birden fazla araÃ§ doÄŸruladÄ±ysa 0.8+
+    /// - OperatÃ¶r elle eklediyse 1.0
     /// </summary>
     public double Confidence { get; init; } = 1.0;
 
     /// <summary>
-    /// Nesnenin aktif olup olmadığını belirtir.
+    /// Nesnenin aktif olup olmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
     /// false ise:
     /// - Nesne eski olabilir.
-    /// - Görev tamamlanmış olabilir.
-    /// - Operatör nesneyi devre dışı bırakmış olabilir.
-    /// - Fusion engine nesneyi artık geçerli görmüyor olabilir.
+    /// - GÃ¶rev tamamlanmÄ±ÅŸ olabilir.
+    /// - OperatÃ¶r nesneyi devre dÄ±ÅŸÄ± bÄ±rakmÄ±ÅŸ olabilir.
+    /// - Fusion engine nesneyi artÄ±k geÃ§erli gÃ¶rmÃ¼yor olabilir.
     /// </summary>
     public bool IsActive { get; init; } = true;
 
     /// <summary>
-    /// Nesnenin ilk oluşturulduğu UTC zaman.
+    /// Nesnenin ilk oluÅŸturulduÄŸu UTC zaman.
     /// </summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Nesnenin son güncellendiği UTC zaman.
+    /// Nesnenin son gÃ¼ncellendiÄŸi UTC zaman.
     /// </summary>
     public DateTimeOffset UpdatedUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Nesneyle ilgili ek metadata alanı.
+    /// Nesneyle ilgili ek metadata alanÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "sensor": "lidar"
     /// - "class": "buoy"
     /// - "severity": "high"
     /// - "sourceFrame": "fused"
     /// - "mapLayer": "occupancy"
     /// 
-    /// İlk fazda esneklik sağlar.
+    /// Ä°lk fazda esneklik saÄŸlar.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Dünya nesnesinin temel olarak geçerli olup olmadığını döndürür.
+    /// DÃ¼nya nesnesinin temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından ObjectId ve Kind anlamlı olmalıdır.
+    /// En azÄ±ndan ObjectId ve Kind anlamlÄ± olmalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(ObjectId) &&
         Kind != WorldObjectKind.Unknown;
 
     /// <summary>
-    /// Nesnenin yeni bir kaynak node tarafından doğrulanmış/güncellenmiş hâlini döndürür.
+    /// Nesnenin yeni bir kaynak node tarafÄ±ndan doÄŸrulanmÄ±ÅŸ/gÃ¼ncellenmiÅŸ hÃ¢lini dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Bu metot immutable record yapısını koruyarak yeni kopya üretir.
+    /// Bu metot immutable record yapÄ±sÄ±nÄ± koruyarak yeni kopya Ã¼retir.
     /// </summary>
     public GroundWorldObject WithContribution(string nodeId)
     {

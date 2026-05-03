@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.Contracts.Common;
+﻿using HydronomOps.Gateway.Contracts.Common;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Domain;
 using HydronomOps.Gateway.Infrastructure.Time;
@@ -6,7 +6,7 @@ using HydronomOps.Gateway.Infrastructure.Time;
 namespace HydronomOps.Gateway.Services.Health;
 
 /// <summary>
-/// Gateway sağlık ve heartbeat üretimini yapar.
+/// Gateway saÄŸlÄ±k ve heartbeat Ã¼retimini yapar.
 /// </summary>
 public sealed class GatewayHealthService : IGatewayHealthService
 {

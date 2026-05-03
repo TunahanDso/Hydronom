@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// AutoDiscovery çıktısından 6×N B matrisini okuyan köprü.
+    /// AutoDiscovery Ã§Ä±ktÄ±sÄ±ndan 6Ã—N B matrisini okuyan kÃ¶prÃ¼.
     /// 
-    /// Beklenen JSON şekli (özet):
+    /// Beklenen JSON ÅŸekli (Ã¶zet):
     /// {
     ///   "Channels": [
     ///     { "Theta": [ Fx, Fy, Fz, Tx, Ty, Tz ] },
@@ -18,28 +18,28 @@ namespace Hydronom.Core.Modules
     public sealed class AutoDiscoveryBridge
     {
         /// <summary>
-        /// 6×N boyutlu motor etki matrisi. Satırlar:
+        /// 6Ã—N boyutlu motor etki matrisi. SatÄ±rlar:
         ///  [0]=Fx, [1]=Fy, [2]=Fz, [3]=Tx, [4]=Ty, [5]=Tz
         /// </summary>
         public double[,]? BMatrix { get; private set; }
 
-        /// <summary>Geçerli bir matris yüklendi mi?</summary>
+        /// <summary>GeÃ§erli bir matris yÃ¼klendi mi?</summary>
         public bool Loaded => BMatrix is not null;
 
-        /// <summary>Yüklenen thruster (kanal) sayısı.</summary>
+        /// <summary>YÃ¼klenen thruster (kanal) sayÄ±sÄ±.</summary>
         public int ThrusterCount => BMatrix?.GetLength(1) ?? 0;
 
         /// <summary>
-        /// Verilen JSON dosyasından B matrisini yükler.
-        /// Başarısızlıkta BMatrix'i değiştirmez; anlamlı exception fırlatır.
+        /// Verilen JSON dosyasÄ±ndan B matrisini yÃ¼kler.
+        /// BaÅŸarÄ±sÄ±zlÄ±kta BMatrix'i deÄŸiÅŸtirmez; anlamlÄ± exception fÄ±rlatÄ±r.
         /// </summary>
         public void LoadFrom(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
-                throw new ArgumentException("Geçersiz dosya yolu", nameof(path));
+                throw new ArgumentException("GeÃ§ersiz dosya yolu", nameof(path));
 
             if (!File.Exists(path))
-                throw new FileNotFoundException("AutoDiscovery JSON dosyası bulunamadı", path);
+                throw new FileNotFoundException("AutoDiscovery JSON dosyasÄ± bulunamadÄ±", path);
 
             var txt = File.ReadAllText(path);
 
@@ -49,14 +49,14 @@ namespace Hydronom.Core.Modules
             if (!root.TryGetProperty("Channels", out var channelsElement) ||
                 channelsElement.ValueKind != JsonValueKind.Array)
             {
-                throw new InvalidDataException("JSON içinde 'Channels' dizisi bulunamadı veya dizi değil.");
+                throw new InvalidDataException("JSON iÃ§inde 'Channels' dizisi bulunamadÄ± veya dizi deÄŸil.");
             }
 
             int n = channelsElement.GetArrayLength();
             if (n == 0)
-                throw new InvalidDataException("'Channels' dizisi boş (hiç thruster yok).");
+                throw new InvalidDataException("'Channels' dizisi boÅŸ (hiÃ§ thruster yok).");
 
-            // Önce lokal matris oluştur, her şey başarılıysa BMatrix'e ata
+            // Ã–nce lokal matris oluÅŸtur, her ÅŸey baÅŸarÄ±lÄ±ysa BMatrix'e ata
             var localB = new double[6, n];
 
             for (int j = 0; j < n; j++)
@@ -66,13 +66,13 @@ namespace Hydronom.Core.Modules
                 if (!chElem.TryGetProperty("Theta", out var thetaElem) ||
                     thetaElem.ValueKind != JsonValueKind.Array)
                 {
-                    throw new InvalidDataException($"Channels[{j}] içinde 'Theta' dizisi yok veya dizi değil.");
+                    throw new InvalidDataException($"Channels[{j}] iÃ§inde 'Theta' dizisi yok veya dizi deÄŸil.");
                 }
 
                 if (thetaElem.GetArrayLength() != 6)
                 {
                     throw new InvalidDataException(
-                        $"Channels[{j}].Theta uzunluğu 6 olmalı (Fx,Fy,Fz,Tx,Ty,Tz). Mevcut: {thetaElem.GetArrayLength()}");
+                        $"Channels[{j}].Theta uzunluÄŸu 6 olmalÄ± (Fx,Fy,Fz,Tx,Ty,Tz). Mevcut: {thetaElem.GetArrayLength()}");
                 }
 
                 for (int i = 0; i < 6; i++)
@@ -81,8 +81,9 @@ namespace Hydronom.Core.Modules
                 }
             }
 
-            // Buraya kadar geldiysek her şey OK, artık geçerli kabul edip atayabiliriz
+            // Buraya kadar geldiysek her ÅŸey OK, artÄ±k geÃ§erli kabul edip atayabiliriz
             BMatrix = localB;
         }
     }
 }
+

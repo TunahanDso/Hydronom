@@ -1,9 +1,9 @@
-namespace Hydronom.GroundStation.MissionCompatibility;
+﻿namespace Hydronom.GroundStation.MissionCompatibility;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Bir aracın belirli bir görev tipine ve capability gereksinimlerine göre uygunluğunu değerlendirir.
+/// Bir aracÄ±n belirli bir gÃ¶rev tipine ve capability gereksinimlerine gÃ¶re uygunluÄŸunu deÄŸerlendirir.
 /// </summary>
 public sealed class MissionCompatibilityEvaluator
 {
@@ -15,7 +15,7 @@ public sealed class MissionCompatibilityEvaluator
     }
 
     /// <summary>
-    /// Tek bir aracı görev uyumluluğu açısından değerlendirir.
+    /// Tek bir aracÄ± gÃ¶rev uyumluluÄŸu aÃ§Ä±sÄ±ndan deÄŸerlendirir.
     /// </summary>
     public MissionCompatibilityResult Evaluate(
         VehicleNodeStatus? vehicle,
@@ -130,7 +130,7 @@ public sealed class MissionCompatibilityEvaluator
     }
 
     /// <summary>
-    /// Bir filo snapshot'ı içinden göreve en uygun araçları skor sırasıyla döndürür.
+    /// Bir filo snapshot'Ä± iÃ§inden gÃ¶reve en uygun araÃ§larÄ± skor sÄ±rasÄ±yla dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<MissionCompatibilityResult> RankVehicles(
         IReadOnlyList<VehicleNodeStatus> fleetSnapshot,

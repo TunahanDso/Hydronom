@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using Hydronom.Runtime.Tuning;
 
 namespace Hydronom.Runtime.Tuning
 {
     /// <summary>
-    /// Getter/setter delege’leriyle ITuningSink uygular; runtime ayarlarını uzaktan değiştirir.
+    /// Getter/setter delegeâ€™leriyle ITuningSink uygular; runtime ayarlarÄ±nÄ± uzaktan deÄŸiÅŸtirir.
     /// </summary>
     public sealed class InlineTuner : ITuningSink
     {
@@ -82,3 +82,4 @@ namespace Hydronom.Runtime.Tuning
         }
     }
 }
+

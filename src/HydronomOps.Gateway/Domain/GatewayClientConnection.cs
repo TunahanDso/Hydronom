@@ -1,14 +1,14 @@
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 
 namespace HydronomOps.Gateway.Domain;
 
 /// <summary>
-/// Gateway'e bağlı websocket istemcisini temsil eder.
+/// Gateway'e baÄŸlÄ± websocket istemcisini temsil eder.
 /// </summary>
 public sealed class GatewayClientConnection
 {
     /// <summary>
-    /// İç bağlantı kimliği.
+    /// Ä°Ã§ baÄŸlantÄ± kimliÄŸi.
     /// </summary>
     public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -18,34 +18,34 @@ public sealed class GatewayClientConnection
     public WebSocket Socket { get; init; } = default!;
 
     /// <summary>
-    /// Bağlantı açılış zamanı.
+    /// BaÄŸlantÄ± aÃ§Ä±lÄ±ÅŸ zamanÄ±.
     /// </summary>
     public DateTime ConnectedAtUtc { get; init; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Son görülme zamanı.
+    /// Son gÃ¶rÃ¼lme zamanÄ±.
     /// </summary>
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Son başarılı gönderim zamanı.
+    /// Son baÅŸarÄ±lÄ± gÃ¶nderim zamanÄ±.
     /// </summary>
     public DateTime? LastSentUtc { get; set; }
 
     /// <summary>
-    /// Uzak uç bilgisi.
+    /// Uzak uÃ§ bilgisi.
     /// </summary>
     public string RemoteIp { get; init; } = "unknown";
 
     /// <summary>
-    /// Bağlantı halen canlı mı.
+    /// BaÄŸlantÄ± halen canlÄ± mÄ±.
     /// </summary>
     public bool IsAlive =>
         Socket.State == WebSocketState.Open ||
         Socket.State == WebSocketState.CloseReceived;
 
     /// <summary>
-    /// Son gönderim zamanını günceller.
+    /// Son gÃ¶nderim zamanÄ±nÄ± gÃ¼nceller.
     /// </summary>
     public void MarkSent()
     {

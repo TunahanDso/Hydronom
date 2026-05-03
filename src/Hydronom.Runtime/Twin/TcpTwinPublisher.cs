@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
@@ -6,48 +6,48 @@ using Hydronom.Core.Domain;
 namespace Hydronom.Runtime.Twin
 {
     /// <summary>
-    /// Runtime içindeki VehicleState bilgisini TwinGps ve TwinImu mesajlarına çevirip
-    /// TcpJsonServer üzerinden Python tarafına yayınlayan köprü.
+    /// Runtime iÃ§indeki VehicleState bilgisini TwinGps ve TwinImu mesajlarÄ±na Ã§evirip
+    /// TcpJsonServer Ã¼zerinden Python tarafÄ±na yayÄ±nlayan kÃ¶prÃ¼.
     ///
-    /// Tasarım hedefleri:
-    /// - Python csharp_sim backend'lerinin beklediği alan adlarıyla uyumlu JSON üretmek
-    /// - GPS ve IMU yayın hızlarını ayrı ayrı kontrol edebilmek
-    /// - VehicleState üzerinden basit ama tutarlı twin veri üretmek
-    /// - Şimdilik dış bağımlılığı minimum tutmak
+    /// TasarÄ±m hedefleri:
+    /// - Python csharp_sim backend'lerinin beklediÄŸi alan adlarÄ±yla uyumlu JSON Ã¼retmek
+    /// - GPS ve IMU yayÄ±n hÄ±zlarÄ±nÄ± ayrÄ± ayrÄ± kontrol edebilmek
+    /// - VehicleState Ã¼zerinden basit ama tutarlÄ± twin veri Ã¼retmek
+    /// - Åimdilik dÄ±ÅŸ baÄŸÄ±mlÄ±lÄ±ÄŸÄ± minimum tutmak
     ///
     /// Notlar:
-    /// - GPS tarafında Python TwinBus küçük harfli alanlar beklediği için burada
-    ///   küçük harfli anonymous object üretilir.
-    /// - IMU tarafında da benzer şekilde küçük harfli alanlar üretilir.
-    /// - Konum, referans enlem/boylam etrafında yerel XY -> lat/lon dönüşümü ile yayınlanır.
-    /// - AngularVelocity VehicleState içinde deg/s tutulduğu için TwinImu'da rad/s'e çevrilir.
+    /// - GPS tarafÄ±nda Python TwinBus kÃ¼Ã§Ã¼k harfli alanlar beklediÄŸi iÃ§in burada
+    ///   kÃ¼Ã§Ã¼k harfli anonymous object Ã¼retilir.
+    /// - IMU tarafÄ±nda da benzer ÅŸekilde kÃ¼Ã§Ã¼k harfli alanlar Ã¼retilir.
+    /// - Konum, referans enlem/boylam etrafÄ±nda yerel XY -> lat/lon dÃ¶nÃ¼ÅŸÃ¼mÃ¼ ile yayÄ±nlanÄ±r.
+    /// - AngularVelocity VehicleState iÃ§inde deg/s tutulduÄŸu iÃ§in TwinImu'da rad/s'e Ã§evrilir.
     /// </summary>
     public sealed class TcpTwinPublisher : ITwinPublisher
     {
         private readonly dynamic _server;
 
         /// <summary>
-        /// Twin GPS için referans enlem [deg]
+        /// Twin GPS iÃ§in referans enlem [deg]
         /// </summary>
         public double ReferenceLatDeg { get; set; } = 41.0224;
 
         /// <summary>
-        /// Twin GPS için referans boylam [deg]
+        /// Twin GPS iÃ§in referans boylam [deg]
         /// </summary>
         public double ReferenceLonDeg { get; set; } = 28.8321;
 
         /// <summary>
-        /// Twin GPS için referans irtifa [m]
+        /// Twin GPS iÃ§in referans irtifa [m]
         /// </summary>
         public double ReferenceAltM { get; set; } = 0.0;
 
         /// <summary>
-        /// GPS yayın frekansı [Hz]
+        /// GPS yayÄ±n frekansÄ± [Hz]
         /// </summary>
         public double GpsRateHz { get; set; } = 5.0;
 
         /// <summary>
-        /// IMU yayın frekansı [Hz]
+        /// IMU yayÄ±n frekansÄ± [Hz]
         /// </summary>
         public double ImuRateHz { get; set; } = 20.0;
 
@@ -57,12 +57,12 @@ namespace Hydronom.Runtime.Twin
         public int GpsFix { get; set; } = 3;
 
         /// <summary>
-        /// Twin GPS hdop değeri
+        /// Twin GPS hdop deÄŸeri
         /// </summary>
         public double GpsHdop { get; set; } = 0.7;
 
         /// <summary>
-        /// Yayın etiketi
+        /// YayÄ±n etiketi
         /// </summary>
         public string SourceName { get; set; } = "csharp-twin";
 
@@ -77,7 +77,7 @@ namespace Hydronom.Runtime.Twin
         }
 
         /// <summary>
-        /// Mevcut state'ten gerekli twin mesajlarını üretir ve frekans sınırlarına göre yayınlar.
+        /// Mevcut state'ten gerekli twin mesajlarÄ±nÄ± Ã¼retir ve frekans sÄ±nÄ±rlarÄ±na gÃ¶re yayÄ±nlar.
         /// </summary>
         public async Task PublishAsync(VehicleState state, CancellationToken ct = default)
         {
@@ -103,8 +103,8 @@ namespace Hydronom.Runtime.Twin
         }
 
         /// <summary>
-        /// VehicleState.Position (yerel metre) bilgisini referans WGS84 noktasına göre
-        /// lat/lon'a çevirir ve Python TwinBus ile uyumlu payload üretir.
+        /// VehicleState.Position (yerel metre) bilgisini referans WGS84 noktasÄ±na gÃ¶re
+        /// lat/lon'a Ã§evirir ve Python TwinBus ile uyumlu payload Ã¼retir.
         /// </summary>
         private object BuildTwinGpsPayload(VehicleState state, DateTime nowUtc)
         {
@@ -128,19 +128,19 @@ namespace Hydronom.Runtime.Twin
         }
 
         /// <summary>
-        /// VehicleState içindeki orientation ve angular velocity bilgisinden
-        /// Python TwinBus ile uyumlu IMU payload'ı üretir.
+        /// VehicleState iÃ§indeki orientation ve angular velocity bilgisinden
+        /// Python TwinBus ile uyumlu IMU payload'Ä± Ã¼retir.
         /// </summary>
         private object BuildTwinImuPayload(VehicleState state, DateTime nowUtc)
         {
             // VehicleState.AngularVelocity deg/s tutuluyor.
-            // Python fuser gz alanını rad/s bekliyor.
+            // Python fuser gz alanÄ±nÄ± rad/s bekliyor.
             var gxRad = DegToRad(state.AngularVelocity.X);
             var gyRad = DegToRad(state.AngularVelocity.Y);
             var gzRad = DegToRad(state.AngularVelocity.Z);
 
-            // Şimdilik lineer ivme üretmiyoruz; twin için temel hedef oryantasyon + gyro.
-            // İleride PhysicsIntegrator/önceki state farkı ile ivme tahmini eklenebilir.
+            // Åimdilik lineer ivme Ã¼retmiyoruz; twin iÃ§in temel hedef oryantasyon + gyro.
+            // Ä°leride PhysicsIntegrator/Ã¶nceki state farkÄ± ile ivme tahmini eklenebilir.
             return new
             {
                 type = "TwinImu",
@@ -159,8 +159,8 @@ namespace Hydronom.Runtime.Twin
         }
 
         /// <summary>
-        /// Yerel X/Y metre bilgisini referans enlem/boylam etrafında WGS84 dereceye çevirir.
-        /// X doğu-batı, Y kuzey-güney kabul edilir.
+        /// Yerel X/Y metre bilgisini referans enlem/boylam etrafÄ±nda WGS84 dereceye Ã§evirir.
+        /// X doÄŸu-batÄ±, Y kuzey-gÃ¼ney kabul edilir.
         /// </summary>
         private static (double lat, double lon) LocalMetersToLatLon(
             double refLatDeg,

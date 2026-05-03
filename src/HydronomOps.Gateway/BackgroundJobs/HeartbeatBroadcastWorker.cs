@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.Contracts.Common;
+﻿using HydronomOps.Gateway.Contracts.Common;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Infrastructure.Broadcast;
 using HydronomOps.Gateway.Services.Health;
@@ -7,7 +7,7 @@ using HydronomOps.Gateway.Services.State;
 namespace HydronomOps.Gateway.BackgroundJobs;
 
 /// <summary>
-/// Belirli aralıklarla heartbeat yayını yapan background worker.
+/// Belirli aralÄ±klarla heartbeat yayÄ±nÄ± yapan background worker.
 /// </summary>
 public sealed class HeartbeatBroadcastWorker : BackgroundService
 {
@@ -32,7 +32,7 @@ public sealed class HeartbeatBroadcastWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Heartbeat broadcast worker başlatıldı.");
+        _logger.LogInformation("Heartbeat broadcast worker baÅŸlatÄ±ldÄ±.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -59,7 +59,7 @@ public sealed class HeartbeatBroadcastWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Heartbeat yayını sırasında hata oluştu.");
+                _logger.LogError(ex, "Heartbeat yayÄ±nÄ± sÄ±rasÄ±nda hata oluÅŸtu.");
             }
 
             try

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -7,33 +7,33 @@ using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Buses; // IExternalPoseProvider, ExternalPose
 
 //
-// TCP TABANLI FRAME KAYNAĞI
+// TCP TABANLI FRAME KAYNAÄI
 // ------------------------------------------------------------
-// Amaç:
-//  - TcpJsonServer üzerinden gelen FusedFrame'leri alıp "son taze çerçeve" olarak saklamak.
-//  - IFrameSource arayüzü ile runtime'a kaynak-agnostik tüketim sağlamak.
-//  - Gerekirse aynı TCP sunucusu üzerinden twin publisher gibi ek modüllerin de
-//    yayın yapabilmesi için server örneğini dışarı açmak.
+// AmaÃ§:
+//  - TcpJsonServer Ã¼zerinden gelen FusedFrame'leri alÄ±p "son taze Ã§erÃ§eve" olarak saklamak.
+//  - IFrameSource arayÃ¼zÃ¼ ile runtime'a kaynak-agnostik tÃ¼ketim saÄŸlamak.
+//  - Gerekirse aynÄ± TCP sunucusu Ã¼zerinden twin publisher gibi ek modÃ¼llerin de
+//    yayÄ±n yapabilmesi iÃ§in server Ã¶rneÄŸini dÄ±ÅŸarÄ± aÃ§mak.
 //
-// Değişiklikler:
-//  - TcpJsonServer arka planda Task ile çalışır. ✅
-//  - IExternalPoseProvider: FusedFrame → ExternalPose türetilir. ✅
-//  - PreferExternal/FreshMs destekleri. ✅
-//  - Capability geldiğinde ApplyCapability otomatik çağrılır. ✅
-//  - Capability logları sade veya detaylı basılabilir. ✅
-//  - Python FusedState akışından seyrek [PY] özet satırı üretilir. ✅
-//  - Twin publisher için Server property eklendi. ✅
+// DeÄŸiÅŸiklikler:
+//  - TcpJsonServer arka planda Task ile Ã§alÄ±ÅŸÄ±r. âœ…
+//  - IExternalPoseProvider: FusedFrame â†’ ExternalPose tÃ¼retilir. âœ…
+//  - PreferExternal/FreshMs destekleri. âœ…
+//  - Capability geldiÄŸinde ApplyCapability otomatik Ã§aÄŸrÄ±lÄ±r. âœ…
+//  - Capability loglarÄ± sade veya detaylÄ± basÄ±labilir. âœ…
+//  - Python FusedState akÄ±ÅŸÄ±ndan seyrek [PY] Ã¶zet satÄ±rÄ± Ã¼retilir. âœ…
+//  - Twin publisher iÃ§in Server property eklendi. âœ…
 //
 public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IAsyncDisposable
 {
     // ----------------------------------------------------------------
     // LOG AYARI
     // ----------------------------------------------------------------
-    // true  -> Her sensör için detaylı [CAP] satırları
-    // false -> Tek satır özet [CAP]
+    // true  -> Her sensÃ¶r iÃ§in detaylÄ± [CAP] satÄ±rlarÄ±
+    // false -> Tek satÄ±r Ã¶zet [CAP]
     private const bool VerboseCapabilityLogging = false;
 
-    // Özet [PY] satırları arasında minimum süre
+    // Ã–zet [PY] satÄ±rlarÄ± arasÄ±nda minimum sÃ¼re
     private static readonly TimeSpan SummaryLogInterval = TimeSpan.FromSeconds(1);
     private DateTime _lastSummaryLogUtc = DateTime.MinValue;
 
@@ -44,43 +44,43 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     private readonly int _port;
 
     /// <summary>
-    /// Bir çerçevenin taze kabul edileceği süre penceresi.
+    /// Bir Ã§erÃ§evenin taze kabul edileceÄŸi sÃ¼re penceresi.
     /// </summary>
     public TimeSpan FreshnessWindow { get; }
 
     /// <summary>
-    /// IExternalPoseProvider için freshness değeri (ms).
+    /// IExternalPoseProvider iÃ§in freshness deÄŸeri (ms).
     /// </summary>
     public int FreshMs => (int)FreshnessWindow.TotalMilliseconds;
 
     /// <summary>
-    /// Dış durumu tercih et bayrağı. Capability geldikçe güncellenebilir.
+    /// DÄ±ÅŸ durumu tercih et bayraÄŸÄ±. Capability geldikÃ§e gÃ¼ncellenebilir.
     /// </summary>
     public bool PreferExternal { get; private set; } = true;
 
     // ----------------------------------------------------------------
-    // İÇ BİLEŞENLER
+    // Ä°Ã‡ BÄ°LEÅENLER
     // ----------------------------------------------------------------
     private readonly TcpJsonServer _server;
 
     /// <summary>
-    /// Twin publisher gibi ek modüllerin aynı TCP sunucusu üzerinden yayın yapabilmesi için
-    /// alttaki TcpJsonServer örneğini dışarı açar.
+    /// Twin publisher gibi ek modÃ¼llerin aynÄ± TCP sunucusu Ã¼zerinden yayÄ±n yapabilmesi iÃ§in
+    /// alttaki TcpJsonServer Ã¶rneÄŸini dÄ±ÅŸarÄ± aÃ§ar.
     /// </summary>
     public TcpJsonServer Server => _server;
 
-    // Son çerçeve / son dış poz (thread-safe)
+    // Son Ã§erÃ§eve / son dÄ±ÅŸ poz (thread-safe)
     private readonly object _gate = new();
     private FusedFrame? _lastFrame = null;
     private ExternalPose? _lastExternalPose = null;
 
     /// <summary>
-    /// Bu kaynak üzerinden en az bir kere frame alındı mı?
+    /// Bu kaynak Ã¼zerinden en az bir kere frame alÄ±ndÄ± mÄ±?
     /// </summary>
     public bool HasEverReceivedFrame { get; private set; } = false;
 
     /// <summary>
-    /// Şu anda FreshnessWindow içinde taze bir frame var mı?
+    /// Åu anda FreshnessWindow iÃ§inde taze bir frame var mÄ±?
     /// </summary>
     public bool HasFreshFrame
     {
@@ -91,11 +91,11 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
         }
     }
 
-    // Yaşam döngüsü kontrolü
+    // YaÅŸam dÃ¶ngÃ¼sÃ¼ kontrolÃ¼
     private CancellationTokenSource? _linkedCts;
     private Task? _serverTask;
 
-    // Capability logunun bir kez basılması için bayrak
+    // Capability logunun bir kez basÄ±lmasÄ± iÃ§in bayrak
     private bool _capabilityLogged = false;
 
     public TcpJsonFrameSource(string host, int port, TimeSpan? freshnessWindow = null)
@@ -104,7 +104,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
         _port = port;
         FreshnessWindow = freshnessWindow ?? TimeSpan.FromMilliseconds(300);
 
-        // Ham frame loglarını kapalı tutuyoruz; parse edilenleri callback ile alıyoruz.
+        // Ham frame loglarÄ±nÄ± kapalÄ± tutuyoruz; parse edilenleri callback ile alÄ±yoruz.
         _server = new TcpJsonServer(
             _host,
             _port,
@@ -115,7 +115,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// Son frame'in tazelik yaşı (ms). Veri yoksa null döner.
+    /// Son frame'in tazelik yaÅŸÄ± (ms). Veri yoksa null dÃ¶ner.
     /// </summary>
     public double? LatestAgeMs
     {
@@ -135,8 +135,8 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// TcpJsonServer yeni bir frame parse ettiğinde çağrılır.
-    /// Son frame'i günceller, ExternalPose türetir ve seyrek [PY] logu basar.
+    /// TcpJsonServer yeni bir frame parse ettiÄŸinde Ã§aÄŸrÄ±lÄ±r.
+    /// Son frame'i gÃ¼nceller, ExternalPose tÃ¼retir ve seyrek [PY] logu basar.
     /// </summary>
     private void OnFrameParsed(FusedFrame frame)
     {
@@ -151,7 +151,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
             _lastFrame = frame;
             HasEverReceivedFrame = true;
 
-            // XY + heading bilgisinden external pose türet
+            // XY + heading bilgisinden external pose tÃ¼ret
             var p = frame.Position;
             var pose = new ExternalPose(
                 X: p.X,
@@ -166,7 +166,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
             poseSnapshot = pose;
         }
 
-        // Seyrek Python akış özeti
+        // Seyrek Python akÄ±ÅŸ Ã¶zeti
         if (poseSnapshot is not null && nowUtc - _lastSummaryLogUtc >= SummaryLogInterval)
         {
             _lastSummaryLogUtc = nowUtc;
@@ -176,13 +176,13 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
 
             Console.WriteLine(
                 $"[PY] pos=({poseSnapshot.Value.X:0.00},{poseSnapshot.Value.Y:0.00}) " +
-                $"head={poseSnapshot.Value.HeadingDeg:0.0}° age={ageMs:0}ms src=py-data"
+                $"head={poseSnapshot.Value.HeadingDeg:0.0}Â° age={ageMs:0}ms src=py-data"
             );
         }
     }
 
     /// <summary>
-    /// TcpJsonServer'dan gelen Capability bilgisini ApplyCapability'ye aktarır.
+    /// TcpJsonServer'dan gelen Capability bilgisini ApplyCapability'ye aktarÄ±r.
     /// </summary>
     private void OnCapabilityReceived(bool preferExternal, IReadOnlyList<TcpJsonServer.CapabilitySensorInfo> sensors)
     {
@@ -192,7 +192,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
         {
             foreach (var s in sensors)
             {
-                // Backend / SimSource zorunlu değilse reflection ile almaya çalış
+                // Backend / SimSource zorunlu deÄŸilse reflection ile almaya Ã§alÄ±ÅŸ
                 string? backend = null;
                 string? simSource = null;
 
@@ -204,7 +204,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
                 }
                 catch
                 {
-                    // Capability logu hata nedeniyle bozulmasın
+                    // Capability logu hata nedeniyle bozulmasÄ±n
                 }
 
                 list.Add(new CapSensor(
@@ -223,8 +223,8 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// Sunucuyu başlatır ve frame toplamaya başlar.
-    /// İdempotent çalışır; zaten açıksa aynı Task döner.
+    /// Sunucuyu baÅŸlatÄ±r ve frame toplamaya baÅŸlar.
+    /// Ä°dempotent Ã§alÄ±ÅŸÄ±r; zaten aÃ§Ä±ksa aynÄ± Task dÃ¶ner.
     /// </summary>
     public Task StartAsync(CancellationToken externalToken = default)
     {
@@ -239,7 +239,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// IFrameSource: Taze frame varsa döndürür.
+    /// IFrameSource: Taze frame varsa dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool TryGetLatestFrame(out FusedFrame? frame)
     {
@@ -263,7 +263,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// IExternalPoseProvider: Son dış poz varsa döndürür.
+    /// IExternalPoseProvider: Son dÄ±ÅŸ poz varsa dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public bool TryGetLatestExternal(out ExternalPose pose)
     {
@@ -286,7 +286,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     /// <summary>
-    /// Kaynağı durdurur ve arka plan task'ını bekler.
+    /// KaynaÄŸÄ± durdurur ve arka plan task'Ä±nÄ± bekler.
     /// </summary>
     public async Task StopAsync()
     {
@@ -303,11 +303,11 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
                 }
                 catch (OperationCanceledException)
                 {
-                    // normal kapanış
+                    // normal kapanÄ±ÅŸ
                 }
                 catch (ObjectDisposedException)
                 {
-                    // erken dispose durumları olabilir
+                    // erken dispose durumlarÄ± olabilir
                 }
             }
         }
@@ -326,7 +326,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     }
 
     // ----------------------------------------------------------------
-    // Capability verisini taşıyan hafif tip
+    // Capability verisini taÅŸÄ±yan hafif tip
     // ----------------------------------------------------------------
     public readonly record struct CapSensor(
         string? Name,
@@ -339,7 +339,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
     );
 
     /// <summary>
-    /// Capability mesajını uygular: PreferExternal'ı günceller ve capability logunu bir kez basar.
+    /// Capability mesajÄ±nÄ± uygular: PreferExternal'Ä± gÃ¼nceller ve capability logunu bir kez basar.
     /// </summary>
     public void ApplyCapability(bool preferExternalState, IReadOnlyList<CapSensor>? sensors)
     {
@@ -404,7 +404,7 @@ public sealed class TcpJsonFrameSource : IFrameSource, IExternalPoseProvider, IA
         }
         catch
         {
-            // log süreci hatadan etkilenmesin
+            // log sÃ¼reci hatadan etkilenmesin
         }
     }
 }

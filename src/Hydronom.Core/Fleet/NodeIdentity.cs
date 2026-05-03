@@ -1,40 +1,40 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 /// <summary>
-/// Hydronom Fleet mimarisinde bir düğümün kimlik bilgisini temsil eder.
+/// Hydronom Fleet mimarisinde bir dÃ¼ÄŸÃ¼mÃ¼n kimlik bilgisini temsil eder.
 /// 
-/// Düğüm; yalnızca araç olmak zorunda değildir.
-/// Şunlar da birer node olabilir:
-/// - Otonom araç
+/// DÃ¼ÄŸÃ¼m; yalnÄ±zca araÃ§ olmak zorunda deÄŸildir.
+/// Åunlar da birer node olabilir:
+/// - Otonom araÃ§
 /// - Yer istasyonu
 /// - Ops Gateway
 /// - Replay sistemi
-/// - Simülasyon node'u
-/// - Relay görevi yapan ara düğüm
+/// - SimÃ¼lasyon node'u
+/// - Relay gÃ¶revi yapan ara dÃ¼ÄŸÃ¼m
 /// 
-/// Bu modelin amacı, FleetRegistry ve haberleşme katmanının
-/// sistemdeki her bileşeni tekil ve anlaşılır şekilde tanıyabilmesidir.
+/// Bu modelin amacÄ±, FleetRegistry ve haberleÅŸme katmanÄ±nÄ±n
+/// sistemdeki her bileÅŸeni tekil ve anlaÅŸÄ±lÄ±r ÅŸekilde tanÄ±yabilmesidir.
 /// </summary>
 public sealed record NodeIdentity
 {
     /// <summary>
-    /// Node'un benzersiz kimliği.
+    /// Node'un benzersiz kimliÄŸi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "VEHICLE-ALPHA-001"
     /// - "VEHICLE-BETA-001"
     /// - "GROUND-001"
     /// - "OPS-GATEWAY-001"
     /// - "SIM-VEHICLE-001"
     /// 
-    /// Bu alan mesajlaşmada SourceNodeId / TargetNodeId ile eşleşir.
+    /// Bu alan mesajlaÅŸmada SourceNodeId / TargetNodeId ile eÅŸleÅŸir.
     /// </summary>
     public string NodeId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Node'un insan tarafından okunabilir adı.
+    /// Node'un insan tarafÄ±ndan okunabilir adÄ±.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Alpha"
     /// - "Beta"
     /// - "Main Ground Station"
@@ -43,39 +43,39 @@ public sealed record NodeIdentity
     public string DisplayName { get; init; } = string.Empty;
 
     /// <summary>
-    /// Node'un genel türü.
+    /// Node'un genel tÃ¼rÃ¼.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Vehicle"
     /// - "GroundStation"
     /// - "Gateway"
     /// - "Simulator"
     /// - "Relay"
     /// 
-    /// Şimdilik string bırakıyoruz.
-    /// Çünkü ileride farklı node türleri eklenebilir.
-    /// Gerekirse daha sonra enum'a çevrilebilir.
+    /// Åimdilik string bÄ±rakÄ±yoruz.
+    /// Ã‡Ã¼nkÃ¼ ileride farklÄ± node tÃ¼rleri eklenebilir.
+    /// Gerekirse daha sonra enum'a Ã§evrilebilir.
     /// </summary>
     public string NodeType { get; init; } = "Unknown";
 
     /// <summary>
-    /// Araç node'ları için araç tipi.
+    /// AraÃ§ node'larÄ± iÃ§in araÃ§ tipi.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "SurfaceVessel"
     /// - "Submarine"
     /// - "SailingVessel"
     /// - "AerialVehicle"
     /// - "GroundVehicle"
     /// 
-    /// Yer istasyonu veya gateway gibi araç olmayan node'larda boş kalabilir.
+    /// Yer istasyonu veya gateway gibi araÃ§ olmayan node'larda boÅŸ kalabilir.
     /// </summary>
     public string VehicleType { get; init; } = string.Empty;
 
     /// <summary>
-    /// Node'un aktif operasyon rolü.
+    /// Node'un aktif operasyon rolÃ¼.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Leader"
     /// - "Follower"
     /// - "Scout"
@@ -83,24 +83,24 @@ public sealed record NodeIdentity
     /// - "Mapper"
     /// - "Idle"
     /// 
-    /// FleetCoordinator ileride bu rolü görev dağıtımı ve koordinasyon için kullanır.
+    /// FleetCoordinator ileride bu rolÃ¼ gÃ¶rev daÄŸÄ±tÄ±mÄ± ve koordinasyon iÃ§in kullanÄ±r.
     /// </summary>
     public string Role { get; init; } = "Idle";
 
     /// <summary>
-    /// Node'un yazılım sürümü.
+    /// Node'un yazÄ±lÄ±m sÃ¼rÃ¼mÃ¼.
     /// 
-    /// Kullanım alanları:
-    /// - Farklı araçların hangi Hydronom sürümünde çalıştığını görmek,
-    /// - Uyumluluk kontrolü yapmak,
-    /// - Hata ayıklamada sürüm farklarını takip etmek.
+    /// KullanÄ±m alanlarÄ±:
+    /// - FarklÄ± araÃ§larÄ±n hangi Hydronom sÃ¼rÃ¼mÃ¼nde Ã§alÄ±ÅŸtÄ±ÄŸÄ±nÄ± gÃ¶rmek,
+    /// - Uyumluluk kontrolÃ¼ yapmak,
+    /// - Hata ayÄ±klamada sÃ¼rÃ¼m farklarÄ±nÄ± takip etmek.
     /// </summary>
     public string SoftwareVersion { get; init; } = string.Empty;
 
     /// <summary>
-    /// Node'un donanım profili veya platform adı.
+    /// Node'un donanÄ±m profili veya platform adÄ±.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "JetsonNano"
     /// - "RaspberryPi5"
     /// - "WindowsGroundStation"
@@ -110,20 +110,20 @@ public sealed record NodeIdentity
     public string HardwareProfile { get; init; } = string.Empty;
 
     /// <summary>
-    /// Bu node'un simülasyon node'u olup olmadığını belirtir.
+    /// Bu node'un simÃ¼lasyon node'u olup olmadÄ±ÄŸÄ±nÄ± belirtir.
     /// 
     /// true ise:
-    /// - Fiziksel araç olmayabilir.
-    /// - Test/replay/simülasyon amaçlı kullanılabilir.
-    /// - FleetRegistry bunu gerçek araçlardan ayrı gösterebilir.
+    /// - Fiziksel araÃ§ olmayabilir.
+    /// - Test/replay/simÃ¼lasyon amaÃ§lÄ± kullanÄ±labilir.
+    /// - FleetRegistry bunu gerÃ§ek araÃ§lardan ayrÄ± gÃ¶sterebilir.
     /// </summary>
     public bool IsSimulation { get; init; }
 
     /// <summary>
-    /// Kimlik bilgisinin temel olarak geçerli olup olmadığını döndürür.
+    /// Kimlik bilgisinin temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En azından NodeId dolu olmalıdır.
-    /// Çünkü Fleet mimarisinde her node benzersiz bir ID ile takip edilir.
+    /// En azÄ±ndan NodeId dolu olmalÄ±dÄ±r.
+    /// Ã‡Ã¼nkÃ¼ Fleet mimarisinde her node benzersiz bir ID ile takip edilir.
     /// </summary>
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(NodeId);

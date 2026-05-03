@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -9,8 +9,8 @@ using HydronomOps.Gateway.Infrastructure.Serialization;
 namespace HydronomOps.Gateway.Infrastructure.Broadcast;
 
 /// <summary>
-/// Gateway içindeki tüm yayın akışını yönetir.
-/// TCP tarafından toplanan ve map edilen mesajları tüm aktif WebSocket istemcilerine yollar.
+/// Gateway iÃ§indeki tÃ¼m yayÄ±n akÄ±ÅŸÄ±nÄ± yÃ¶netir.
+/// TCP tarafÄ±ndan toplanan ve map edilen mesajlarÄ± tÃ¼m aktif WebSocket istemcilerine yollar.
 /// </summary>
 public sealed class GatewayBroadcastService
 {
@@ -23,7 +23,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Tek bir envelope mesajını tüm bağlı istemcilere yayınlar.
+    /// Tek bir envelope mesajÄ±nÄ± tÃ¼m baÄŸlÄ± istemcilere yayÄ±nlar.
     /// </summary>
     public async Task BroadcastAsync(
         GatewayEnvelope envelope,
@@ -36,7 +36,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Log yayını için uyumluluk metodu.
+    /// Log yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastLogAsync(
         GatewayEnvelope envelope,
@@ -46,7 +46,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Araç telemetrisi yayını için uyumluluk metodu.
+    /// AraÃ§ telemetrisi yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastVehicleTelemetryAsync(
         GatewayEnvelope envelope,
@@ -56,7 +56,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Görev durumu yayını için uyumluluk metodu.
+    /// GÃ¶rev durumu yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastMissionStateAsync(
         GatewayEnvelope envelope,
@@ -66,7 +66,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Sensör durumu yayını için uyumluluk metodu.
+    /// SensÃ¶r durumu yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastSensorStateAsync(
         GatewayEnvelope envelope,
@@ -76,7 +76,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Aktüatör durumu yayını için uyumluluk metodu.
+    /// AktÃ¼atÃ¶r durumu yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastActuatorStateAsync(
         GatewayEnvelope envelope,
@@ -86,7 +86,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Diagnostik durumu yayını için uyumluluk metodu.
+    /// Diagnostik durumu yayÄ±nÄ± iÃ§in uyumluluk metodu.
     /// </summary>
     public Task BroadcastDiagnosticsStateAsync(
         GatewayEnvelope envelope,
@@ -96,7 +96,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Ham JSON içeriğini tüm bağlı istemcilere yayınlar.
+    /// Ham JSON iÃ§eriÄŸini tÃ¼m baÄŸlÄ± istemcilere yayÄ±nlar.
     /// </summary>
     public async Task BroadcastRawJsonAsync(
         string json,
@@ -133,7 +133,7 @@ public sealed class GatewayBroadcastService
     }
 
     /// <summary>
-    /// Sadece belirli bir istemciye mesaj gönderir.
+    /// Sadece belirli bir istemciye mesaj gÃ¶nderir.
     /// </summary>
     public async Task<bool> SendToClientAsync(
         Guid connectionId,

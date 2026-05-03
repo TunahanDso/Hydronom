@@ -1,37 +1,37 @@
-namespace Hydronom.GroundStation.Coordination;
+﻿namespace Hydronom.GroundStation.Coordination;
 
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
-/// Ground Station tarafında bir görevi filo içindeki en uygun araca atamaya çalışan görev dağıtıcıdır.
+/// Ground Station tarafÄ±nda bir gÃ¶revi filo iÃ§indeki en uygun araca atamaya Ã§alÄ±ÅŸan gÃ¶rev daÄŸÄ±tÄ±cÄ±dÄ±r.
 /// 
-/// Bu sınıf PDF'deki MissionAllocator mantığının ilk çekirdeğidir.
+/// Bu sÄ±nÄ±f PDF'deki MissionAllocator mantÄ±ÄŸÄ±nÄ±n ilk Ã§ekirdeÄŸidir.
 /// 
-/// Bu sürümde görev ataması artık sadece online/offline kontrolüne bakmaz.
-/// MissionCompatibilityEvaluator üzerinden:
-/// - Araç tipi uygunluğu,
-/// - Zorunlu capability uygunluğu,
+/// Bu sÃ¼rÃ¼mde gÃ¶rev atamasÄ± artÄ±k sadece online/offline kontrolÃ¼ne bakmaz.
+/// MissionCompatibilityEvaluator Ã¼zerinden:
+/// - AraÃ§ tipi uygunluÄŸu,
+/// - Zorunlu capability uygunluÄŸu,
 /// - Tercih edilen capability durumu,
 /// - Capability enabled/health durumu,
-/// - Simülasyon/gerçek araç politikası
-/// değerlendirmesi yapılır.
+/// - SimÃ¼lasyon/gerÃ§ek araÃ§ politikasÄ±
+/// deÄŸerlendirmesi yapÄ±lÄ±r.
 /// 
-/// Sonrasında allocator:
+/// SonrasÄ±nda allocator:
 /// - Mission compatibility skorunu,
-/// - Health katkısını,
-/// - Batarya katkısını,
+/// - Health katkÄ±sÄ±nÄ±,
+/// - Batarya katkÄ±sÄ±nÄ±,
 /// - Role/mission bonusunu
-/// birleştirerek en uygun aracı seçer.
+/// birleÅŸtirerek en uygun aracÄ± seÃ§er.
 /// 
-/// İleride bu sınıf:
+/// Ä°leride bu sÄ±nÄ±f:
 /// - GroundWorldModel,
 /// - Link quality,
 /// - Energy model,
 /// - Distance to target,
 /// - Mission priority,
 /// - FleetCoordinator role assignment
-/// ile genişletilecektir.
+/// ile geniÅŸletilecektir.
 /// </summary>
 public sealed class MissionAllocator
 {
@@ -44,7 +44,7 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Verilen görev isteği için en uygun aracı seçer.
+    /// Verilen gÃ¶rev isteÄŸi iÃ§in en uygun aracÄ± seÃ§er.
     /// </summary>
     public MissionAllocationResult Allocate(
         MissionRequest request,
@@ -136,8 +136,8 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// MissionRequest içindeki required/preferred capability listelerini
-    /// MissionCompatibilityEvaluator tarafından anlaşılacak requirement listesine çevirir.
+    /// MissionRequest iÃ§indeki required/preferred capability listelerini
+    /// MissionCompatibilityEvaluator tarafÄ±ndan anlaÅŸÄ±lacak requirement listesine Ã§evirir.
     /// </summary>
     private static IReadOnlyList<MissionCapabilityRequirement> BuildCapabilityRequirements(
         MissionRequest request)
@@ -185,7 +185,7 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Mission compatibility reddini kısa ve okunabilir allocator gerekçesine çevirir.
+    /// Mission compatibility reddini kÄ±sa ve okunabilir allocator gerekÃ§esine Ã§evirir.
     /// </summary>
     private static string BuildRejectionReason(
         MissionCompatibilityResult compatibility)
@@ -207,15 +207,15 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Görev uygunluk skorunu hesaplar.
+    /// GÃ¶rev uygunluk skorunu hesaplar.
     /// 
-    /// İlk faz skor mantığı:
-    /// - MissionCompatibilityEvaluator skoru temel alınır.
+    /// Ä°lk faz skor mantÄ±ÄŸÄ±:
+    /// - MissionCompatibilityEvaluator skoru temel alÄ±nÄ±r.
     /// - Health OK ise +20
     /// - Health Warning ise -15
     /// - Health Critical/Fault ise -50
-    /// - Batarya yüzdesi / 5 kadar ek skor
-    /// - Leader/Scout/Mapper gibi rol eşleşmeleri küçük bonus alabilir
+    /// - Batarya yÃ¼zdesi / 5 kadar ek skor
+    /// - Leader/Scout/Mapper gibi rol eÅŸleÅŸmeleri kÃ¼Ã§Ã¼k bonus alabilir
     /// </summary>
     private static double CalculateScore(
         MissionRequest request,
@@ -232,7 +232,7 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Health durumuna göre skor katkısı hesaplar.
+    /// Health durumuna gÃ¶re skor katkÄ±sÄ± hesaplar.
     /// </summary>
     private static double CalculateHealthScore(string health)
     {
@@ -250,10 +250,10 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Batarya yüzdesine göre skor katkısı hesaplar.
+    /// Batarya yÃ¼zdesine gÃ¶re skor katkÄ±sÄ± hesaplar.
     /// 
-    /// Örnek:
-    /// 80% batarya → +16 skor
+    /// Ã–rnek:
+    /// 80% batarya â†’ +16 skor
     /// </summary>
     private static double CalculateBatteryScore(double? batteryPercent)
     {
@@ -265,9 +265,9 @@ public sealed class MissionAllocator
     }
 
     /// <summary>
-    /// Görev tipi ile araç rolü arasındaki basit eşleşmeye göre bonus verir.
+    /// GÃ¶rev tipi ile araÃ§ rolÃ¼ arasÄ±ndaki basit eÅŸleÅŸmeye gÃ¶re bonus verir.
     /// 
-    /// İlk faz için sade tutulmuştur.
+    /// Ä°lk faz iÃ§in sade tutulmuÅŸtur.
     /// </summary>
     private static double CalculateRoleBonus(
         MissionRequest request,

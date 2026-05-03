@@ -1,10 +1,10 @@
-using Hydronom.Core.Communication;
+﻿using Hydronom.Core.Communication;
 
 namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
-/// Bir aracın tüm transport bağlantılarını tek yerde tutar.
-/// Örn: Alpha'nın WiFi, RF, LoRa bağlantılarının birlikte değerlendirilmesi.
+/// Bir aracÄ±n tÃ¼m transport baÄŸlantÄ±larÄ±nÄ± tek yerde tutar.
+/// Ã–rn: Alpha'nÄ±n WiFi, RF, LoRa baÄŸlantÄ±larÄ±nÄ±n birlikte deÄŸerlendirilmesi.
 /// </summary>
 public sealed class VehicleLinkHealth
 {
@@ -13,7 +13,7 @@ public sealed class VehicleLinkHealth
     public VehicleLinkHealth(string vehicleId)
     {
         if (string.IsNullOrWhiteSpace(vehicleId))
-            throw new ArgumentException("VehicleId boş olamaz.", nameof(vehicleId));
+            throw new ArgumentException("VehicleId boÅŸ olamaz.", nameof(vehicleId));
 
         VehicleId = vehicleId;
     }

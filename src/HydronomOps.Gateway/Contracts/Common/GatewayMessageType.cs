@@ -1,7 +1,7 @@
-namespace HydronomOps.Gateway.Contracts.Common;
+﻿namespace HydronomOps.Gateway.Contracts.Common;
 
 /// <summary>
-/// Gateway üzerinden yayınlanacak mesaj tipleri.
+/// Gateway Ã¼zerinden yayÄ±nlanacak mesaj tipleri.
 /// </summary>
 public static class GatewayMessageType
 {

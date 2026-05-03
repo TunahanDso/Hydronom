@@ -1,42 +1,42 @@
-namespace Hydronom.GroundStation.Commanding;
+﻿namespace Hydronom.GroundStation.Commanding;
 
 using Hydronom.Core.Fleet;
 
 /// <summary>
-/// Ground Station tarafında gönderilen komutları ve araçlardan dönen sonuçları takip eder.
+/// Ground Station tarafÄ±nda gÃ¶nderilen komutlarÄ± ve araÃ§lardan dÃ¶nen sonuÃ§larÄ± takip eder.
 /// 
-/// CommandTracker'ın amacı:
-/// - FleetCommand kayıtlarını tutmak,
-/// - FleetCommandResult geldiğinde ilgili komut kaydını güncellemek,
-/// - Pending / completed / failed komutları ayırmak,
-/// - Timeout olan komutları işaretlemek,
-/// - Hydronom Ops tarafına command history sağlayabilmektir.
+/// CommandTracker'Ä±n amacÄ±:
+/// - FleetCommand kayÄ±tlarÄ±nÄ± tutmak,
+/// - FleetCommandResult geldiÄŸinde ilgili komut kaydÄ±nÄ± gÃ¼ncellemek,
+/// - Pending / completed / failed komutlarÄ± ayÄ±rmak,
+/// - Timeout olan komutlarÄ± iÅŸaretlemek,
+/// - Hydronom Ops tarafÄ±na command history saÄŸlayabilmektir.
 /// 
-/// Bu sınıf, Fleet & Ground Station mimarisinde operatör kontrolünün izlenebilir olması için
-/// temel bir yapı taşıdır.
+/// Bu sÄ±nÄ±f, Fleet & Ground Station mimarisinde operatÃ¶r kontrolÃ¼nÃ¼n izlenebilir olmasÄ± iÃ§in
+/// temel bir yapÄ± taÅŸÄ±dÄ±r.
 /// </summary>
 public sealed class CommandTracker
 {
     /// <summary>
-    /// CommandId -> CommandRecord eşlemesini tutar.
+    /// CommandId -> CommandRecord eÅŸlemesini tutar.
     /// </summary>
     private readonly Dictionary<string, CommandRecord> _records = new();
 
     /// <summary>
-    /// Tracker erişimlerini thread-safe tutmak için kullanılan lock objesi.
+    /// Tracker eriÅŸimlerini thread-safe tutmak iÃ§in kullanÄ±lan lock objesi.
     /// 
-    /// İleride aynı anda:
+    /// Ä°leride aynÄ± anda:
     /// - OperatorCommandCenter,
     /// - CommunicationRouter,
     /// - GroundMessageDispatcher,
     /// - Ops Gateway,
     /// - ReplayRecorder
-    /// bu tracker'a erişebilir.
+    /// bu tracker'a eriÅŸebilir.
     /// </summary>
     private readonly object _sync = new();
 
     /// <summary>
-    /// Kayıtlı toplam komut sayısını döndürür.
+    /// KayÄ±tlÄ± toplam komut sayÄ±sÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public int Count
     {
@@ -52,12 +52,12 @@ public sealed class CommandTracker
     /// <summary>
     /// Yeni bir FleetCommand kaydeder.
     /// 
-    /// Komut geçersizse false döner.
-    /// Aynı CommandId daha önce varsa mevcut kayıt ezilir.
+    /// Komut geÃ§ersizse false dÃ¶ner.
+    /// AynÄ± CommandId daha Ã¶nce varsa mevcut kayÄ±t ezilir.
     /// 
     /// Not:
-    /// İlk fazda overwrite davranışı kabul edilebilir.
-    /// İleride aynı CommandId tekrar gelirse reject/ignore politikası eklenebilir.
+    /// Ä°lk fazda overwrite davranÄ±ÅŸÄ± kabul edilebilir.
+    /// Ä°leride aynÄ± CommandId tekrar gelirse reject/ignore politikasÄ± eklenebilir.
     /// </summary>
     public bool TrackCommand(FleetCommand command)
     {
@@ -80,14 +80,14 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Bir FleetCommandResult sonucunu ilgili komut kaydına uygular.
+    /// Bir FleetCommandResult sonucunu ilgili komut kaydÄ±na uygular.
     /// 
-    /// Eğer CommandId tracker içinde bulunursa kayıt güncellenir ve true döner.
-    /// Bulunamazsa false döner.
+    /// EÄŸer CommandId tracker iÃ§inde bulunursa kayÄ±t gÃ¼ncellenir ve true dÃ¶ner.
+    /// Bulunamazsa false dÃ¶ner.
     /// 
-    /// Bu davranış bilinçli:
-    /// Ground Station bilmediği bir komut sonucunu takip etmemelidir.
-    /// İleride unknown result kayıtları ayrı bir diagnostics/event log'a alınabilir.
+    /// Bu davranÄ±ÅŸ bilinÃ§li:
+    /// Ground Station bilmediÄŸi bir komut sonucunu takip etmemelidir.
+    /// Ä°leride unknown result kayÄ±tlarÄ± ayrÄ± bir diagnostics/event log'a alÄ±nabilir.
     /// </summary>
     public bool ApplyResult(FleetCommandResult result)
     {
@@ -105,7 +105,7 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// CommandId ile kayıtlı komutu bulmaya çalışır.
+    /// CommandId ile kayÄ±tlÄ± komutu bulmaya Ã§alÄ±ÅŸÄ±r.
     /// </summary>
     public bool TryGet(string commandId, out CommandRecord? record)
     {
@@ -122,9 +122,9 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Tüm komut geçmişinin snapshot kopyasını döndürür.
+    /// TÃ¼m komut geÃ§miÅŸinin snapshot kopyasÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// En yeni komutlar önce gelecek şekilde sıralanır.
+    /// En yeni komutlar Ã¶nce gelecek ÅŸekilde sÄ±ralanÄ±r.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetSnapshot()
     {
@@ -137,7 +137,7 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Henüz sonuç bekleyen komutların snapshot listesini döndürür.
+    /// HenÃ¼z sonuÃ§ bekleyen komutlarÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetPendingCommands()
     {
@@ -151,10 +151,10 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Tamamlanmış komutların snapshot listesini döndürür.
+    /// TamamlanmÄ±ÅŸ komutlarÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Completed olmak başarılı olmak anlamına gelmez.
-    /// SafetyBlocked veya Failed gibi kayıtlar da completed kabul edilir.
+    /// Completed olmak baÅŸarÄ±lÄ± olmak anlamÄ±na gelmez.
+    /// SafetyBlocked veya Failed gibi kayÄ±tlar da completed kabul edilir.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetCompletedCommands()
     {
@@ -168,9 +168,9 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Başarısız sonuçlanan komutların snapshot listesini döndürür.
+    /// BaÅŸarÄ±sÄ±z sonuÃ§lanan komutlarÄ±n snapshot listesini dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Henüz sonuç almamış pending komutlar bu listeye dahil edilmez.
+    /// HenÃ¼z sonuÃ§ almamÄ±ÅŸ pending komutlar bu listeye dahil edilmez.
     /// </summary>
     public IReadOnlyList<CommandRecord> GetFailedCommands()
     {
@@ -184,12 +184,12 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Belirtilen süreden daha uzun süredir cevap bekleyen komutları expired olarak işaretler.
+    /// Belirtilen sÃ¼reden daha uzun sÃ¼redir cevap bekleyen komutlarÄ± expired olarak iÅŸaretler.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// timeout = TimeSpan.FromSeconds(3)
     /// 
-    /// Eğer bir MissionCommand 3 saniye boyunca sonuç dönmezse Expired olur.
+    /// EÄŸer bir MissionCommand 3 saniye boyunca sonuÃ§ dÃ¶nmezse Expired olur.
     /// </summary>
     public int MarkExpiredCommands(TimeSpan timeout, DateTimeOffset? nowUtc = null)
     {
@@ -219,9 +219,9 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// CommandId ile bir komut kaydını siler.
+    /// CommandId ile bir komut kaydÄ±nÄ± siler.
     /// 
-    /// Test, cleanup veya sınırlı command history tutma senaryolarında kullanılabilir.
+    /// Test, cleanup veya sÄ±nÄ±rlÄ± command history tutma senaryolarÄ±nda kullanÄ±labilir.
     /// </summary>
     public bool Remove(string commandId)
     {
@@ -235,7 +235,7 @@ public sealed class CommandTracker
     }
 
     /// <summary>
-    /// Tüm komut geçmişini temizler.
+    /// TÃ¼m komut geÃ§miÅŸini temizler.
     /// </summary>
     public void Clear()
     {

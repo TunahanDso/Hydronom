@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Extensions.Configuration;
@@ -6,27 +6,27 @@ using Microsoft.Extensions.Configuration;
 partial class Program
 {
     /// <summary>
-    /// Python sensor hub çalışma klasörünü çözer.
+    /// Python sensor hub Ã§alÄ±ÅŸma klasÃ¶rÃ¼nÃ¼ Ã§Ã¶zer.
     ///
-    /// Öncelik:
+    /// Ã–ncelik:
     /// 1. HYDRONOM_PYTHON_DIR environment variable
-    /// 2. Python:WorkingDir config değeri
-    /// 3. Runtime output altındaki python klasörü
-    /// 4. Repo köküne göre ../python tahmini
+    /// 2. Python:WorkingDir config deÄŸeri
+    /// 3. Runtime output altÄ±ndaki python klasÃ¶rÃ¼
+    /// 4. Repo kÃ¶kÃ¼ne gÃ¶re ../python tahmini
     /// </summary>
     private static string? ResolvePythonWorkDir(IConfiguration config)
     {
         var envDir = Environment.GetEnvironmentVariable("HYDRONOM_PYTHON_DIR");
         if (!string.IsNullOrWhiteSpace(envDir) && Directory.Exists(envDir))
         {
-            Console.WriteLine($"[PY] HYDRONOM_PYTHON_DIR ile python klasörü bulundu: {envDir}");
+            Console.WriteLine($"[PY] HYDRONOM_PYTHON_DIR ile python klasÃ¶rÃ¼ bulundu: {envDir}");
             return envDir;
         }
 
         var cfgDir = config["Python:WorkingDir"];
         if (!string.IsNullOrWhiteSpace(cfgDir) && Directory.Exists(cfgDir))
         {
-            Console.WriteLine($"[PY] Python:WorkingDir ile python klasörü bulundu: {cfgDir}");
+            Console.WriteLine($"[PY] Python:WorkingDir ile python klasÃ¶rÃ¼ bulundu: {cfgDir}");
             return cfgDir;
         }
 
@@ -45,12 +45,12 @@ partial class Program
         {
             if (Directory.Exists(candidate))
             {
-                Console.WriteLine($"[PY] python klasörü bulundu: {candidate}");
+                Console.WriteLine($"[PY] python klasÃ¶rÃ¼ bulundu: {candidate}");
                 return candidate;
             }
         }
 
-        Console.WriteLine("[PY] python çalışma klasörü bulunamadı.");
+        Console.WriteLine("[PY] python Ã§alÄ±ÅŸma klasÃ¶rÃ¼ bulunamadÄ±.");
 
         foreach (var candidate in candidates)
             Console.WriteLine($"[PY]  - denenen: {candidate}");
@@ -60,11 +60,11 @@ partial class Program
     }
 
     /// <summary>
-    /// Python main.py otomatik başlatıcı.
+    /// Python main.py otomatik baÅŸlatÄ±cÄ±.
     ///
-    /// Python:AutoStart=false ise hiçbir şey başlatmaz.
-    /// Runtime tarafının Python hub'ı ayrıca terminalden çalıştırdığı senaryolarda
-    /// config üzerinden kapatılması önerilir.
+    /// Python:AutoStart=false ise hiÃ§bir ÅŸey baÅŸlatmaz.
+    /// Runtime tarafÄ±nÄ±n Python hub'Ä± ayrÄ±ca terminalden Ã§alÄ±ÅŸtÄ±rdÄ±ÄŸÄ± senaryolarda
+    /// config Ã¼zerinden kapatÄ±lmasÄ± Ã¶nerilir.
     /// </summary>
     private static Process? MaybeStartPythonSensorHub(IConfiguration config)
     {
@@ -73,7 +73,7 @@ partial class Program
 
         if (!autoStart)
         {
-            Console.WriteLine("[PY] Python sensor hub auto-start devre dışı (Python:AutoStart=false).");
+            Console.WriteLine("[PY] Python sensor hub auto-start devre dÄ±ÅŸÄ± (Python:AutoStart=false).");
             return null;
         }
 
@@ -90,7 +90,7 @@ partial class Program
         var scriptPath = Path.Combine(workDir, script);
         if (!File.Exists(scriptPath))
         {
-            Console.WriteLine($"[PY] Python script bulunamadı: {scriptPath}");
+            Console.WriteLine($"[PY] Python script bulunamadÄ±: {scriptPath}");
             return null;
         }
 
@@ -139,19 +139,19 @@ partial class Program
 
             if (!proc.Start())
             {
-                Console.WriteLine("[PY] python main.py başlatılamadı (Start=false).");
+                Console.WriteLine("[PY] python main.py baÅŸlatÄ±lamadÄ± (Start=false).");
                 return null;
             }
 
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            Console.WriteLine($"[PY] Python sensor hub başlatıldı (PID={proc.Id}) dir={workDir}");
+            Console.WriteLine($"[PY] Python sensor hub baÅŸlatÄ±ldÄ± (PID={proc.Id}) dir={workDir}");
             return proc;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PY] python main.py başlatılırken hata: {ex.Message}");
+            Console.WriteLine($"[PY] python main.py baÅŸlatÄ±lÄ±rken hata: {ex.Message}");
             return null;
         }
     }

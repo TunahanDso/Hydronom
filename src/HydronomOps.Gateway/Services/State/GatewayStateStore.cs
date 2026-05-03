@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.Contracts.Actuators;
+﻿using HydronomOps.Gateway.Contracts.Actuators;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Mission;
 using HydronomOps.Gateway.Contracts.Sensors;
@@ -8,7 +8,7 @@ using HydronomOps.Gateway.Domain;
 namespace HydronomOps.Gateway.Services.State;
 
 /// <summary>
-/// Gateway'in tuttuğu birleşik araç durumunu thread-safe şekilde yönetir.
+/// Gateway'in tuttuÄŸu birleÅŸik araÃ§ durumunu thread-safe ÅŸekilde yÃ¶netir.
 /// </summary>
 public sealed class GatewayStateStore : IGatewayStateStore
 {
@@ -136,7 +136,7 @@ public sealed class GatewayStateStore : IGatewayStateStore
         {
             _current.RuntimeConnected = isConnected;
 
-            // Runtime hattı düştüyse Python akışı da bağlı kabul edilmemeli.
+            // Runtime hattÄ± dÃ¼ÅŸtÃ¼yse Python akÄ±ÅŸÄ± da baÄŸlÄ± kabul edilmemeli.
             if (!isConnected)
             {
                 _current.PythonConnected = false;

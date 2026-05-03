@@ -1,35 +1,35 @@
-namespace Hydronom.GroundStation.Telemetry;
+﻿namespace Hydronom.GroundStation.Telemetry;
 
 /// <summary>
-/// Ground Station ile araç arasındaki telemetry veri yoğunluğu seviyesini temsil eder.
+/// Ground Station ile araÃ§ arasÄ±ndaki telemetry veri yoÄŸunluÄŸu seviyesini temsil eder.
 /// 
-/// Fleet & Ground Station mimarisinde her bağlantı aynı veri miktarını taşıyamaz.
-/// Örneğin:
-/// - LoRa düşük bant genişliklidir.
-/// - RF modem orta seviyede telemetry taşıyabilir.
-/// - TCP/WebSocket/Cellular daha zengin telemetry için uygundur.
+/// Fleet & Ground Station mimarisinde her baÄŸlantÄ± aynÄ± veri miktarÄ±nÄ± taÅŸÄ±yamaz.
+/// Ã–rneÄŸin:
+/// - LoRa dÃ¼ÅŸÃ¼k bant geniÅŸliklidir.
+/// - RF modem orta seviyede telemetry taÅŸÄ±yabilir.
+/// - TCP/WebSocket/Cellular daha zengin telemetry iÃ§in uygundur.
 /// 
 /// Bu enum, Adaptive Telemetry Profile sisteminin temelidir.
-/// Amaç bağlantı durumuna göre otomatik telemetry seviyesi seçmektir.
+/// AmaÃ§ baÄŸlantÄ± durumuna gÃ¶re otomatik telemetry seviyesi seÃ§mektir.
 /// </summary>
 public enum TelemetryProfile
 {
     /// <summary>
-    /// Profil bilinmiyor veya henüz seçilmedi.
+    /// Profil bilinmiyor veya henÃ¼z seÃ§ilmedi.
     /// 
-    /// Normal üretim akışında mümkün olduğunca kullanılmamalıdır.
+    /// Normal Ã¼retim akÄ±ÅŸÄ±nda mÃ¼mkÃ¼n olduÄŸunca kullanÄ±lmamalÄ±dÄ±r.
     /// </summary>
     Unknown = 0,
 
     /// <summary>
-    /// En düşük veri yoğunluğuna sahip telemetry profili.
+    /// En dÃ¼ÅŸÃ¼k veri yoÄŸunluÄŸuna sahip telemetry profili.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - LoRa
-    /// - Zayıf RF bağlantısı
-    /// - Düşük bant genişlikli fallback durumları
+    /// - ZayÄ±f RF baÄŸlantÄ±sÄ±
+    /// - DÃ¼ÅŸÃ¼k bant geniÅŸlikli fallback durumlarÄ±
     /// 
-    /// İçerebilecek bilgiler:
+    /// Ä°Ã§erebilecek bilgiler:
     /// - vehicleId
     /// - position
     /// - heading
@@ -43,12 +43,12 @@ public enum TelemetryProfile
     /// <summary>
     /// Orta seviye telemetry profili.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - RF modem
-    /// - TCP bağlantısı zayıfladığında
-    /// - Normal görev izleme
+    /// - TCP baÄŸlantÄ±sÄ± zayÄ±fladÄ±ÄŸÄ±nda
+    /// - Normal gÃ¶rev izleme
     /// 
-    /// İçerebilecek bilgiler:
+    /// Ä°Ã§erebilecek bilgiler:
     /// - Light telemetry
     /// - sensor summary
     /// - obstacle summary
@@ -61,14 +61,14 @@ public enum TelemetryProfile
     /// <summary>
     /// En zengin telemetry profili.
     /// 
-    /// Kullanım alanları:
+    /// KullanÄ±m alanlarÄ±:
     /// - TCP
     /// - WebSocket
     /// - Ethernet
     /// - Cellular / 4G / 5G
-    /// - Geliştirme ve analiz ortamları
+    /// - GeliÅŸtirme ve analiz ortamlarÄ±
     /// 
-    /// İçerebilecek bilgiler:
+    /// Ä°Ã§erebilecek bilgiler:
     /// - Normal telemetry
     /// - raw-ish fused data
     /// - map tiles

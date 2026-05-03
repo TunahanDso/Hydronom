@@ -1,25 +1,26 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Interfaces
 {
     /// <summary>
-    /// PLATFORMDAN BAĞIMSIZ SİMÜLASYON KİNEMATİK MODELİ
+    /// PLATFORMDAN BAÄIMSIZ SÄ°MÃœLASYON KÄ°NEMATÄ°K MODELÄ°
     /// -----------------------------------------------------------
-    /// Gerçek donanımda kullanılmayabilir, yalnızca simülasyon katmanında
-    /// 6-DoF hareket modeline ek kuvvetler, sürükleme, su kaldırma veya 
-    /// basitleştirilmiş kinematik integrasyon eklemek için kullanılır.
+    /// GerÃ§ek donanÄ±mda kullanÄ±lmayabilir, yalnÄ±zca simÃ¼lasyon katmanÄ±nda
+    /// 6-DoF hareket modeline ek kuvvetler, sÃ¼rÃ¼kleme, su kaldÄ±rma veya 
+    /// basitleÅŸtirilmiÅŸ kinematik integrasyon eklemek iÃ§in kullanÄ±lÄ±r.
     ///
     /// Not:
-    ///  - VehicleState'in kendisi dışarıda tutulur (örn. SimStateManager).
-    ///  - Bu arayüz 'Propagate' adımıyla iç modelini dt kadar ilerletir.
-    ///  - Gerçek donanımda uygulanması zorunlu değildir.
+    ///  - VehicleState'in kendisi dÄ±ÅŸarÄ±da tutulur (Ã¶rn. SimStateManager).
+    ///  - Bu arayÃ¼z 'Propagate' adÄ±mÄ±yla iÃ§ modelini dt kadar ilerletir.
+    ///  - GerÃ§ek donanÄ±mda uygulanmasÄ± zorunlu deÄŸildir.
     /// </summary>
     public interface IKinematics
     {
         /// <summary>
-        /// Simülasyon zamanını dt saniye ilerletir.
-        /// İç kinematik/dinamik modeli günceller.
+        /// SimÃ¼lasyon zamanÄ±nÄ± dt saniye ilerletir.
+        /// Ä°Ã§ kinematik/dinamik modeli gÃ¼nceller.
         /// </summary>
         void Propagate(double dtSeconds);
     }
 }
+

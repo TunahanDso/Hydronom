@@ -1,55 +1,55 @@
-namespace Hydronom.Core.Fleet;
+﻿namespace Hydronom.Core.Fleet;
 
 using Hydronom.Core.Communication;
 
 /// <summary>
-/// Bir Hydronom node'unun yer istasyonuna veya başka bir node'a
-/// "ben hayattayım ve şu durumdayım" demesi için kullanılan heartbeat mesajıdır.
+/// Bir Hydronom node'unun yer istasyonuna veya baÅŸka bir node'a
+/// "ben hayattayÄ±m ve ÅŸu durumdayÄ±m" demesi iÃ§in kullanÄ±lan heartbeat mesajÄ±dÄ±r.
 /// 
-/// Fleet & Ground Station mimarisinde heartbeat çok kritiktir.
-/// Çünkü yer istasyonu araçların:
-/// - Hâlâ online olup olmadığını,
-/// - En son ne zaman görüldüğünü,
-/// - Hangi durumda olduğunu,
-/// - Hangi transport kanallarını kullanabildiğini,
-/// - Basit health/batarya/görev bilgisini
-/// bu mesajlarla güncel tutar.
+/// Fleet & Ground Station mimarisinde heartbeat Ã§ok kritiktir.
+/// Ã‡Ã¼nkÃ¼ yer istasyonu araÃ§larÄ±n:
+/// - HÃ¢lÃ¢ online olup olmadÄ±ÄŸÄ±nÄ±,
+/// - En son ne zaman gÃ¶rÃ¼ldÃ¼ÄŸÃ¼nÃ¼,
+/// - Hangi durumda olduÄŸunu,
+/// - Hangi transport kanallarÄ±nÄ± kullanabildiÄŸini,
+/// - Basit health/batarya/gÃ¶rev bilgisini
+/// bu mesajlarla gÃ¼ncel tutar.
 /// 
-/// Bu model genellikle HydronomEnvelope.Payload içinde taşınır.
-/// MessageType örneği:
+/// Bu model genellikle HydronomEnvelope.Payload iÃ§inde taÅŸÄ±nÄ±r.
+/// MessageType Ã¶rneÄŸi:
 /// "FleetHeartbeat"
 /// </summary>
 public sealed record FleetHeartbeat
 {
     /// <summary>
-    /// Heartbeat gönderen node'un kimliği.
+    /// Heartbeat gÃ¶nderen node'un kimliÄŸi.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - VEHICLE-ALPHA-001
     /// - GROUND-001
     /// - OPS-GATEWAY-001
     /// 
-    /// FleetRegistry bu kimlik üzerinden node durumunu günceller.
+    /// FleetRegistry bu kimlik Ã¼zerinden node durumunu gÃ¼nceller.
     /// </summary>
     public NodeIdentity Identity { get; init; } = new();
 
     /// <summary>
-    /// Heartbeat mesajının üretildiği UTC zaman damgası.
+    /// Heartbeat mesajÄ±nÄ±n Ã¼retildiÄŸi UTC zaman damgasÄ±.
     /// 
-    /// Bu alan, mesajın ne kadar taze olduğunu anlamak için kullanılır.
-    /// Yer istasyonu bu zamanla kendi aldığı zamanı karşılaştırarak:
+    /// Bu alan, mesajÄ±n ne kadar taze olduÄŸunu anlamak iÃ§in kullanÄ±lÄ±r.
+    /// Yer istasyonu bu zamanla kendi aldÄ±ÄŸÄ± zamanÄ± karÅŸÄ±laÅŸtÄ±rarak:
     /// - Gecikme,
-    /// - Saat farkı,
-    /// - Bağlantı tazeliği,
+    /// - Saat farkÄ±,
+    /// - BaÄŸlantÄ± tazeliÄŸi,
     /// - Replay/stale mesaj
-    /// kontrolü yapabilir.
+    /// kontrolÃ¼ yapabilir.
     /// </summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Node'un genel çalışma modu.
+    /// Node'un genel Ã§alÄ±ÅŸma modu.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Idle"
     /// - "Autonomous"
     /// - "Manual"
@@ -59,41 +59,41 @@ public sealed record FleetHeartbeat
     /// - "EmergencyStop"
     /// - "Simulation"
     /// 
-    /// Bu bilgi Hydronom Ops üzerinde araç kartında hızlıca gösterilebilir.
+    /// Bu bilgi Hydronom Ops Ã¼zerinde araÃ§ kartÄ±nda hÄ±zlÄ±ca gÃ¶sterilebilir.
     /// </summary>
     public string Mode { get; init; } = "Unknown";
 
     /// <summary>
-    /// Node'un genel sağlık durumu.
+    /// Node'un genel saÄŸlÄ±k durumu.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "OK"
     /// - "Warning"
     /// - "Critical"
     /// - "Fault"
     /// - "Unknown"
     /// 
-    /// Detaylı health analizi ayrı mesajlarla taşınabilir.
-    /// Heartbeat içinde bu alan sadece hızlı özet içindir.
+    /// DetaylÄ± health analizi ayrÄ± mesajlarla taÅŸÄ±nabilir.
+    /// Heartbeat iÃ§inde bu alan sadece hÄ±zlÄ± Ã¶zet iÃ§indir.
     /// </summary>
     public string Health { get; init; } = "Unknown";
 
     /// <summary>
-    /// Batarya yüzdesi.
+    /// Batarya yÃ¼zdesi.
     /// 
-    /// Değer normalde 0-100 arasıdır.
+    /// DeÄŸer normalde 0-100 arasÄ±dÄ±r.
     /// null ise:
     /// - Batarya bilgisi yoktur.
-    /// - Node araç değildir.
-    /// - Power sistemi henüz rapor üretmemiştir.
+    /// - Node araÃ§ deÄŸildir.
+    /// - Power sistemi henÃ¼z rapor Ã¼retmemiÅŸtir.
     /// </summary>
     public double? BatteryPercent { get; init; }
 
     /// <summary>
-    /// Aktif görev kimliği.
+    /// Aktif gÃ¶rev kimliÄŸi.
     /// 
-    /// Boş olabilir.
-    /// Örnek:
+    /// BoÅŸ olabilir.
+    /// Ã–rnek:
     /// - "MISSION-2026-001"
     /// - "SURVEY-AREA-A"
     /// - "RETURN-HOME"
@@ -101,9 +101,9 @@ public sealed record FleetHeartbeat
     public string ActiveMissionId { get; init; } = string.Empty;
 
     /// <summary>
-    /// Aktif görevin kısa durum özeti.
+    /// Aktif gÃ¶revin kÄ±sa durum Ã¶zeti.
     /// 
-    /// Örnekler:
+    /// Ã–rnekler:
     /// - "Idle"
     /// - "Running"
     /// - "Paused"
@@ -128,65 +128,65 @@ public sealed record FleetHeartbeat
     public double? Longitude { get; init; }
 
     /// <summary>
-    /// Son bilinen heading değeri.
+    /// Son bilinen heading deÄŸeri.
     /// 
     /// Derece cinsindendir.
     /// </summary>
     public double? HeadingDeg { get; init; }
 
     /// <summary>
-    /// Son bilinen hız.
+    /// Son bilinen hÄ±z.
     /// 
     /// Metre/saniye cinsindendir.
     /// </summary>
     public double? SpeedMps { get; init; }
 
     /// <summary>
-    /// Heartbeat anında node'un kullanılabilir gördüğü transport kanalları.
+    /// Heartbeat anÄ±nda node'un kullanÄ±labilir gÃ¶rdÃ¼ÄŸÃ¼ transport kanallarÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - Tcp
     /// - WebSocket
     /// - LoRa
     /// - RfModem
     /// 
-    /// Yer istasyonu bu bilgiyle hangi araca hangi kanaldan ulaşabileceğini anlayabilir.
+    /// Yer istasyonu bu bilgiyle hangi araca hangi kanaldan ulaÅŸabileceÄŸini anlayabilir.
     /// </summary>
     public IReadOnlyList<TransportKind> AvailableTransports { get; init; } =
         Array.Empty<TransportKind>();
 
     /// <summary>
-    /// Node'un özet kabiliyet listesi.
+    /// Node'un Ã¶zet kabiliyet listesi.
     /// 
-    /// Bu heartbeat içinde gönderilebilir; fakat çok büyük capability listeleri için
-    /// ileride ayrı CapabilityAnnouncement mesajı da kullanılabilir.
+    /// Bu heartbeat iÃ§inde gÃ¶nderilebilir; fakat Ã§ok bÃ¼yÃ¼k capability listeleri iÃ§in
+    /// ileride ayrÄ± CapabilityAnnouncement mesajÄ± da kullanÄ±labilir.
     /// 
-    /// İlk sürümde heartbeat ile beraber göndermek pratik olacaktır.
+    /// Ä°lk sÃ¼rÃ¼mde heartbeat ile beraber gÃ¶ndermek pratik olacaktÄ±r.
     /// </summary>
     public IReadOnlyList<VehicleCapability> Capabilities { get; init; } =
         Array.Empty<VehicleCapability>();
 
     /// <summary>
-    /// Ek heartbeat metadata alanı.
+    /// Ek heartbeat metadata alanÄ±.
     /// 
-    /// Örnek:
+    /// Ã–rnek:
     /// - "frameAgeMs": "24"
     /// - "cpuLoad": "32"
     /// - "runtimeHz": "19"
     /// - "linkQuality": "Good"
     /// - "source": "runtime"
     /// 
-    /// Bu alan ilk fazda esneklik sağlar.
-    /// Daha sonra sabit ihtiyaçlar netleşirse ayrı güçlü tiplere taşınabilir.
+    /// Bu alan ilk fazda esneklik saÄŸlar.
+    /// Daha sonra sabit ihtiyaÃ§lar netleÅŸirse ayrÄ± gÃ¼Ã§lÃ¼ tiplere taÅŸÄ±nabilir.
     /// </summary>
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
     /// <summary>
-    /// Heartbeat bilgisinden VehicleNodeStatus üretir.
+    /// Heartbeat bilgisinden VehicleNodeStatus Ã¼retir.
     /// 
-    /// FleetRegistry heartbeat aldığında node durumunu güncellemek için
-    /// bu yardımcı metodu kullanabilir.
+    /// FleetRegistry heartbeat aldÄ±ÄŸÄ±nda node durumunu gÃ¼ncellemek iÃ§in
+    /// bu yardÄ±mcÄ± metodu kullanabilir.
     /// </summary>
     public VehicleNodeStatus ToStatus()
     {
@@ -210,9 +210,9 @@ public sealed record FleetHeartbeat
     }
 
     /// <summary>
-    /// Heartbeat mesajının temel olarak geçerli olup olmadığını döndürür.
+    /// Heartbeat mesajÄ±nÄ±n temel olarak geÃ§erli olup olmadÄ±ÄŸÄ±nÄ± dÃ¶ndÃ¼rÃ¼r.
     /// 
-    /// Geçerli bir heartbeat için en azından node kimliği geçerli olmalıdır.
+    /// GeÃ§erli bir heartbeat iÃ§in en azÄ±ndan node kimliÄŸi geÃ§erli olmalÄ±dÄ±r.
     /// </summary>
     public bool IsValid =>
         Identity.IsValid;

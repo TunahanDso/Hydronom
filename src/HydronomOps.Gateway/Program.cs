@@ -1,4 +1,4 @@
-using HydronomOps.Gateway.BackgroundJobs;
+﻿using HydronomOps.Gateway.BackgroundJobs;
 using HydronomOps.Gateway.Configuration;
 using HydronomOps.Gateway.Endpoints;
 using HydronomOps.Gateway.Infrastructure.Broadcast;
