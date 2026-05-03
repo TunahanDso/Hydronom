@@ -5,6 +5,7 @@ using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Sensors.Common.Quality;
 using Hydronom.Core.Sensors.Common.Timing;
 using Hydronom.Core.Sensors.Imu.Models;
+using Hydronom.Core.Simulation.Truth;
 using Hydronom.Runtime.Sensors.Sim;
 
 namespace Hydronom.Runtime.Sensors.Imu;
@@ -14,11 +15,18 @@ namespace Hydronom.Runtime.Sensors.Imu;
 ///
 /// Bu sınıf artık eski anlamda genel sensör değil, ISensorBackend implementasyonudur.
 /// Runtime bu backend'i açar, okur, health/capability bilgisini toplar.
+///
+/// Yeni davranış:
+/// - Eğer IPhysicsTruthProvider verilmişse IMU ölçümü PhysicsTruthState üzerinden üretilir.
+/// - Eğer truth provider yoksa eski procedural sim davranışı korunur.
+///
+/// Bu geçiş sayesinde mevcut smoke test kırılmaz, ama C# Primary mimaride doğru truth-fed sim sensör yapısına geçilir.
 /// </summary>
 public sealed class SimImuSensor : ISensorBackend
 {
     private readonly ImuSensorOptions _options;
     private readonly SimSensorClock _clock;
+    private readonly IPhysicsTruthProvider? _truthProvider;
     private readonly Random _random = new();
 
     private bool _isOpen;
@@ -31,10 +39,14 @@ public sealed class SimImuSensor : ISensorBackend
     private int _consecutiveFailureCount;
     private string _lastError = "";
 
-    public SimImuSensor(ImuSensorOptions? options = null, SimSensorClock? clock = null)
+    public SimImuSensor(
+        ImuSensorOptions? options = null,
+        SimSensorClock? clock = null,
+        IPhysicsTruthProvider? truthProvider = null)
     {
         _options = options ?? ImuSensorOptions.Default();
         _clock = clock ?? new SimSensorClock();
+        _truthProvider = truthProvider;
 
         Identity = SensorIdentity.Create(
             sensorId: "imu0",
@@ -109,29 +121,26 @@ public sealed class SimImuSensor : ISensorBackend
 
         var receiveUtc = DateTime.UtcNow;
         var captureUtc = _clock.NowUtc.UtcDateTime;
-        var t = Math.Max(0.0, _clock.Elapsed.TotalSeconds);
 
         try
         {
-            var yawDeg = NormalizeDeg(_options.SimYawRateDegPerSec * t);
-            var yawRateRad = DegToRad(_options.SimYawRateDegPerSec);
-
-            var rollDeg = _options.SimRollAmplitudeDeg * Math.Sin(t * 0.7);
-            var pitchDeg = _options.SimPitchAmplitudeDeg * Math.Sin(t * 0.45);
+            var measurement = TryReadTruthMeasurement(out var truthMeasurement)
+                ? truthMeasurement
+                : CreateProceduralMeasurement();
 
             var data = new ImuSampleData(
-                Ax: Noise(),
-                Ay: Noise(),
-                Az: 9.80665 + Noise(),
-                GxRadSec: Noise() * 0.1,
-                GyRadSec: Noise() * 0.1,
-                GzRadSec: yawRateRad,
+                Ax: measurement.Ax,
+                Ay: measurement.Ay,
+                Az: measurement.Az,
+                GxRadSec: measurement.GxRadSec,
+                GyRadSec: measurement.GyRadSec,
+                GzRadSec: measurement.GzRadSec,
                 Mx: null,
                 My: null,
                 Mz: null,
-                RollDeg: rollDeg,
-                PitchDeg: pitchDeg,
-                YawDeg: yawDeg,
+                RollDeg: measurement.RollDeg,
+                PitchDeg: measurement.PitchDeg,
+                YawDeg: measurement.YawDeg,
                 TemperatureC: _options.SimTemperatureC + Noise() * 2.0
             ).Sanitized();
 
@@ -146,7 +155,7 @@ public sealed class SimImuSensor : ISensorBackend
             var quality = SensorQuality
                 .Good(
                     backendKind: SensorBackendKind.Sim,
-                    backendName: "sim_imu",
+                    backendName: measurement.SourceName,
                     simulated: true,
                     confidence: 1.0
                 )
@@ -242,6 +251,69 @@ public sealed class SimImuSensor : ISensorBackend
         return ValueTask.FromResult(GetHealthSnapshot());
     }
 
+    private bool TryReadTruthMeasurement(out ImuMeasurement measurement)
+    {
+        measurement = default;
+
+        if (_truthProvider is null || !_truthProvider.IsAvailable)
+            return false;
+
+        var truth = _truthProvider.GetLatestTruth().Sanitized();
+
+        if (!truth.IsFinite)
+            return false;
+
+        /*
+         * IMU truth-fed ölçüm:
+         * - Acceleration: fizik truth ivmesi + küçük noise
+         * - Angular velocity: truth açısal hızları deg/s -> rad/s
+         * - Roll/Pitch/Yaw: truth orientation değerleri
+         *
+         * Not:
+         * Az kanalına 9.80665 ekliyoruz. Bu sim modelde IMU'nun yerçekimi etkisini
+         * ölçtüğü basit varsayımıdır. Daha ileri pakette frame dönüşümü ve gravity compensation
+         * ayrı fiziksel model olarak ele alınabilir.
+         */
+        measurement = new ImuMeasurement(
+            Ax: truth.Acceleration.X + Noise(),
+            Ay: truth.Acceleration.Y + Noise(),
+            Az: 9.80665 + truth.Acceleration.Z + Noise(),
+            GxRadSec: DegToRad(truth.AngularVelocityDegSec.X),
+            GyRadSec: DegToRad(truth.AngularVelocityDegSec.Y),
+            GzRadSec: DegToRad(truth.AngularVelocityDegSec.Z),
+            RollDeg: truth.Orientation.RollDeg,
+            PitchDeg: truth.Orientation.PitchDeg,
+            YawDeg: NormalizeDeg(truth.Orientation.YawDeg),
+            SourceName: "sim_imu_truth_fed"
+        );
+
+        return true;
+    }
+
+    private ImuMeasurement CreateProceduralMeasurement()
+    {
+        var t = Math.Max(0.0, _clock.Elapsed.TotalSeconds);
+
+        var yawDeg = NormalizeDeg(_options.SimYawRateDegPerSec * t);
+        var yawRateRad = DegToRad(_options.SimYawRateDegPerSec);
+
+        var rollDeg = _options.SimRollAmplitudeDeg * Math.Sin(t * 0.7);
+        var pitchDeg = _options.SimPitchAmplitudeDeg * Math.Sin(t * 0.45);
+
+        return new ImuMeasurement(
+            Ax: Noise(),
+            Ay: Noise(),
+            Az: 9.80665 + Noise(),
+            GxRadSec: Noise() * 0.1,
+            GyRadSec: Noise() * 0.1,
+            GzRadSec: yawRateRad,
+            RollDeg: rollDeg,
+            PitchDeg: pitchDeg,
+            YawDeg: yawDeg,
+            SourceName: "sim_imu_procedural"
+        );
+    }
+
     private SensorHealthState DetermineHealthState(double lastAgeMs)
     {
         if (!_isOpen)
@@ -287,4 +359,17 @@ public sealed class SimImuSensor : ISensorBackend
         var result = deg % 360.0;
         return result < 0.0 ? result + 360.0 : result;
     }
+
+    private readonly record struct ImuMeasurement(
+        double Ax,
+        double Ay,
+        double Az,
+        double GxRadSec,
+        double GyRadSec,
+        double GzRadSec,
+        double RollDeg,
+        double PitchDeg,
+        double YawDeg,
+        string SourceName
+    );
 }

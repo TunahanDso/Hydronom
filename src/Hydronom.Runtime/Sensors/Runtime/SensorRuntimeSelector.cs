@@ -2,35 +2,86 @@
 using Hydronom.Core.Sensors.Common.Capabilities;
 using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Core.Sensors.Common.Models;
+using Hydronom.Runtime.Sensors.Backends.Common;
 using Hydronom.Runtime.Sensors.PythonBackup;
 
 namespace Hydronom.Runtime.Sensors.Runtime;
 
 /// <summary>
 /// Sensör runtime seçici.
-/// CSharpPrimary normal moddur; PythonBackup yalnızca legacy/fallback içindir.
+/// 
+/// Bu sınıf artık sadece "hangi runtime sınıfı new'lenecek?" sorusunu cevaplamaz.
+/// Aynı zamanda CSharpPrimary modda registry + builder hattını kullanarak
+/// backend'leri otomatik bağlanmış bir runtime üretir.
+/// 
+/// Normal hedef:
+/// - CSharpPrimary
+/// 
+/// PythonBackup:
+/// - Yalnızca legacy/fallback modudur.
+/// - Normal authority değildir.
 /// </summary>
 public sealed class SensorRuntimeSelector
 {
     private readonly SensorRuntimeOptions _options;
+    private readonly IServiceProvider? _services;
 
-    public SensorRuntimeSelector(SensorRuntimeOptions? options = null)
+    public SensorRuntimeSelector(
+        SensorRuntimeOptions? options = null,
+        IServiceProvider? services = null)
     {
         _options = options ?? SensorRuntimeOptions.Default();
+        _services = services;
     }
 
+    /// <summary>
+    /// Seçili moda göre sensör runtime oluşturur.
+    ///
+    /// CSharpPrimary ve CompareOnly modlarında artık boş CSharpSensorRuntime dönmez.
+    /// Registry kurulur, varsayılan sim backend'ler kaydedilir ve builder üzerinden runtime oluşturulur.
+    /// </summary>
     public ISensorRuntime CreateRuntime()
     {
         return _options.Mode switch
         {
-            SensorRuntimeMode.CSharpPrimary => new CSharpSensorRuntime(_options),
+            SensorRuntimeMode.CSharpPrimary => CreateCSharpPrimaryRuntime(),
+            SensorRuntimeMode.CompareOnly => CreateCSharpPrimaryRuntime(),
             SensorRuntimeMode.PythonBackup => CreatePythonBackupOrThrow(),
-            SensorRuntimeMode.CompareOnly => new CSharpSensorRuntime(_options),
             SensorRuntimeMode.Disabled => new DisabledSensorRuntime(),
-            _ => new CSharpSensorRuntime(_options)
+            _ => CreateCSharpPrimaryRuntime()
         };
     }
 
+    /// <summary>
+    /// C# Primary sensör runtime oluşturur.
+    ///
+    /// Bu aşamada:
+    /// - SensorBackendRegistry kurulur
+    /// - sim_imu ve sim_gps varsayılan backend olarak kaydedilir
+    /// - SensorRuntimeBuilder options'a göre backend'leri runtime'a ekler
+    ///
+    /// Böylece EnableDefaultSimSensors=true, EnableImu=true, EnableGps=true iken
+    /// CSharpSensorRuntime otomatik olarak SimImuSensor + SimGpsSensor ile başlar.
+    /// </summary>
+    private ISensorRuntime CreateCSharpPrimaryRuntime()
+    {
+        var registry = new SensorBackendRegistry()
+            .RegisterDefaultSimulationBackends();
+
+        var builder = new SensorRuntimeBuilder(
+            registry: registry,
+            services: _services
+        );
+
+        return builder.Build(_options);
+    }
+
+    /// <summary>
+    /// Python backup runtime oluşturur.
+    ///
+    /// Python artık normal çalışma modunun ana authority kaynağı değildir.
+    /// Sadece açıkça PythonBackup modu seçildiğinde kullanılabilir.
+    /// </summary>
     private ISensorRuntime CreatePythonBackupOrThrow()
     {
         if (!_options.PythonBackupEnabled)
@@ -40,6 +91,11 @@ public sealed class SensorRuntimeSelector
     }
 }
 
+/// <summary>
+/// Sensör runtime'ın tamamen devre dışı olduğu mod.
+/// 
+/// Dry-run, güvenli başlatma veya sensörsüz test senaryolarında kullanılabilir.
+/// </summary>
 internal sealed class DisabledSensorRuntime : ISensorRuntime
 {
     public SensorRuntimeMode Mode => SensorRuntimeMode.Disabled;

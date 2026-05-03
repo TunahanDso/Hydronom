@@ -18,6 +18,23 @@ public sealed class CSharpSensorRuntime : ISensorRuntime
 
     private bool _isRunning;
 
+    /// <summary>
+    /// Runtime'a kayıtlı backend sayısı.
+    ///
+    /// Bu bilgi özellikle auto-wiring testlerinde önemlidir.
+    /// Örneğin CSharpPrimary + default sim sensörler açıkken beklenen başlangıç değeri genelde 2'dir:
+    /// - sim_imu
+    /// - sim_gps
+    /// </summary>
+    public int BackendCount => _backends.Count;
+
+    /// <summary>
+    /// Runtime içinde en az bir backend kayıtlı mı?
+    ///
+    /// CSharpPrimary modda bu değer false ise selector/builder/registry hattında bağlantı eksik olabilir.
+    /// </summary>
+    public bool HasBackends => _backends.Count > 0;
+
     public CSharpSensorRuntime(SensorRuntimeOptions? options = null)
     {
         _options = options ?? SensorRuntimeOptions.Default();

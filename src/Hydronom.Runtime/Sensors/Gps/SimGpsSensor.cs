@@ -5,6 +5,7 @@ using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Sensors.Common.Quality;
 using Hydronom.Core.Sensors.Common.Timing;
 using Hydronom.Core.Sensors.Gps.Models;
+using Hydronom.Core.Simulation.Truth;
 using Hydronom.Runtime.Sensors.Sim;
 
 namespace Hydronom.Runtime.Sensors.Gps;
@@ -14,6 +15,12 @@ namespace Hydronom.Runtime.Sensors.Gps;
 ///
 /// Bu sınıf artık eski anlamda genel sensör değil, ISensorBackend implementasyonudur.
 /// Runtime bu backend'i açar, okur, health/capability bilgisini toplar.
+///
+/// Yeni davranış:
+/// - Eğer IPhysicsTruthProvider verilmişse GPS ölçümü PhysicsTruthState üzerinden üretilir.
+/// - Eğer truth provider yoksa eski procedural sim davranışı korunur.
+///
+/// Bu sayede mevcut testler kırılmaz, ama C# Primary mimaride doğru yöne geçiş başlar.
 /// </summary>
 public sealed class SimGpsSensor : ISensorBackend
 {
@@ -22,6 +29,7 @@ public sealed class SimGpsSensor : ISensorBackend
 
     private readonly GpsSensorOptions _options;
     private readonly SimSensorClock _clock;
+    private readonly IPhysicsTruthProvider? _truthProvider;
     private readonly Random _random = new();
 
     private bool _isOpen;
@@ -34,10 +42,14 @@ public sealed class SimGpsSensor : ISensorBackend
     private int _consecutiveFailureCount;
     private string _lastError = "";
 
-    public SimGpsSensor(GpsSensorOptions? options = null, SimSensorClock? clock = null)
+    public SimGpsSensor(
+        GpsSensorOptions? options = null,
+        SimSensorClock? clock = null,
+        IPhysicsTruthProvider? truthProvider = null)
     {
         _options = options ?? GpsSensorOptions.Default();
         _clock = clock ?? new SimSensorClock();
+        _truthProvider = truthProvider;
 
         Identity = SensorIdentity.Create(
             sensorId: "gps0",
@@ -112,35 +124,26 @@ public sealed class SimGpsSensor : ISensorBackend
 
         var receiveUtc = DateTime.UtcNow;
         var captureUtc = _clock.NowUtc.UtcDateTime;
-        var t = Math.Max(0.0, _clock.Elapsed.TotalSeconds);
 
         try
         {
-            var x = _options.SimVxMetersPerSec * t + NoiseMeters();
-            var y = _options.SimVyMetersPerSec * t + NoiseMeters();
+            var measurement = TryReadTruthMeasurement(out var truthMeasurement)
+                ? truthMeasurement
+                : CreateProceduralMeasurement();
 
             var cosLat = Math.Cos(_options.OriginLat * DegToRad);
-            var lat = _options.OriginLat + y / LatMeters;
-            var lon = _options.OriginLon + x / Math.Max(1e-9, LatMeters * cosLat);
-
-            var speed = Math.Sqrt(
-                _options.SimVxMetersPerSec * _options.SimVxMetersPerSec +
-                _options.SimVyMetersPerSec * _options.SimVyMetersPerSec
-            );
-
-            var courseDeg = NormalizeDeg(
-                Math.Atan2(_options.SimVyMetersPerSec, _options.SimVxMetersPerSec) * 180.0 / Math.PI
-            );
+            var lat = _options.OriginLat + measurement.Y / LatMeters;
+            var lon = _options.OriginLon + measurement.X / Math.Max(1e-9, LatMeters * cosLat);
 
             var data = new GpsSampleData(
                 Latitude: lat,
                 Longitude: lon,
-                AltitudeMeters: 0.0,
-                X: x,
-                Y: y,
-                Z: 0.0,
-                SpeedMps: speed,
-                CourseDeg: courseDeg,
+                AltitudeMeters: measurement.Z,
+                X: measurement.X,
+                Y: measurement.Y,
+                Z: measurement.Z,
+                SpeedMps: measurement.SpeedMps,
+                CourseDeg: measurement.CourseDeg,
                 Hdop: _options.SimHdop,
                 FixType: 3,
                 Satellites: 14
@@ -157,7 +160,7 @@ public sealed class SimGpsSensor : ISensorBackend
             var quality = SensorQuality
                 .Good(
                     backendKind: SensorBackendKind.Sim,
-                    backendName: "sim_gps",
+                    backendName: measurement.SourceName,
                     simulated: true,
                     confidence: ComputeConfidenceFromHdop(_options.SimHdop)
                 )
@@ -253,6 +256,76 @@ public sealed class SimGpsSensor : ISensorBackend
         return ValueTask.FromResult(GetHealthSnapshot());
     }
 
+    private bool TryReadTruthMeasurement(out GpsMeasurement measurement)
+    {
+        measurement = default;
+
+        if (_truthProvider is null || !_truthProvider.IsAvailable)
+            return false;
+
+        var truth = _truthProvider.GetLatestTruth().Sanitized();
+
+        if (!truth.IsFinite)
+            return false;
+
+        /*
+         * GPS local position:
+         * PhysicsTruthState.Position map/world frame içindeki sim gerçek konumudur.
+         * Buraya GPS noise ekliyoruz çünkü gerçek GPS kusursuz truth vermez.
+         */
+        var x = truth.Position.X + NoiseMeters();
+        var y = truth.Position.Y + NoiseMeters();
+        var z = truth.Position.Z;
+
+        var vx = truth.Velocity.X;
+        var vy = truth.Velocity.Y;
+        var vz = truth.Velocity.Z;
+
+        var speed = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+
+        var courseDeg = speed > 1e-6
+            ? NormalizeDeg(Math.Atan2(vy, vx) * 180.0 / Math.PI)
+            : 0.0;
+
+        measurement = new GpsMeasurement(
+            X: x,
+            Y: y,
+            Z: z,
+            SpeedMps: speed,
+            CourseDeg: courseDeg,
+            SourceName: "sim_gps_truth_fed"
+        );
+
+        return true;
+    }
+
+    private GpsMeasurement CreateProceduralMeasurement()
+    {
+        var t = Math.Max(0.0, _clock.Elapsed.TotalSeconds);
+
+        var x = _options.SimVxMetersPerSec * t + NoiseMeters();
+        var y = _options.SimVyMetersPerSec * t + NoiseMeters();
+        var z = 0.0;
+
+        var speed = Math.Sqrt(
+            _options.SimVxMetersPerSec * _options.SimVxMetersPerSec +
+            _options.SimVyMetersPerSec * _options.SimVyMetersPerSec
+        );
+
+        var courseDeg = NormalizeDeg(
+            Math.Atan2(_options.SimVyMetersPerSec, _options.SimVxMetersPerSec) * 180.0 / Math.PI
+        );
+
+        return new GpsMeasurement(
+            X: x,
+            Y: y,
+            Z: z,
+            SpeedMps: speed,
+            CourseDeg: courseDeg,
+            SourceName: "sim_gps_procedural"
+        );
+    }
+
     private SensorHealthState DetermineHealthState(double lastAgeMs)
     {
         if (!_isOpen)
@@ -313,4 +386,13 @@ public sealed class SimGpsSensor : ISensorBackend
         var result = deg % 360.0;
         return result < 0.0 ? result + 360.0 : result;
     }
+
+    private readonly record struct GpsMeasurement(
+        double X,
+        double Y,
+        double Z,
+        double SpeedMps,
+        double CourseDeg,
+        string SourceName
+    );
 }
