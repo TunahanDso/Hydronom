@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HydronomOps.Gateway.Runtime
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.TelemetryHostSmokeTest", "tests\Hydronom.Runtime.TelemetryHostSmokeTest\Hydronom.Runtime.TelemetryHostSmokeTest.csproj", "{A71BB8ED-52BD-4009-8A44-8F21000AE093}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.TelemetryPipelineSmokeTest", "tests\Hydronom.Runtime.TelemetryPipelineSmokeTest\Hydronom.Runtime.TelemetryPipelineSmokeTest.csproj", "{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -213,6 +215,18 @@ Global
 		{A71BB8ED-52BD-4009-8A44-8F21000AE093}.Release|x64.Build.0 = Release|Any CPU
 		{A71BB8ED-52BD-4009-8A44-8F21000AE093}.Release|x86.ActiveCfg = Release|Any CPU
 		{A71BB8ED-52BD-4009-8A44-8F21000AE093}.Release|x86.Build.0 = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|x64.Build.0 = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Debug|x86.Build.0 = Debug|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|x64.ActiveCfg = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|x64.Build.0 = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|x86.ActiveCfg = Release|Any CPU
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -232,5 +246,6 @@ Global
 		{4EF3AE27-964B-4D30-BD1B-2359DA1A3245} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{9335B247-661C-43C6-AF74-73C5E9D93304} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A71BB8ED-52BD-4009-8A44-8F21000AE093} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{FD37B51B-AA34-4BA7-9F76-353F3991EBA6} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
