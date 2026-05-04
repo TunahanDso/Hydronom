@@ -97,6 +97,22 @@ public sealed record RuntimeScenarioTickResult
     public bool YawRateSettled { get; init; }
 
     /// <summary>
+    /// Hedefe yönelim hatası.
+    /// Mutlak değer küçüldükçe araç hedefe daha hizalıdır.
+    /// </summary>
+    public double HeadingErrorDeg { get; init; }
+
+    /// <summary>
+    /// Heading arrival için uygun mu?
+    /// </summary>
+    public bool HeadingSettled { get; init; }
+
+    /// <summary>
+    /// Tüm settle koşulları birlikte ne kadar süredir sağlanıyor?
+    /// </summary>
+    public double SettleElapsedSeconds { get; init; }
+
+    /// <summary>
     /// Settle süresi doldu mu?
     /// </summary>
     public bool SettleSatisfied { get; init; }

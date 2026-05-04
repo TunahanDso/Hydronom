@@ -5,28 +5,24 @@ namespace Hydronom.Runtime.Scenarios.Runtime;
 
 /// <summary>
 /// Runtime scenario objective ilerlemesini takip eder.
-/// 
-/// Bu sınıf gerçek runtime loop içinde şu soruyu cevaplar:
-/// "Araç aktif scenario hedefine gerçekten vardı mı, sıradaki objective'e geçmeli miyiz?"
 ///
-/// Karar yalnızca mesafeye bakmaz:
-/// - 3D hedef mesafesi
-/// - yatay hedef mesafesi
-/// - lineer hız
-/// - yaw rate
-/// - tolerans içinde kalma süresi
-///
-/// Böylece araç hedef toleransına anlık girip yüksek hızla geçerse objective hemen tamamlanmaz.
+/// v2:
+/// Objective completion artık sadece mesafeye bakmaz.
+/// Completion için:
+/// - hedef toleransı içinde olmak
+/// - hızın düşmüş olması
+/// - yaw rate'in sakinleşmiş olması
+/// - heading error'ın kabul edilebilir olması
+/// - bu koşulların belirli süre birlikte korunması
+/// gerekir.
 /// </summary>
 public sealed class RuntimeScenarioObjectiveTracker
 {
-    private string? _settleObjectiveId;
-    private DateTime? _insideToleranceSinceUtc;
+    private const double DefaultMaxArrivalHeadingErrorDeg = 18.0;
 
-    /// <summary>
-    /// Aktif objective için ilerlemeyi değerlendirir ve gerekiyorsa session içindeki
-    /// completed/current objective durumunu günceller.
-    /// </summary>
+    private string? _settleObjectiveId;
+    private DateTime? _settleSinceUtc;
+
     public RuntimeScenarioObjectiveTrackerResult Evaluate(
         RuntimeScenarioSession session,
         VehicleState vehicleState,
@@ -53,6 +49,8 @@ public sealed class RuntimeScenarioObjectiveTracker
                 session.Complete(now);
             }
 
+            ResetSettleState();
+
             return new RuntimeScenarioObjectiveTrackerResult
             {
                 ScenarioId = session.Plan.ScenarioId,
@@ -69,6 +67,9 @@ public sealed class RuntimeScenarioObjectiveTracker
                 InsideTolerance = false,
                 SpeedSettled = true,
                 YawRateSettled = true,
+                HeadingErrorDeg = 0.0,
+                HeadingSettled = true,
+                SettleElapsedSeconds = 0.0,
                 SettleSatisfied = true,
                 ObjectiveCompleted = false,
                 AllObjectivesCompleted = allDone,
@@ -83,6 +84,7 @@ public sealed class RuntimeScenarioObjectiveTracker
         {
             session.SetCurrentObjective(currentTarget.ObjectiveId);
             previousObjectiveId = currentTarget.ObjectiveId;
+            ResetSettleState();
         }
 
         var state = vehicleState.Sanitized();
@@ -94,15 +96,10 @@ public sealed class RuntimeScenarioObjectiveTracker
 
         var insideTolerance = distance3D <= tolerance;
 
-        UpdateSettleState(
-            objectiveId: currentTarget.ObjectiveId,
-            insideTolerance: insideTolerance,
-            now: now);
-
-        var settleSatisfied = IsSettleSatisfied(safeOptions, now);
-
         var speed = ComputeSpeed(state.LinearVelocity);
         var yawRateAbs = Math.Abs(Safe(state.AngularVelocity.Z));
+        var headingErrorDeg = ComputeHeadingErrorDeg(state, currentTarget.Target);
+        var headingErrorAbs = Math.Abs(headingErrorDeg);
 
         var speedSettled =
             safeOptions.MaxArrivalSpeedMps <= 0.0 ||
@@ -112,11 +109,27 @@ public sealed class RuntimeScenarioObjectiveTracker
             safeOptions.MaxArrivalYawRateDegPerSec <= 0.0 ||
             yawRateAbs <= safeOptions.MaxArrivalYawRateDegPerSec;
 
-        var objectiveCompleted =
-            safeOptions.UseDistanceTrackerForAdvance &&
+        var headingSettled =
+            headingErrorAbs <= DefaultMaxArrivalHeadingErrorDeg ||
+            distance3D <= Math.Max(0.35, tolerance * 0.55);
+
+        var allSettleInputsSatisfied =
             insideTolerance &&
             speedSettled &&
             yawRateSettled &&
+            headingSettled;
+
+        UpdateSettleState(
+            objectiveId: currentTarget.ObjectiveId,
+            allSettleInputsSatisfied: allSettleInputsSatisfied,
+            now: now);
+
+        var settleElapsed = ComputeSettleElapsed(now);
+        var settleSatisfied = IsSettleSatisfied(safeOptions, settleElapsed);
+
+        var objectiveCompleted =
+            safeOptions.UseDistanceTrackerForAdvance &&
+            allSettleInputsSatisfied &&
             settleSatisfied;
 
         string? completedObjectiveId = null;
@@ -162,6 +175,9 @@ public sealed class RuntimeScenarioObjectiveTracker
             InsideTolerance = insideTolerance,
             SpeedSettled = speedSettled,
             YawRateSettled = yawRateSettled,
+            HeadingErrorDeg = headingErrorDeg,
+            HeadingSettled = headingSettled,
+            SettleElapsedSeconds = settleElapsed,
             SettleSatisfied = settleSatisfied,
             ObjectiveCompleted = objectiveCompleted,
             AllObjectivesCompleted = allObjectivesCompleted,
@@ -174,14 +190,15 @@ public sealed class RuntimeScenarioObjectiveTracker
                 insideTolerance,
                 speed,
                 yawRateAbs,
+                headingErrorDeg,
+                headingSettled,
+                settleElapsed,
+                settleSatisfied,
                 objectiveCompleted,
                 completedObjectiveId)
         };
     }
 
-    /// <summary>
-    /// Tracker içindeki settle state'i temizler.
-    /// </summary>
     public void Reset()
     {
         ResetSettleState();
@@ -189,10 +206,10 @@ public sealed class RuntimeScenarioObjectiveTracker
 
     private void UpdateSettleState(
         string objectiveId,
-        bool insideTolerance,
+        bool allSettleInputsSatisfied,
         DateTime now)
     {
-        if (!insideTolerance)
+        if (!allSettleInputsSatisfied)
         {
             ResetSettleState();
             return;
@@ -201,16 +218,33 @@ public sealed class RuntimeScenarioObjectiveTracker
         if (!string.Equals(_settleObjectiveId, objectiveId, StringComparison.OrdinalIgnoreCase))
         {
             _settleObjectiveId = objectiveId;
-            _insideToleranceSinceUtc = now;
+            _settleSinceUtc = now;
             return;
         }
 
-        _insideToleranceSinceUtc ??= now;
+        _settleSinceUtc ??= now;
     }
 
-    private bool IsSettleSatisfied(
+    private double ComputeSettleElapsed(DateTime now)
+    {
+        if (_settleSinceUtc is null)
+        {
+            return 0.0;
+        }
+
+        var elapsed = (now - _settleSinceUtc.Value).TotalSeconds;
+
+        if (!double.IsFinite(elapsed) || elapsed < 0.0)
+        {
+            return 0.0;
+        }
+
+        return elapsed;
+    }
+
+    private static bool IsSettleSatisfied(
         RuntimeScenarioExecutionOptions options,
-        DateTime now)
+        double settleElapsedSeconds)
     {
         var safeOptions = options.Sanitized();
 
@@ -219,20 +253,13 @@ public sealed class RuntimeScenarioObjectiveTracker
             return true;
         }
 
-        if (_insideToleranceSinceUtc is null)
-        {
-            return false;
-        }
-
-        var elapsed = (now - _insideToleranceSinceUtc.Value).TotalSeconds;
-
-        return elapsed >= safeOptions.SettleSeconds;
+        return settleElapsedSeconds >= safeOptions.SettleSeconds;
     }
 
     private void ResetSettleState()
     {
         _settleObjectiveId = null;
-        _insideToleranceSinceUtc = null;
+        _settleSinceUtc = null;
     }
 
     private static double ResolveTolerance(
@@ -275,6 +302,22 @@ public sealed class RuntimeScenarioObjectiveTracker
         return SafeSqrt(vx * vx + vy * vy + vz * vz);
     }
 
+    private static double ComputeHeadingErrorDeg(
+        VehicleState state,
+        Vec3 target)
+    {
+        var dx = Safe(target.X) - Safe(state.Position.X);
+        var dy = Safe(target.Y) - Safe(state.Position.Y);
+
+        if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
+        {
+            return 0.0;
+        }
+
+        var targetHeadingDeg = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        return NormalizeDeg(targetHeadingDeg - Safe(state.Orientation.YawDeg));
+    }
+
     private static double SafeSqrt(double value)
     {
         if (!double.IsFinite(value) || value <= 0.0)
@@ -290,6 +333,28 @@ public sealed class RuntimeScenarioObjectiveTracker
         return double.IsFinite(value) ? value : 0.0;
     }
 
+    private static double NormalizeDeg(double deg)
+    {
+        if (!double.IsFinite(deg))
+        {
+            return 0.0;
+        }
+
+        deg %= 360.0;
+
+        if (deg > 180.0)
+        {
+            deg -= 360.0;
+        }
+
+        if (deg < -180.0)
+        {
+            deg += 360.0;
+        }
+
+        return deg;
+    }
+
     private static string BuildSummary(
         RuntimeScenarioSession session,
         ScenarioMissionTarget currentTarget,
@@ -298,6 +363,10 @@ public sealed class RuntimeScenarioObjectiveTracker
         bool insideTolerance,
         double speed,
         double yawRateAbs,
+        double headingErrorDeg,
+        bool headingSettled,
+        double settleElapsedSeconds,
+        bool settleSatisfied,
         bool objectiveCompleted,
         string? completedObjectiveId)
     {
@@ -306,21 +375,20 @@ public sealed class RuntimeScenarioObjectiveTracker
             return
                 $"Objective completed: {completedObjectiveId}, " +
                 $"next={session.CurrentObjectiveId ?? "none"}, " +
-                $"completed={session.CompletedCount}/{session.TotalObjectiveCount}";
+                $"completed={session.CompletedCount}/{session.TotalObjectiveCount}, " +
+                $"settle={settleElapsedSeconds:F2}s";
         }
 
         return
             $"Tracking objective={currentTarget.ObjectiveId}, " +
             $"distance3D={distance3D:F2}m, tolerance={tolerance:F2}m, " +
             $"inside={insideTolerance}, speed={speed:F2}m/s, yawRate={yawRateAbs:F1}deg/s, " +
+            $"headingErr={headingErrorDeg:F1}deg, headingSettled={headingSettled}, " +
+            $"settle={settleElapsedSeconds:F2}s, settleOk={settleSatisfied}, " +
             $"completed={session.CompletedCount}/{session.TotalObjectiveCount}";
     }
 }
 
-/// <summary>
-/// Objective tracker'ın tek tick değerlendirme sonucudur.
-/// Bu sonuç daha sonra RuntimeScenarioTickResult içine taşınır.
-/// </summary>
 public sealed record RuntimeScenarioObjectiveTrackerResult
 {
     public string ScenarioId { get; init; } = string.Empty;
@@ -350,6 +418,12 @@ public sealed record RuntimeScenarioObjectiveTrackerResult
     public bool SpeedSettled { get; init; }
 
     public bool YawRateSettled { get; init; }
+
+    public double HeadingErrorDeg { get; init; }
+
+    public bool HeadingSettled { get; init; }
+
+    public double SettleElapsedSeconds { get; init; }
 
     public bool SettleSatisfied { get; init; }
 

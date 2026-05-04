@@ -103,6 +103,9 @@ public sealed class RuntimeScenarioExecutionHost
             InsideTolerance = false,
             SpeedSettled = false,
             YawRateSettled = false,
+            HeadingErrorDeg = ComputeHeadingErrorDeg(initialState, appliedTarget),
+            HeadingSettled = false,
+            SettleElapsedSeconds = 0.0,
             SettleSatisfied = false,
             ObjectiveCompleted = false,
             AllObjectivesCompleted = false,
@@ -168,6 +171,7 @@ public sealed class RuntimeScenarioExecutionHost
             ClearTaskIfNeededForTerminalState();
 
             var timeoutReport = EvaluateJudge(state, now);
+            var activeTarget = Session.CurrentTarget;
 
             var timeoutTick = new RuntimeScenarioTickResult
             {
@@ -182,12 +186,15 @@ public sealed class RuntimeScenarioExecutionHost
                 AppliedNewTask = false,
                 AppliedTarget = null,
                 VehicleState = state,
-                DistanceToCurrentTargetMeters = ComputeDistanceXY(state, Session.CurrentTarget),
-                Distance3DToCurrentTargetMeters = ComputeDistance3D(state, Session.CurrentTarget),
-                ToleranceMeters = Session.CurrentTarget?.ToleranceMeters ?? _options.DefaultToleranceMeters,
+                DistanceToCurrentTargetMeters = ComputeDistanceXY(state, activeTarget),
+                Distance3DToCurrentTargetMeters = ComputeDistance3D(state, activeTarget),
+                ToleranceMeters = activeTarget?.ToleranceMeters ?? _options.DefaultToleranceMeters,
                 InsideTolerance = false,
                 SpeedSettled = false,
                 YawRateSettled = false,
+                HeadingErrorDeg = ComputeHeadingErrorDeg(state, activeTarget),
+                HeadingSettled = false,
+                SettleElapsedSeconds = 0.0,
                 SettleSatisfied = false,
                 ObjectiveCompleted = false,
                 AllObjectivesCompleted = false,
@@ -253,6 +260,9 @@ public sealed class RuntimeScenarioExecutionHost
             InsideTolerance = trackerResult.InsideTolerance,
             SpeedSettled = trackerResult.SpeedSettled,
             YawRateSettled = trackerResult.YawRateSettled,
+            HeadingErrorDeg = trackerResult.HeadingErrorDeg,
+            HeadingSettled = trackerResult.HeadingSettled,
+            SettleElapsedSeconds = trackerResult.SettleElapsedSeconds,
             SettleSatisfied = trackerResult.SettleSatisfied,
             ObjectiveCompleted = trackerResult.ObjectiveCompleted,
             AllObjectivesCompleted = trackerResult.AllObjectivesCompleted,
@@ -273,11 +283,13 @@ public sealed class RuntimeScenarioExecutionHost
         DateTime? utcNow = null)
     {
         var now = utcNow ?? DateTime.UtcNow;
+        var state = vehicleState.Sanitized();
 
         Session.Abort(now);
         ClearTaskIfNeededForTerminalState();
 
-        var report = EvaluateJudge(vehicleState, now);
+        var report = EvaluateJudge(state, now);
+        var activeTarget = Session.CurrentTarget;
 
         var tick = new RuntimeScenarioTickResult
         {
@@ -291,13 +303,16 @@ public sealed class RuntimeScenarioExecutionHost
             CompletedObjectiveId = null,
             AppliedNewTask = false,
             AppliedTarget = null,
-            VehicleState = vehicleState.Sanitized(),
-            DistanceToCurrentTargetMeters = ComputeDistanceXY(vehicleState, Session.CurrentTarget),
-            Distance3DToCurrentTargetMeters = ComputeDistance3D(vehicleState, Session.CurrentTarget),
-            ToleranceMeters = Session.CurrentTarget?.ToleranceMeters ?? _options.DefaultToleranceMeters,
+            VehicleState = state,
+            DistanceToCurrentTargetMeters = ComputeDistanceXY(state, activeTarget),
+            Distance3DToCurrentTargetMeters = ComputeDistance3D(state, activeTarget),
+            ToleranceMeters = activeTarget?.ToleranceMeters ?? _options.DefaultToleranceMeters,
             InsideTolerance = false,
             SpeedSettled = false,
             YawRateSettled = false,
+            HeadingErrorDeg = ComputeHeadingErrorDeg(state, activeTarget),
+            HeadingSettled = false,
+            SettleElapsedSeconds = 0.0,
             SettleSatisfied = false,
             ObjectiveCompleted = false,
             AllObjectivesCompleted = false,
@@ -440,6 +455,7 @@ public sealed class RuntimeScenarioExecutionHost
         string summary)
     {
         var active = Session.CurrentTarget;
+        var safe = state.Sanitized();
 
         return new RuntimeScenarioTickResult
         {
@@ -453,13 +469,16 @@ public sealed class RuntimeScenarioExecutionHost
             CompletedObjectiveId = null,
             AppliedNewTask = false,
             AppliedTarget = null,
-            VehicleState = state.Sanitized(),
-            DistanceToCurrentTargetMeters = ComputeDistanceXY(state, active),
-            Distance3DToCurrentTargetMeters = ComputeDistance3D(state, active),
+            VehicleState = safe,
+            DistanceToCurrentTargetMeters = ComputeDistanceXY(safe, active),
+            Distance3DToCurrentTargetMeters = ComputeDistance3D(safe, active),
             ToleranceMeters = active?.ToleranceMeters ?? _options.DefaultToleranceMeters,
             InsideTolerance = false,
             SpeedSettled = false,
             YawRateSettled = false,
+            HeadingErrorDeg = ComputeHeadingErrorDeg(safe, active),
+            HeadingSettled = false,
+            SettleElapsedSeconds = 0.0,
             SettleSatisfied = false,
             ObjectiveCompleted = false,
             AllObjectivesCompleted = Session.CompletedCount >= Session.TotalObjectiveCount,
@@ -525,6 +544,29 @@ public sealed class RuntimeScenarioExecutionHost
         return SafeSqrt(dx * dx + dy * dy + dz * dz);
     }
 
+    private static double ComputeHeadingErrorDeg(
+        VehicleState state,
+        ScenarioMissionTarget? target)
+    {
+        if (target is null)
+        {
+            return 0.0;
+        }
+
+        var safe = state.Sanitized();
+
+        var dx = target.Target.X - safe.Position.X;
+        var dy = target.Target.Y - safe.Position.Y;
+
+        if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
+        {
+            return 0.0;
+        }
+
+        var targetHeadingDeg = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        return NormalizeDeg(targetHeadingDeg - safe.Orientation.YawDeg);
+    }
+
     private static double SafeSqrt(double value)
     {
         if (!double.IsFinite(value) || value <= 0.0)
@@ -533,6 +575,28 @@ public sealed class RuntimeScenarioExecutionHost
         }
 
         return Math.Sqrt(value);
+    }
+
+    private static double NormalizeDeg(double deg)
+    {
+        if (!double.IsFinite(deg))
+        {
+            return 0.0;
+        }
+
+        deg %= 360.0;
+
+        if (deg > 180.0)
+        {
+            deg -= 360.0;
+        }
+
+        if (deg < -180.0)
+        {
+            deg += 360.0;
+        }
+
+        return deg;
     }
 
     private static string BuildTickSummary(
