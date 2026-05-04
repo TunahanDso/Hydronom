@@ -23,9 +23,22 @@ interface GatewaySettingsStore {
   resetGatewaySettings: () => void;
 }
 
+/*
+ * Hydronom Ops artık varsayılan olarak gerçek Gateway websocket hattına bağlanır.
+ *
+ * Gateway:
+ *   http://localhost:5186
+ *
+ * WebSocket:
+ *   ws://localhost:5186/ws
+ *
+ * Mock mod hâlâ desteklenir; fakat default mock olmamalı.
+ * Çünkü C# Primary Runtime / Gateway / Scenario TCP Replay hattını canlı izlemek için
+ * Ops'un açılışta gerçek Gateway'e bağlanması gerekir.
+ */
 const defaultGatewaySettings = {
-  mode: "mock" as GatewayMode,
-  url: "ws://localhost:8080/ws",
+  mode: "ws" as GatewayMode,
+  url: "ws://localhost:5186/ws",
   reconnectIntervalMs: 3000,
   maxReconnectAttempts: 20
 };
@@ -40,25 +53,31 @@ export const useGatewaySettingsStore = create<GatewaySettingsStore>((set) => ({
 
   setUrl: (url) =>
     set(() => ({
-      url
+      url: normalizeGatewayUrl(url)
     })),
 
   setReconnectIntervalMs: (value) =>
     set(() => ({
-      reconnectIntervalMs: value
+      reconnectIntervalMs: sanitizePositiveInteger(value, 3000)
     })),
 
   setMaxReconnectAttempts: (value) =>
     set(() => ({
-      maxReconnectAttempts: value
+      maxReconnectAttempts: sanitizePositiveInteger(value, 20)
     })),
 
   setGatewaySettings: (payload) =>
     set(() => ({
       mode: payload.mode,
-      url: payload.url,
-      reconnectIntervalMs: payload.reconnectIntervalMs,
-      maxReconnectAttempts: payload.maxReconnectAttempts
+      url: normalizeGatewayUrl(payload.url),
+      reconnectIntervalMs: sanitizePositiveInteger(
+        payload.reconnectIntervalMs,
+        defaultGatewaySettings.reconnectIntervalMs
+      ),
+      maxReconnectAttempts: sanitizePositiveInteger(
+        payload.maxReconnectAttempts,
+        defaultGatewaySettings.maxReconnectAttempts
+      )
     })),
 
   resetGatewaySettings: () =>
@@ -66,3 +85,23 @@ export const useGatewaySettingsStore = create<GatewaySettingsStore>((set) => ({
       ...defaultGatewaySettings
     }))
 }));
+
+function normalizeGatewayUrl(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return defaultGatewaySettings.url;
+  }
+
+  return trimmed;
+}
+
+function sanitizePositiveInteger(value: number, fallback: number) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  const rounded = Math.round(value);
+
+  return rounded > 0 ? rounded : fallback;
+}
