@@ -263,6 +263,16 @@ public sealed class RuntimeScenarioController
         if (!string.IsNullOrWhiteSpace(configuredPath))
             return Path.GetFullPath(configuredPath.Trim());
 
+        var outputPath = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "Scenarios",
+                "Samples",
+                "teknofest_2026_parkur_1_point_tracking.json"));
+
+        if (File.Exists(outputPath))
+            return outputPath;
+
         return Path.GetFullPath(
             Path.Combine(
                 AppContext.BaseDirectory,
@@ -270,6 +280,9 @@ public sealed class RuntimeScenarioController
                 "..",
                 "..",
                 "..",
+                "..",
+                "src",
+                "Hydronom.Runtime",
                 "Scenarios",
                 "Samples",
                 "teknofest_2026_parkur_1_point_tracking.json"));
