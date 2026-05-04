@@ -7,7 +7,7 @@ namespace Hydronom.Core.Modules
     /// Gelişmiş çevre analizi.
     ///
     /// IAnalysisModule dışarıya hâlâ Insights döndürür.
-    /// İçeride ise obstacle, sector, clearance ve risk raporu üretir.
+    /// İçeride ise obstacle, sector, clearance, risk raporu ve operasyonel karar önerisi üretir.
     /// </summary>
     public sealed partial class AdvancedAnalysis : IAnalysisModule
     {
@@ -27,6 +27,14 @@ namespace Hydronom.Core.Modules
 
         private AdvancedAnalysisReport _lastReport = AdvancedAnalysisReport.Empty;
 
+        /*
+         * Analysis → Decision köprüsünün ilk operasyonel çıktısı.
+         *
+         * IAnalysisModule dış sözleşmesini bozmadan, karar katmanının ileride
+         * okuyabileceği daha zengin operasyonel bağlam burada tutulur.
+         */
+        private OperationalAnalysisContext _lastOperationalContext = OperationalAnalysisContext.Empty;
+
         public double AheadDistanceM { get { lock (_lock) return _aheadDistanceM; } }
         public double HalfFovDeg { get { lock (_lock) return _halfFovDeg; } }
         public int SectorCount { get { lock (_lock) return _sectorCount; } }
@@ -40,6 +48,15 @@ namespace Hydronom.Core.Modules
         public AdvancedAnalysisReport LastReport
         {
             get { lock (_lock) return _lastReport; }
+        }
+
+        /// <summary>
+        /// Son operasyonel analiz bağlamı.
+        /// Decision katmanına bağlanacak köprünün ilk çıktısıdır.
+        /// </summary>
+        public OperationalAnalysisContext LastOperationalContext
+        {
+            get { lock (_lock) return _lastOperationalContext; }
         }
 
         public AdvancedAnalysis(
@@ -119,9 +136,13 @@ namespace Hydronom.Core.Modules
             parameters = parameters.Sanitized();
 
             var report = AnalyzeObstacles(frame, parameters);
+            var operationalContext = OperationalRiskAnalyzer.Analyze(report);
 
             lock (_lock)
+            {
                 _lastReport = report;
+                _lastOperationalContext = operationalContext;
+            }
 
             return new Insights(
                 HasObstacleAhead: report.HasObstacleAhead,
