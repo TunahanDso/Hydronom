@@ -6,6 +6,7 @@ using HydronomOps.Gateway.Infrastructure.TcpIngress;
 using HydronomOps.Gateway.Infrastructure.Time;
 using HydronomOps.Gateway.Services.Health;
 using HydronomOps.Gateway.Services.Mapping;
+using HydronomOps.Gateway.Services.RuntimeOps;
 using HydronomOps.Gateway.Services.State;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,7 @@ builder.Services.AddSingleton<ISystemClock>(_ => new SystemClock());
 builder.Services.AddSingleton<IGatewayStateStore, GatewayStateStore>();
 builder.Services.AddSingleton<RuntimeToGatewayMapper>();
 builder.Services.AddSingleton<IGatewayHealthService, GatewayHealthService>();
+builder.Services.AddSingleton<IGatewayRuntimeOpsProjectionService, GatewayRuntimeOpsProjectionService>();
 
 builder.Services.AddSingleton<GatewayWebSocketConnectionManager>();
 builder.Services.AddSingleton<GatewayBroadcastService>();
@@ -48,6 +50,7 @@ app.MapGet("/", () => Results.Ok(new
 
 app.MapStatusEndpoints();
 app.MapSnapshotEndpoints();
+app.MapRuntimeOpsEndpoints();
 app.MapWebSocketEndpoints();
 
 app.Run();
