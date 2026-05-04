@@ -1,3 +1,4 @@
+using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Gps;
 using Hydronom.Runtime.Sensors.Imu;
 using Hydronom.Runtime.Sensors.Sim;
@@ -8,13 +9,9 @@ namespace Hydronom.Runtime.Sensors.Backends.Common;
 /// SensorBackendRegistry için varsayılan backend kayıtları.
 ///
 /// Bu dosyanın amacı:
-/// - Registry'nin "sim_imu" ve "sim_gps" anahtarlarını bilmesini sağlamak
+/// - Registry'nin sim sensör backend anahtarlarını bilmesini sağlamak
 /// - Runtime builder'ın backend'leri string key üzerinden oluşturabilmesini sağlamak
 /// - CSharpPrimary sensör runtime auto-wiring yolunu başlatmak
-///
-/// Not:
-/// SimImuSensor ve SimGpsSensor şu an hâlâ procedural sim veri üretir.
-/// Bir sonraki fazda bu sensörler PhysicsTruthProvider üzerinden beslenecek.
 /// </summary>
 public static class SensorBackendRegistryDefaults
 {
@@ -24,14 +21,12 @@ public static class SensorBackendRegistryDefaults
     /// Şimdilik:
     /// - sim_imu
     /// - sim_gps
-    ///
-    /// İleride:
     /// - sim_lidar
-    /// - sim_camera
-    /// - sim_depth
-    /// - sim_sonar
-    /// - sim_dvl
-    /// gibi backend'ler de buraya eklenecek.
+    ///
+    /// Not:
+    /// sim_lidar default factory ile worldModel/truthProvider olmadan da oluşturulabilir.
+    /// Gerçek raycast doğrulaması için test içinde özel registry override edilerek
+    /// truthProvider + RuntimeWorldModel verilmelidir.
     /// </summary>
     public static SensorBackendRegistry RegisterDefaultSimulationBackends(
         this SensorBackendRegistry registry,
@@ -42,9 +37,7 @@ public static class SensorBackendRegistryDefaults
 
         /*
          * Aynı clock'u paylaşmaları önemli:
-         * IMU ve GPS farklı zaman gerçekliği üretmesin.
-         * Şu an procedural simde bile ortak sim zamanı kullanılır.
-         * PhysicsTruthProvider'a geçtiğimizde de bu disiplin korunacak.
+         * IMU/GPS/LiDAR farklı zaman gerçekliği üretmesin.
          */
         var clock = sharedClock ?? new SimSensorClock();
 
@@ -57,6 +50,12 @@ public static class SensorBackendRegistryDefaults
         registry.Register(
             key: "sim_gps",
             factory: _ => new SimGpsSensor(clock: clock),
+            replaceExisting: replaceExisting
+        );
+
+        registry.Register(
+            key: "sim_lidar",
+            factory: _ => new SimLidarBackend(clock: clock),
             replaceExisting: replaceExisting
         );
 

@@ -2,10 +2,15 @@
 using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Sensors.Gps.Models;
 using Hydronom.Core.Sensors.Imu.Models;
+using Hydronom.Core.Sensors.Lidar.Models;
 using Hydronom.Core.Simulation.Truth;
+using Hydronom.Core.World.Models;
 using Hydronom.Runtime.Sensors.Backends.Common;
+using Hydronom.Runtime.Sensors.Backends.Lidar;
+using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
+using Hydronom.Runtime.World.Runtime;
 
 Console.WriteLine("=== Hydronom Runtime Sensor Smoke Test ===");
 Console.WriteLine();
@@ -22,7 +27,13 @@ Console.WriteLine();
 Console.WriteLine("------------------------------------------------------------");
 Console.WriteLine();
 
-if (!defaultResult || !truthFedResult)
+var lidarResult = await RunTruthFedLidarRaycastScenarioAsync();
+
+Console.WriteLine();
+Console.WriteLine("------------------------------------------------------------");
+Console.WriteLine();
+
+if (!defaultResult || !truthFedResult || !lidarResult)
 {
     Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine("FAIL: Sensor smoke test başarısız.");
@@ -224,6 +235,152 @@ static async Task<bool> RunTruthFedScenarioAsync()
     Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine();
     Console.WriteLine("PASS: Truth-fed sim IMU/GPS PhysicsTruthState üzerinden sample üretti.");
+    Console.ResetColor();
+
+    return true;
+}
+
+static async Task<bool> RunTruthFedLidarRaycastScenarioAsync()
+{
+    Console.WriteLine("[3] Truth-fed Sim LiDAR raycast scenario");
+    Console.WriteLine();
+
+    var truthProvider = new PhysicsTruthProvider("SmokeTestLidarTruthProvider");
+
+    var truth = new PhysicsTruthState(
+        VehicleId: "SMOKE-LIDAR-VEHICLE-001",
+        TimestampUtc: DateTime.UtcNow,
+        Position: Vec3.Zero,
+        Velocity: Vec3.Zero,
+        Acceleration: Vec3.Zero,
+        Orientation: new Orientation(0.0, 0.0, 0.0),
+        AngularVelocityDegSec: Vec3.Zero,
+        AngularAccelerationDegSec: Vec3.Zero,
+        LastAppliedLoads: PhysicsLoads.Zero,
+        EnvironmentSummary: "LIDAR_RAYCAST_SMOKE_TEST",
+        FrameId: "map",
+        TraceId: "truth-fed-lidar-smoke-test"
+    );
+
+    truthProvider.Publish(truth);
+
+    var worldModel = new RuntimeWorldModel();
+
+    worldModel.Upsert(new HydronomWorldObject
+    {
+        Id = "obstacle_front_10m",
+        Kind = "obstacle",
+        Name = "Front Obstacle 10m",
+        Layer = "obstacle",
+        X = 10.0,
+        Y = 0.0,
+        Z = 0.0,
+        Radius = 0.5,
+        IsActive = true,
+        IsBlocking = true
+    });
+
+    var options = SensorRuntimeOptions.Default();
+
+    options.Mode = SensorRuntimeMode.CSharpPrimary;
+    options.EnableDefaultSimSensors = true;
+    options.EnableImu = false;
+    options.EnableGps = false;
+    options.EnableLidar = true;
+    options.EnableCamera = false;
+
+    var lidarOptions = new LidarBackendOptions
+    {
+        SensorId = "lidar0",
+        Source = "sim_lidar",
+        FrameId = "lidar_link",
+        CalibrationId = "smoke_test_lidar",
+        RateHz = 10.0,
+        RangeMinMeters = 0.05,
+        RangeMaxMeters = 30.0,
+        FovDeg = 180.0,
+        BeamCount = 181,
+        NoiseMeters = 0.0,
+        UseWorldModel = true
+    };
+
+    var registry = new SensorBackendRegistry()
+        .Register(
+            key: "sim_lidar",
+            factory: _ => new SimLidarBackend(
+                options: lidarOptions,
+                truthProvider: truthProvider,
+                worldModel: worldModel
+            )
+        );
+
+    var builder = new SensorRuntimeBuilder(registry);
+    var runtime = builder.Build(options);
+
+    Console.WriteLine($"Runtime type : {runtime.GetType().Name}");
+    Console.WriteLine($"Runtime mode : {runtime.Mode}");
+    Console.WriteLine($"Truth available : {truthProvider.IsAvailable}");
+    Console.WriteLine($"World object count : {worldModel.Count}");
+
+    if (runtime is not CSharpSensorRuntime csharpRuntime)
+        return Fail("LiDAR runtime CSharpSensorRuntime değil.");
+
+    Console.WriteLine($"Backend count before start : {csharpRuntime.BackendCount}");
+    Console.WriteLine($"Has backends               : {csharpRuntime.HasBackends}");
+
+    if (csharpRuntime.BackendCount != 1)
+        return Fail("LiDAR senaryoda beklenen backend sayısı 1 olmalıydı.");
+
+    await runtime.StartAsync();
+
+    var samples = await runtime.ReadBatchAsync();
+
+    PrintSamples(samples);
+
+    await runtime.StopAsync();
+
+    if (samples.Count != 1)
+        return Fail($"LiDAR senaryoda 1 sample bekleniyordu. Actual={samples.Count}");
+
+    var lidarSample = samples.FirstOrDefault(x => x.DataKind == SensorDataKind.Lidar);
+
+    if (lidarSample.Data is not LaserScan scan)
+        return Fail("LiDAR sample data tipi LaserScan değil.");
+
+    Console.WriteLine();
+    Console.WriteLine("LiDAR checks:");
+    Console.WriteLine($"- Beam count       : {scan.BeamCount}");
+    Console.WriteLine($"- Has ranges       : {scan.HasRanges}");
+    Console.WriteLine($"- Nearest range    : {scan.NearestRangeMeters?.ToString("F3") ?? "null"}");
+    Console.WriteLine($"- Obstacle hints   : {scan.ObstacleHints.Count}");
+
+    if (!scan.HasRanges)
+        return Fail("LaserScan range üretmedi.");
+
+    if (scan.BeamCount != 181)
+        return Fail($"LaserScan beam count 181 olmalıydı. Actual={scan.BeamCount}");
+
+    var nearest = scan.NearestRangeMeters;
+
+    if (nearest is null)
+        return Fail("LaserScan nearest range null geldi.");
+
+    /*
+     * Obstacle merkezi 10 m'de, radius 0.5 m.
+     * Ray dairenin ön yüzeyine çarpacağı için beklenen mesafe yaklaşık 9.5 m'dir.
+     */
+    if (Math.Abs(nearest.Value - 9.5) > 0.25)
+        return Fail($"LiDAR nearest range beklenen değere yakın değil. nearest={nearest.Value:F3}, expected≈9.5");
+
+    var hasObstacleHint = scan.ObstacleHints.Any(x =>
+        x.ObjectId.Equals("obstacle_front_10m", StringComparison.OrdinalIgnoreCase));
+
+    if (!hasObstacleHint)
+        return Fail("LaserScan obstacle_front_10m için obstacle hint üretmedi.");
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine();
+    Console.WriteLine("PASS: Truth-fed Sim LiDAR RuntimeWorldModel içindeki obstacle'ı raycast ile gördü.");
     Console.ResetColor();
 
     return true;
