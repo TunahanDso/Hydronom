@@ -3,6 +3,7 @@ using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Tuning;
 using Hydronom.Runtime.Actuators;
 using Hydronom.Runtime.AI;
+using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Core.Domain.AI;
 
 using System;
@@ -26,6 +27,7 @@ public class CommandServer
     private readonly ITuningSink? _tuning;
     private readonly ActuatorManager? _actuator;
     private readonly AiGateway? _ai;
+    private readonly RuntimeScenarioController? _scenarioController;
 
     private TcpListener? _listener;
 
@@ -65,7 +67,8 @@ public class CommandServer
         ITaskManager taskManager,
         ITuningSink? tuning = null,
         ActuatorManager? actuator = null,
-        AiGateway? ai = null)
+        AiGateway? ai = null,
+        RuntimeScenarioController? scenarioController = null)
     {
         if (string.IsNullOrWhiteSpace(host))
             throw new ArgumentException("Host boş olamaz.", nameof(host));
@@ -78,6 +81,7 @@ public class CommandServer
         _tuning = tuning;
         _actuator = actuator;
         _ai = ai;
+        _scenarioController = scenarioController;
 
         var now = DateTime.UtcNow.Ticks;
         _lastHeartbeatUtcTicks = now;
@@ -135,7 +139,7 @@ public class CommandServer
                 var hello = new HelloDto
                 {
                     hello = "Hydronom CommandServer",
-                    version = 6,
+                    version = 7,
                     features = new[]
                     {
                         "6DoF",
@@ -144,7 +148,8 @@ public class CommandServer
                         "EmergencyStop",
                         "Heartbeat",
                         "ManualDrive",
-                        "Status"
+                        "Status",
+                        "RuntimeScenario"
                     }
                 };
 
@@ -229,6 +234,7 @@ public class CommandServer
                             _armed = false;
                             _manualMode = false;
                             _manualDrive = ManualDriveState.Zero;
+                            _scenarioController?.StopScenario($"Emergency stop by client#{clientId}");
                             _taskManager.ClearTask();
 
                             Console.WriteLine("[CMD] Emergency stop activated. Task cleared.");
@@ -304,6 +310,8 @@ public class CommandServer
                                 continue;
                             }
 
+                            _scenarioController?.StopScenario($"GoToPoint overrides scenario by client#{clientId}");
+
                             var target3d = new Vec3(cmd.Target.X, cmd.Target.Y, cmd.Target.Z);
                             _manualMode = false;
                             _manualDrive = ManualDriveState.Zero;
@@ -316,8 +324,90 @@ public class CommandServer
                                 msg: $"Task=GoToPoint X={target3d.X:F1} Y={target3d.Y:F1} Z={target3d.Z:F1}"
                             ).ConfigureAwait(false);
                         }
+                        else if (type.Equals("StartScenario", StringComparison.OrdinalIgnoreCase)
+                              || type.Equals("RunScenario", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (_scenarioController is null)
+                            {
+                                await SendAckAsync(writer, ok: false, msg: "Scenario controller not available").ConfigureAwait(false);
+                                continue;
+                            }
+
+                            if (_emergencyStop)
+                            {
+                                await SendAckAsync(writer, ok: false, msg: "EmergencyStop active").ConfigureAwait(false);
+                                continue;
+                            }
+
+                            _manualMode = false;
+                            _manualDrive = ManualDriveState.Zero;
+
+                            var scenarioPath = cmd.Scenario?.Path ?? cmd.ScenarioPath;
+
+                            var snapshot = await _scenarioController.StartScenarioAsync(
+                                scenarioPath,
+                                requestedBy: $"client#{clientId}",
+                                cancellationToken: ct).ConfigureAwait(false);
+
+                            var lineOut = JsonSerializer.Serialize(new ScenarioStatusResultDto
+                            {
+                                ok = snapshot.IsRunning,
+                                type = "ScenarioStatus",
+                                scenario = snapshot
+                            }, JsonOpts);
+
+                            await SafeWriteAsync(writer, lineOut + "\n").ConfigureAwait(false);
+
+                            await SendAckAsync(
+                                writer,
+                                ok: snapshot.IsRunning,
+                                msg: snapshot.Message ?? $"Scenario state={snapshot.State}"
+                            ).ConfigureAwait(false);
+                        }
+                        else if (type.Equals("StopScenario", StringComparison.OrdinalIgnoreCase)
+                              || type.Equals("AbortScenario", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (_scenarioController is null)
+                            {
+                                await SendAckAsync(writer, ok: false, msg: "Scenario controller not available").ConfigureAwait(false);
+                                continue;
+                            }
+
+                            var snapshot = _scenarioController.StopScenario($"Stopped by client#{clientId}");
+
+                            var lineOut = JsonSerializer.Serialize(new ScenarioStatusResultDto
+                            {
+                                ok = true,
+                                type = "ScenarioStatus",
+                                scenario = snapshot
+                            }, JsonOpts);
+
+                            await SafeWriteAsync(writer, lineOut + "\n").ConfigureAwait(false);
+                            await SendAckAsync(writer, ok: true, msg: snapshot.Message ?? "Scenario stopped").ConfigureAwait(false);
+                        }
+                        else if (type.Equals("GetScenarioStatus", StringComparison.OrdinalIgnoreCase)
+                              || type.Equals("ScenarioStatus", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (_scenarioController is null)
+                            {
+                                await SendAckAsync(writer, ok: false, msg: "Scenario controller not available").ConfigureAwait(false);
+                                continue;
+                            }
+
+                            var snapshot = _scenarioController.GetSnapshot();
+
+                            var lineOut = JsonSerializer.Serialize(new ScenarioStatusResultDto
+                            {
+                                ok = true,
+                                type = "ScenarioStatus",
+                                scenario = snapshot
+                            }, JsonOpts);
+
+                            await SafeWriteAsync(writer, lineOut + "\n").ConfigureAwait(false);
+                        }
                         else if (type.Equals("Stop", StringComparison.OrdinalIgnoreCase))
                         {
+                            _scenarioController?.StopScenario($"STOP by client#{clientId}");
                             _taskManager.ClearTask();
                             _manualDrive = ManualDriveState.Zero;
                             Console.WriteLine("[CMD] Task cleared (STOP).");
@@ -505,7 +595,8 @@ public class CommandServer
                     baud = _actuator.SerialBaud,
                     isOpen = _actuator.IsSerialOpen,
                     lastError = _actuator.LastSerialError
-                }
+                },
+            scenario = _scenarioController?.GetSnapshot()
         };
     }
 
@@ -696,6 +787,20 @@ public class CommandServer
         public string? Port { get; set; }
         public int? Baud { get; set; }
         public string? Goal { get; set; }
+        public string? ScenarioPath { get; set; }
+        public ScenarioCommandDto? Scenario { get; set; }
+    }
+
+    private sealed class ScenarioCommandDto
+    {
+        public string? Path { get; set; }
+    }
+
+    private sealed class ScenarioStatusResultDto
+    {
+        public bool ok { get; set; }
+        public string type { get; set; } = "ScenarioStatus";
+        public RuntimeScenarioSnapshot? scenario { get; set; }
     }
 
     private sealed class TargetDto
@@ -766,6 +871,7 @@ public class CommandServer
         public bool aiEnabled { get; set; }
         public ManualDriveDto? manual { get; set; }
         public SerialStatusDto? serial { get; set; }
+        public RuntimeScenarioSnapshot? scenario { get; set; }
     }
 
     private sealed class SerialStatusDto

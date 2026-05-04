@@ -6,6 +6,7 @@ using Hydronom.AI.Orchestration;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Modules;
+using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Tuning;
 using Hydronom.Runtime.Twin;
 
@@ -148,13 +149,22 @@ partial class Program
 
         var aiGateway = CreateAiGateway(config);
 
+        var runtimeScenarioController = new RuntimeScenarioController(
+            config,
+            tasks);
+
+        await runtimeScenarioController.AutoStartFromConfigAsync(
+            state,
+            cts.Token);
+
         var cmdSrv = new CommandServer(
             cmdHost,
             cmdPort,
             tasks,
             tuner,
             actuatorManager,
-            ai: aiGateway
+            ai: aiGateway,
+            scenarioController: runtimeScenarioController
         );
 
         _ = cmdSrv.StartAsync(cts.Token);
@@ -273,6 +283,8 @@ partial class Program
                     externalApplied,
                     ref loopState
                 );
+
+                runtimeScenarioController.Tick(state, loopState.TickIndex);
 
                 if (runtime.EnableNativeTick)
                 {
