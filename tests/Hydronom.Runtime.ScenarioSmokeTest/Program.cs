@@ -1,5 +1,8 @@
+using Hydronom.Core.Domain;
+using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
+using Hydronom.Runtime.Scenarios.Mission;
 using Hydronom.Runtime.Scenarios.Replay;
 using Hydronom.Runtime.Scenarios.Telemetry;
 using Hydronom.Runtime.Telemetry;
@@ -59,6 +62,8 @@ if (boundObjects.Count != scenario.Objects.Count(x => x.IsActive))
     throw new InvalidOperationException("Bound object count does not match active scenario object count.");
 }
 
+RunScenarioMissionAdapterSmokeTest(scenario);
+
 var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
@@ -71,6 +76,155 @@ await RunScenarioTelemetryReplayPublisherSmokeTest(executionResult);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
+
+static void RunScenarioMissionAdapterSmokeTest(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    var adapter = new ScenarioMissionAdapter();
+
+    var plan = adapter.BuildPlan(scenario);
+
+    Console.WriteLine();
+    Console.WriteLine("Scenario mission adapter report:");
+    Console.WriteLine($"  ScenarioId        : {plan.ScenarioId}");
+    Console.WriteLine($"  ScenarioName      : {plan.ScenarioName}");
+    Console.WriteLine($"  VehicleId         : {plan.VehicleId}");
+    Console.WriteLine($"  VehiclePlatform   : {plan.VehiclePlatform}");
+    Console.WriteLine($"  TargetCount       : {plan.Targets.Count}");
+    Console.WriteLine($"  MinimumScore      : {plan.MinimumSuccessScore}");
+    Console.WriteLine($"  HasTargets        : {plan.HasTargets}");
+
+    if (!plan.HasTargets)
+    {
+        throw new InvalidOperationException("Scenario mission plan should contain targets.");
+    }
+
+    if (plan.Targets.Count != scenario.Objectives.Count)
+    {
+        throw new InvalidOperationException(
+            $"Expected mission target count to match objective count. Targets={plan.Targets.Count}, Objectives={scenario.Objectives.Count}");
+    }
+
+    var first = plan.FirstTarget;
+
+    if (first is null)
+    {
+        throw new InvalidOperationException("Scenario mission plan should expose first target.");
+    }
+
+    Console.WriteLine("  First target:");
+    Console.WriteLine($"    ObjectiveId    : {first.ObjectiveId}");
+    Console.WriteLine($"    TargetObjectId : {first.TargetObjectId}");
+    Console.WriteLine($"    Target         : ({first.Target.X:F2}, {first.Target.Y:F2}, {first.Target.Z:F2})");
+    Console.WriteLine($"    Tolerance      : {first.ToleranceMeters:F2}");
+    Console.WriteLine($"    TaskName       : {first.TaskName}");
+
+    if (string.IsNullOrWhiteSpace(first.ObjectiveId))
+    {
+        throw new InvalidOperationException("First scenario mission target objective id should not be empty.");
+    }
+
+    if (string.IsNullOrWhiteSpace(first.TargetObjectId))
+    {
+        throw new InvalidOperationException("First scenario mission target object id should not be empty.");
+    }
+
+    if (!double.IsFinite(first.Target.X) ||
+        !double.IsFinite(first.Target.Y) ||
+        !double.IsFinite(first.Target.Z))
+    {
+        throw new InvalidOperationException("First scenario mission target Vec3 should be finite.");
+    }
+
+    if (first.ToleranceMeters <= 0.0)
+    {
+        throw new InvalidOperationException("First scenario mission target tolerance should be positive.");
+    }
+
+    var task = adapter.ToTaskDefinition(first);
+
+    Console.WriteLine("  First task:");
+    Console.WriteLine($"    Name           : {task.Name}");
+    Console.WriteLine($"    Target         : {FormatVec3(task.Target)}");
+    Console.WriteLine($"    Waypoints      : {task.Waypoints.Count}");
+    Console.WriteLine($"    HoldOnArrive   : {task.HoldOnArrive}");
+    Console.WriteLine($"    HasTarget      : {task.HasTarget}");
+
+    if (string.IsNullOrWhiteSpace(task.Name))
+    {
+        throw new InvalidOperationException("TaskDefinition name should not be empty.");
+    }
+
+    if (task.Target is null)
+    {
+        throw new InvalidOperationException("TaskDefinition.Target should be Vec3 for GoTo target.");
+    }
+
+    if (!task.HasTarget)
+    {
+        throw new InvalidOperationException("TaskDefinition should report HasTarget=true.");
+    }
+
+    if (task.Waypoints.Count != 1)
+    {
+        throw new InvalidOperationException($"Expected first task to contain exactly one waypoint, got {task.Waypoints.Count}.");
+    }
+
+    if (!Vec3AlmostEquals(task.Target.Value, first.Target))
+    {
+        throw new InvalidOperationException("TaskDefinition.Target does not match first scenario mission target.");
+    }
+
+    var routeTask = adapter.ToRouteTaskDefinition(plan);
+
+    Console.WriteLine("  Route task:");
+    Console.WriteLine($"    Name           : {routeTask.Name}");
+    Console.WriteLine($"    Target         : {FormatVec3(routeTask.Target)}");
+    Console.WriteLine($"    Waypoints      : {routeTask.Waypoints.Count}");
+    Console.WriteLine($"    HoldOnArrive   : {routeTask.HoldOnArrive}");
+    Console.WriteLine($"    Loop           : {routeTask.Loop}");
+    Console.WriteLine($"    HasTarget      : {routeTask.HasTarget}");
+
+    if (routeTask.Waypoints.Count != plan.Targets.Count)
+    {
+        throw new InvalidOperationException(
+            $"Route task waypoint count should match mission target count. Waypoints={routeTask.Waypoints.Count}, Targets={plan.Targets.Count}");
+    }
+
+    if (!routeTask.HasTarget)
+    {
+        throw new InvalidOperationException("Route task should report HasTarget=true.");
+    }
+
+    var taskManager = new InMemoryScenarioTaskManager();
+
+    var applied = adapter.ApplyFirstTarget(plan, taskManager);
+
+    if (taskManager.CurrentTask is null)
+    {
+        throw new InvalidOperationException("ApplyFirstTarget should set task manager CurrentTask.");
+    }
+
+    if (taskManager.SetTaskCount != 1)
+    {
+        throw new InvalidOperationException($"Expected task manager SetTask count 1, got {taskManager.SetTaskCount}.");
+    }
+
+    if (!string.Equals(applied.ObjectiveId, first.ObjectiveId, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException("Applied first target does not match plan first target.");
+    }
+
+    if (taskManager.CurrentTask.Target is null)
+    {
+        throw new InvalidOperationException("Applied task should contain Vec3 target.");
+    }
+
+    if (!Vec3AlmostEquals(taskManager.CurrentTask.Target.Value, first.Target))
+    {
+        throw new InvalidOperationException("Applied task target does not match first scenario mission target.");
+    }
+}
 
 static void RunSingleEvaluationSmokeTest(
     Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario,
@@ -461,6 +615,21 @@ static void PrintReport(Hydronom.Core.Scenarios.Reports.ScenarioRunReport report
     Console.WriteLine($"  Summary            : {report.Summary}");
 }
 
+static string FormatVec3(Vec3? value)
+{
+    return value.HasValue
+        ? $"({value.Value.X:F2}, {value.Value.Y:F2}, {value.Value.Z:F2})"
+        : "null";
+}
+
+static bool Vec3AlmostEquals(Vec3 a, Vec3 b, double epsilon = 0.0001)
+{
+    return
+        Math.Abs(a.X - b.X) <= epsilon &&
+        Math.Abs(a.Y - b.Y) <= epsilon &&
+        Math.Abs(a.Z - b.Z) <= epsilon;
+}
+
 /// <summary>
 /// Smoke test içinde gerçek TCP kullanmadan RuntimeTelemetrySummary yayınlarını yakalayan test publisher'ı.
 /// </summary>
@@ -479,5 +648,37 @@ public sealed class InMemoryRuntimeTelemetryPublisher : IRuntimeTelemetryPublish
 
         _publishedSummaries.Add(summary.Sanitized());
         return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Scenario mission adapter testinde gerçek TaskManager'a bağımlı olmadan
+/// ITaskManager.SetTask hattını doğrulayan küçük test implementation'ı.
+/// </summary>
+public sealed class InMemoryScenarioTaskManager : ITaskManager
+{
+    public TaskDefinition? CurrentTask { get; private set; }
+
+    public int SetTaskCount { get; private set; }
+
+    public int ClearTaskCount { get; private set; }
+
+    public int UpdateCount { get; private set; }
+
+    public void SetTask(TaskDefinition task)
+    {
+        CurrentTask = task;
+        SetTaskCount++;
+    }
+
+    public void Update(Insights insights, VehicleState? state = null)
+    {
+        UpdateCount++;
+    }
+
+    public void ClearTask()
+    {
+        CurrentTask = null;
+        ClearTaskCount++;
     }
 }
