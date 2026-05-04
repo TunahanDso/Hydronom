@@ -1,4 +1,5 @@
 using Hydronom.Runtime.Scenarios;
+using Hydronom.Runtime.Scenarios.Execution;
 using Hydronom.Runtime.Testing.Scenarios;
 using Hydronom.Runtime.World.Runtime;
 
@@ -59,6 +60,7 @@ var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
 RunTimelineEvaluationSmokeTest(scenario, runner);
+RunKinematicExecutionSmokeTest(scenario);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
@@ -219,9 +221,69 @@ static void RunTimelineEvaluationSmokeTest(
     }
 }
 
+static void RunKinematicExecutionSmokeTest(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    var executor = new ScenarioKinematicExecutor();
+
+    var result = executor.Execute(
+        scenario,
+        new ScenarioExecutionOptions
+        {
+            DtSeconds = 0.2,
+            CruiseSpeedMetersPerSecond = 1.5,
+            VerticalSpeedMetersPerSecond = 0.5,
+            MaxDurationSeconds = 300.0,
+            KeepTimelineSamples = true,
+            MaxStoredTimelineSamples = 5000
+        });
+
+    Console.WriteLine();
+    Console.WriteLine("Kinematic execution report:");
+    Console.WriteLine($"  RunId              : {result.RunId}");
+    Console.WriteLine($"  FinalStatus        : {result.FinalStatus}");
+    Console.WriteLine($"  IsSuccess          : {result.IsSuccess}");
+    Console.WriteLine($"  IsTimedOut         : {result.IsTimedOut}");
+    Console.WriteLine($"  SimElapsedSeconds  : {result.SimulatedElapsedSeconds}");
+    Console.WriteLine($"  TickCount          : {result.TickCount}");
+    Console.WriteLine($"  TimelineSamples    : {result.Timeline.Count}");
+    PrintReport(result.Report);
+
+    if (!result.IsSuccess)
+    {
+        throw new InvalidOperationException($"Expected kinematic execution success. Summary={result.Summary}");
+    }
+
+    if (result.IsTimedOut)
+    {
+        throw new InvalidOperationException("Kinematic execution should not time out.");
+    }
+
+    if (result.Timeline.Count == 0)
+    {
+        throw new InvalidOperationException("Expected kinematic executor to keep timeline samples.");
+    }
+
+    if (result.Report.CompletedObjectiveCount != scenario.Objectives.Count)
+    {
+        throw new InvalidOperationException(
+            $"Expected kinematic executor to complete all objectives. Completed={result.Report.CompletedObjectiveCount}, Total={scenario.Objectives.Count}");
+    }
+
+    if (!string.Equals(result.Report.FinalStatus, Hydronom.Core.Scenarios.Runtime.ScenarioRunStatus.Completed, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected report final status Completed, got {result.Report.FinalStatus}.");
+    }
+
+    if (!string.Equals(result.Report.JudgeStatus, Hydronom.Core.Scenarios.Judging.ScenarioJudgeStatus.Success, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected report judge status Success, got {result.Report.JudgeStatus}.");
+    }
+}
+
 static void PrintReport(Hydronom.Core.Scenarios.Reports.ScenarioRunReport report)
 {
-    Console.WriteLine($"  RunId              : {report.RunId}");
+    Console.WriteLine($"  ReportRunId        : {report.RunId}");
     Console.WriteLine($"  FinalStatus        : {report.FinalStatus}");
     Console.WriteLine($"  JudgeStatus        : {report.JudgeStatus}");
     Console.WriteLine($"  Score              : {report.Score}");
