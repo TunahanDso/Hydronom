@@ -13,7 +13,7 @@ using HydronomOps.Gateway.Services.State;
 namespace HydronomOps.Gateway.Infrastructure.TcpIngress;
 
 /// <summary>
-/// Runtime'tan gelen ham NDJSON satÄ±rlarÄ±nÄ± parse eder ve gateway state store'a iÅŸler.
+/// Runtime'tan gelen ham NDJSON satırlarını parse eder ve gateway state store'a işler.
 /// </summary>
 public sealed class RuntimeFrameParser
 {
@@ -40,7 +40,7 @@ public sealed class RuntimeFrameParser
     private double _lastPitchRateDeg;
     private double _lastYawRateDeg;
 
-    // GPS -> yerel XY dÃ¶nÃ¼ÅŸÃ¼mÃ¼ iÃ§in referans origin
+    // GPS -> yerel XY dönüşümü için referans origin
     private bool _gpsOriginInitialized;
     private double _originLatDeg;
     private double _originLonDeg;
@@ -72,7 +72,7 @@ public sealed class RuntimeFrameParser
                 {
                     Level = "debug",
                     Category = "parser",
-                    Message = "Type alanÄ± olmayan runtime satÄ±rÄ± alÄ±ndÄ±.",
+                    Message = "Type alanı olmayan runtime satırı alındı.",
                     Detail = TrimForLog(line),
                     TimestampUtc = DateTime.UtcNow
                 });
@@ -100,6 +100,11 @@ public sealed class RuntimeFrameParser
                     ProcessHealth(root);
                     break;
 
+                case "RuntimeTelemetrySummary":
+                case "RuntimeSummary":
+                    ProcessRuntimeTelemetrySummary(root);
+                    break;
+
                 case "Event":
                     ProcessEvent(root);
                     break;
@@ -125,7 +130,7 @@ public sealed class RuntimeFrameParser
                     {
                         Level = "debug",
                         Category = "parser",
-                        Message = $"Bilinmeyen mesaj tipi alÄ±ndÄ±: {type}",
+                        Message = $"Bilinmeyen mesaj tipi alındı: {type}",
                         Detail = TrimForLog(line),
                         TimestampUtc = DateTime.UtcNow
                     });
@@ -140,7 +145,7 @@ public sealed class RuntimeFrameParser
             {
                 Level = "error",
                 Category = "parser",
-                Message = $"Frame parse hatasÄ±: {ex.Message}",
+                Message = $"Frame parse hatası: {ex.Message}",
                 Detail = TrimForLog(line),
                 TimestampUtc = DateTime.UtcNow
             });
@@ -194,8 +199,8 @@ public sealed class RuntimeFrameParser
         if (mapped.DistanceToGoalM is not null) existing.DistanceToGoalM = mapped.DistanceToGoalM;
         if (mapped.HeadingErrorDeg is not null) existing.HeadingErrorDeg = mapped.HeadingErrorDeg;
 
-        // ExternalState Ã§oÄŸu zaman pose/twist taÅŸÄ±r.
-        // Bu yÃ¼zden boÅŸ obstacle/landmark listeleri gelirse mevcut harita bilgisini ezmeyelim.
+        // ExternalState çoğu zaman pose/twist taşır.
+        // Bu yüzden boş obstacle/landmark listeleri gelirse mevcut harita bilgisini ezmeyelim.
         if (mapped.Obstacles is not null && mapped.Obstacles.Count > 0)
         {
             existing.Obstacles = CloneObstacles(mapped.Obstacles);
@@ -265,6 +270,27 @@ public sealed class RuntimeFrameParser
         var diagnostics = _mapper.MapDiagnosticsStateFromHealth(root);
         _stateStore.SetDiagnosticsState(diagnostics);
         _stateStore.TouchRuntimeMessage("Health");
+    }
+
+    private void ProcessRuntimeTelemetrySummary(JsonElement root)
+    {
+        /*
+         * Bu mesaj C# Primary runtime tarafından üretilen ürünleşmiş runtime özetidir.
+         * Python kaynaklı sayılmamalıdır; bu yüzden MarkPythonConnected() çağırmıyoruz.
+         *
+         * Bu sayede Gateway tarafında:
+         * - RuntimeConnected true olur.
+         * - PythonConnected gereksiz yere true olmaz.
+         * - VehicleTelemetry / DiagnosticsState / SensorState runtime summary'den beslenir.
+         */
+        var vehicle = _mapper.MapVehicleTelemetryFromRuntimeSummary(root);
+        var diagnostics = _mapper.MapDiagnosticsStateFromRuntimeSummary(root);
+        var sensor = _mapper.MapSensorStateFromRuntimeSummary(root);
+
+        _stateStore.SetVehicleTelemetry(vehicle);
+        _stateStore.SetDiagnosticsState(diagnostics);
+        _stateStore.SetSensorState(sensor);
+        _stateStore.TouchRuntimeMessage("RuntimeTelemetrySummary");
     }
 
     private void ProcessEvent(JsonElement root)
@@ -583,7 +609,7 @@ public sealed class RuntimeFrameParser
         {
             Level = "debug",
             Category = "parser-sample",
-            Message = $"Ham runtime Ã¶rneÄŸi alÄ±ndÄ±. Type={type}, Index={count}",
+            Message = $"Ham runtime örneği alındı. Type={type}, Index={count}",
             Detail = TrimForLog(line),
             TimestampUtc = DateTime.UtcNow
         });
@@ -594,6 +620,8 @@ public sealed class RuntimeFrameParser
         return string.Equals(type, "FusedState", StringComparison.OrdinalIgnoreCase)
             || string.Equals(type, "Sample", StringComparison.OrdinalIgnoreCase)
             || string.Equals(type, "ExternalState", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "RuntimeTelemetrySummary", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "RuntimeSummary", StringComparison.OrdinalIgnoreCase)
             || string.Equals(type, "TwinImu", StringComparison.OrdinalIgnoreCase)
             || string.Equals(type, "TwinGps", StringComparison.OrdinalIgnoreCase);
     }
