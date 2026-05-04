@@ -4,7 +4,7 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// AdvancedDecision v3.2
+    /// AdvancedDecision v3.3
     /// ------------------------------------------------------------
     /// Platform bağımsız 6-DoF wrench tabanlı karar modülü.
     ///
@@ -16,6 +16,12 @@ namespace Hydronom.Core.Modules
     /// - Wrench üretimi
     /// - Reporting
     /// - Helper/model katmanları
+    ///
+    /// v3.3 ekleri:
+    /// - Analysis → Decision köprüsü için DecisionAdviceProfile kabul eder.
+    /// - Runtime, AdvancedAnalysis.LastOperationalContext.Advice bilgisini
+    ///   UpdateAdvice(...) üzerinden buraya aktarabilir.
+    /// - Advice yoksa nötr profil kullanılır; IDecisionModule sözleşmesi bozulmaz.
     /// ------------------------------------------------------------
     /// Not:
     /// SafetyLimiter komutu ayrıca yumuşatır.
@@ -28,8 +34,45 @@ namespace Hydronom.Core.Modules
         private double? _frozenHoldHeadingDeg = null;
         private bool _isHoldingPosition = false;
 
+        /*
+         * Analysis → Decision köprüsü.
+         *
+         * Bu değer nötr kaldığında karar modülü normal davranır.
+         * Runtime loop, AdvancedAnalysis.LastOperationalContext.Advice değerini
+         * bu modüle aktarırsa karar modülü hız/gaz/yaw/arrival davranışını
+         * operasyonel riske göre ayarlayabilir.
+         */
+        private DecisionAdviceProfile _currentAdvice = DecisionAdviceProfile.Neutral;
+
         public AdvancedDecisionReport LastDecisionReport { get; private set; } =
             AdvancedDecisionReport.Empty;
+
+        /// <summary>
+        /// Analysis katmanından gelen son operasyonel karar tavsiyesi.
+        /// Eğer runtime bu değeri güncellemezse nötr profil kullanılır.
+        /// </summary>
+        public DecisionAdviceProfile CurrentAdvice => _currentAdvice;
+
+        /// <summary>
+        /// Analysis → Decision köprüsü.
+        ///
+        /// AdvancedAnalysis.LastOperationalContext.Advice buraya aktarılabilir.
+        /// Bu metot IDecisionModule arayüzünü bozmadan AdvancedDecision'a
+        /// daha zengin operasyonel bağlam taşır.
+        /// </summary>
+        public void UpdateAdvice(DecisionAdviceProfile advice)
+        {
+            _currentAdvice = advice.Sanitized();
+        }
+
+        /// <summary>
+        /// Tavsiyeyi nötr hale getirir.
+        /// Test, fallback veya analysis yokluğu durumunda kullanılabilir.
+        /// </summary>
+        public void ClearAdvice()
+        {
+            _currentAdvice = DecisionAdviceProfile.Neutral;
+        }
 
         public DecisionCommand Decide(Insights insights, TaskDefinition? task, VehicleState state, double dt)
         {

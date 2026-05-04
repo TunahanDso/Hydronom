@@ -12,6 +12,8 @@ namespace Hydronom.Core.Modules
             double dt,
             NavigationGeometry nav)
         {
+            var advice = _currentAdvice.Sanitized();
+
             double left = SafeNonNegative(ins.ClearanceLeft, 0.0);
             double right = SafeNonNegative(ins.ClearanceRight, 0.0);
 
@@ -29,6 +31,8 @@ namespace Hydronom.Core.Modules
             double clearanceMin = Math.Min(left, right);
             double clearanceBalance = (clearanceMax - clearanceMin) / Math.Max(0.5, clearanceMax);
 
+            double urgency = Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0);
+
             double throttleNorm = 0.10;
 
             if (clearanceMin < 1.0)
@@ -36,16 +40,33 @@ namespace Hydronom.Core.Modules
             else if (clearanceMin < 2.0)
                 throttleNorm = 0.06;
 
-            double rudderNorm = (0.50 + 0.35 * Math.Clamp(clearanceBalance, 0.0, 1.0)) * sideSign;
-            rudderNorm = Math.Clamp(rudderNorm, -0.90, 0.90);
+            throttleNorm *= advice.ThrottleScale;
+
+            if (advice.RequireSlowMode)
+                throttleNorm *= 0.55;
+
+            if (advice.ForceCoast)
+                throttleNorm = 0.0;
+
+            double rudderNorm =
+                (0.50 + 0.35 * Math.Clamp(clearanceBalance, 0.0, 1.0)) *
+                sideSign;
+
+            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.25, 2.0);
+            rudderNorm *= 1.0 + urgency * 0.35;
+            rudderNorm = Math.Clamp(rudderNorm, -0.95, 0.95);
 
             var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
             var output = ScaleCommand(raw);
 
+            string reason = AppendAdviceReason(
+                $"AVOID side={(sideSign > 0 ? "right" : "left")} clearL={left:F2} clearR={right:F2}",
+                advice);
+
             return new DecisionResult(
                 RawCommand: raw,
                 OutputCommand: output,
-                Reason: $"AVOID side={(sideSign > 0 ? "right" : "left")} clearL={left:F2} clearR={right:F2}",
+                Reason: reason,
                 ThrottleNorm: throttleNorm,
                 RudderNorm: rudderNorm
             );
@@ -61,12 +82,19 @@ namespace Hydronom.Core.Modules
             double absYawRate = Math.Abs(nav.YawRateDeg);
             bool scenarioOwnedTask = task.IsExternallyCompleted;
 
-            double rudderNorm = ComputeNavigationRudder(nav, gainMultiplier: 1.0);
+            var advice = _currentAdvice.Sanitized();
+
+            double rudderNorm = ComputeNavigationRudder(
+                nav,
+                gainMultiplier: advice.YawAggressionScale);
 
             if (nav.DistanceXY < BrakeRadiusM)
             {
                 double nearBrake = nav.HeadingErrorDeg * NearYawBrakeKp - nav.YawRateDeg * NearYawBrakeKd;
-                rudderNorm = Math.Clamp(nearBrake, -1.0, 1.0);
+                rudderNorm = Math.Clamp(
+                    nearBrake * advice.YawAggressionScale,
+                    -1.0,
+                    1.0);
             }
 
             double throttleNorm = ComputeApproachThrottle(nav.DistanceXY);
@@ -77,14 +105,28 @@ namespace Hydronom.Core.Modules
             if (absDelta >= NearTurnInPlaceDeg)
                 throttleNorm = Math.Min(throttleNorm, 0.03);
 
-            var arrival = PlanMissionArrival(task, throttleNorm, nav);
+            /*
+             * Analysis tavsiyesi:
+             * - ThrottleScale genel gazı azaltır.
+             * - RequireSlowMode agresifliği düşürür.
+             * - ForceCoast ileri itmeyi keser.
+             */
+            throttleNorm *= advice.ThrottleScale;
+
+            if (advice.RequireSlowMode)
+                throttleNorm *= 0.55;
+
+            if (advice.ForceCoast)
+                throttleNorm = Math.Min(throttleNorm, 0.0);
+
+            var arrival = PlanMissionArrival(task, throttleNorm, nav, advice);
 
             throttleNorm = arrival.ThrottleNorm;
             string reason = arrival.Reason;
 
             rudderNorm = ComputeNavigationRudder(
                 nav,
-                gainMultiplier: arrival.RecommendedYawGain);
+                gainMultiplier: arrival.RecommendedYawGain * advice.YawAggressionScale);
 
             if (arrival.Phase is ArrivalPhase.Capture or ArrivalPhase.CaptureCoast)
             {
@@ -94,6 +136,24 @@ namespace Hydronom.Core.Modules
             if (arrival.Phase == ArrivalPhase.OvershootRecovery)
             {
                 rudderNorm = ComputeOvershootRecoveryRudder(nav);
+                rudderNorm = Math.Clamp(
+                    rudderNorm * advice.YawAggressionScale,
+                    -1.0,
+                    1.0);
+            }
+
+            if (advice.PreferSafeHeading && advice.ObstacleAvoidanceUrgency > 0.05)
+            {
+                rudderNorm = ApplySafeHeadingBias(
+                    rudderNorm,
+                    nav,
+                    advice);
+            }
+
+            if (advice.RecommendHold && nav.PlanarSpeedMps <= 0.35)
+            {
+                throttleNorm = 0.0;
+                reason = $"{reason}_ANALYSIS_HOLD_RECOMMENDED";
             }
 
             if (scenarioOwnedTask)
@@ -111,18 +171,24 @@ namespace Hydronom.Core.Modules
                     GeneralMaxApproachThrottleNorm);
             }
 
+            if (advice.ForceCoast && throttleNorm > 0.0)
+            {
+                throttleNorm = 0.0;
+                reason = $"{reason}_ANALYSIS_FORCE_COAST";
+            }
+
             var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
             var output = ScaleCommand(raw);
 
             var result = new DecisionResult(
                 RawCommand: raw,
                 OutputCommand: output,
-                Reason: reason,
+                Reason: AppendAdviceReason(reason, advice),
                 ThrottleNorm: throttleNorm,
                 RudderNorm: rudderNorm
             );
 
-            return ConstrainExternalScenarioCommandIfNeeded(task, result, reasonOverride: reason);
+            return ConstrainExternalScenarioCommandIfNeeded(task, result, reasonOverride: result.Reason);
         }
 
         private static double ComputeNavigationRudder(
@@ -152,6 +218,47 @@ namespace Hydronom.Core.Modules
                 rudder = nav.HeadingErrorDeg >= 0.0 ? 0.25 : -0.25;
 
             return Math.Clamp(rudder, -1.0, 1.0);
+        }
+
+        private static double ApplySafeHeadingBias(
+            double rudderNorm,
+            NavigationGeometry nav,
+            DecisionAdviceProfile advice)
+        {
+            /*
+             * İlk v1 safe-heading bias:
+             * Analysis "safe heading tercih et" diyorsa yaw tepkisi biraz daha kararlı hale gelir.
+             *
+             * İleride AdvancedAnalysis.LastReport.BestHeadingOffsetDeg doğrudan
+             * DecisionContext ile buraya taşınacak ve gerçek güvenli koridor yönü kullanılacak.
+             */
+            double urgency = Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0);
+
+            if (urgency <= 0.0)
+                return rudderNorm;
+
+            double headingSign = nav.HeadingErrorDeg >= 0.0 ? 1.0 : -1.0;
+
+            if (Math.Abs(rudderNorm) < 0.15)
+                rudderNorm = 0.15 * headingSign;
+
+            return Math.Clamp(
+                rudderNorm * (1.0 + urgency * 0.35),
+                -1.0,
+                1.0);
+        }
+
+        private static string AppendAdviceReason(
+            string reason,
+            DecisionAdviceProfile advice)
+        {
+            if (string.IsNullOrWhiteSpace(advice.PrimaryReason) ||
+                advice.PrimaryReason == "NEUTRAL")
+            {
+                return reason;
+            }
+
+            return $"{reason}_ADVICE_{advice.PrimaryReason}";
         }
 
         private static double ComputeApproachThrottle(double distanceM)

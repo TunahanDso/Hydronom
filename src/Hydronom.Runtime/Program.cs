@@ -221,6 +221,24 @@ partial class Program
                 var insights = analysis.Analyze(frameToUse);
                 var analysisReport = analysisImpl.LastReport;
 
+                /*
+                * Analysis → Decision Advice Bridge
+                *
+                * AdvancedAnalysis, IAnalysisModule sözleşmesini bozmadan dışarıya hâlâ Insights döndürür.
+                * Ancak içeride LastOperationalContext üzerinden daha zengin bir operasyonel karar tavsiyesi üretir.
+                *
+                * Bu köprü:
+                * - obstacle/sector riskinden türetilen throttle/yaw/slow-mode/coast/safe-heading tavsiyesini
+                * - AdvancedDecision içine aktarır.
+                *
+                * Böylece karar modülü sadece hedef geometrisine göre değil,
+                * analiz katmanının operasyonel risk değerlendirmesine göre de davranabilir.
+                */
+                if (decision is AdvancedDecision advancedDecision)
+                {
+                    advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
+                }
+
                 var control = SelectControlCommand(
                     cmdSrv,
                     decision,

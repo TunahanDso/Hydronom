@@ -7,8 +7,20 @@ namespace Hydronom.Core.Modules
         private static ArrivalPlan PlanMissionArrival(
             TaskDefinition task,
             double baseThrottleNorm,
-            NavigationGeometry nav)
+            NavigationGeometry nav,
+            DecisionAdviceProfile advice)
         {
+            advice = advice.Sanitized();
+
+            /*
+             * Analysis tavsiyesi arrival davranışını daha temkinli yapabilir.
+             * ArrivalCautionScale büyüdükçe:
+             * - yavaşlama yarıçapı büyür
+             * - coast daha erken başlar
+             * - capture speed düşer
+             */
+            double caution = advice.ArrivalCautionScale;
+
             if (task.IsExternallyCompleted)
             {
                 return AdaptiveArrivalPlanner.PlanScenarioArrival(
@@ -19,13 +31,13 @@ namespace Hydronom.Core.Modules
                     headingErrorDeg: nav.HeadingErrorDeg,
                     baseThrottleNorm: baseThrottleNorm,
                     captureRadiusM: ScenarioCaptureRadiusM,
-                    slowRadiusM: ScenarioSlowRadiusM,
-                    coastRadiusM: ScenarioCoastRadiusM,
-                    maxCaptureSpeedMps: ScenarioMaxCaptureSpeedMps,
+                    slowRadiusM: ScenarioSlowRadiusM * caution,
+                    coastRadiusM: ScenarioCoastRadiusM * caution,
+                    maxCaptureSpeedMps: ScenarioMaxCaptureSpeedMps * advice.MaxSpeedScale,
                     desiredSpeedFloorMps: ScenarioDesiredSpeedFloorMps,
                     estimatedCoastDecelMps2: ScenarioEstimatedCoastDecelMps2,
                     creepThrottleNorm: ScenarioCreepThrottleNorm,
-                    maxApproachThrottleNorm: ScenarioMaxApproachThrottleNorm
+                    maxApproachThrottleNorm: ScenarioMaxApproachThrottleNorm * advice.ThrottleScale
                 );
             }
 
@@ -37,13 +49,13 @@ namespace Hydronom.Core.Modules
                 headingErrorDeg: nav.HeadingErrorDeg,
                 baseThrottleNorm: baseThrottleNorm,
                 captureRadiusM: GeneralArrivalCaptureRadiusM,
-                slowRadiusM: GeneralArrivalSlowRadiusM,
-                coastRadiusM: GeneralArrivalCoastRadiusM,
-                maxCaptureSpeedMps: GeneralMaxCaptureSpeedMps,
+                slowRadiusM: GeneralArrivalSlowRadiusM * caution,
+                coastRadiusM: GeneralArrivalCoastRadiusM * caution,
+                maxCaptureSpeedMps: GeneralMaxCaptureSpeedMps * advice.MaxSpeedScale,
                 desiredSpeedFloorMps: GeneralDesiredSpeedFloorMps,
                 estimatedDecelMps2: GeneralEstimatedDecelMps2,
                 creepThrottleNorm: GeneralCreepThrottleNorm,
-                maxApproachThrottleNorm: GeneralMaxApproachThrottleNorm,
+                maxApproachThrottleNorm: GeneralMaxApproachThrottleNorm * advice.ThrottleScale,
                 maxReverseThrottleNorm: MaxReverseThrottleNorm,
                 allowReverseSurge: true,
                 strictCapture: false,
