@@ -1,15 +1,47 @@
-﻿/*
- * RuntimeOperationSnapshotBuilder
- *
- * Amaç:
- * Runtime içindeki sensor, fusion, state, safety, AI ve telemetry durumlarını HydronomOperationSnapshot'a dönüştürmek.
- *
- * Durum:
- * Bu dosya Hydronom ürünleşme seviyesi C# Primary mimari scaffold paketinde oluşturulmuştur.
- * Şimdilik bilinçli olarak yalnızca açıklama içerir.
- * Gerçek implementasyon ilgili geliştirme paketinde eklenecektir.
- *
- * Ürün mimarisi notu:
- * Hydronom ürün halinde Core, Runtime, AI, Gateway, GroundStation ve Ops katmanları
- * tek bir izlenebilir, test edilebilir, state-authority kontrollü mimari zincir halinde çalışmalıdır.
- */
+﻿using Hydronom.Core.Sensors.Common.Diagnostics;
+using Hydronom.Runtime.Diagnostics.Snapshots;
+using Hydronom.Runtime.FusionRuntime;
+using Hydronom.Runtime.StateRuntime;
+
+namespace Hydronom.Runtime.Operations.Snapshots;
+
+/// <summary>
+/// Runtime içindeki sensor, fusion ve state authority durumlarını tek diagnostics snapshot'a dönüştürür.
+/// </summary>
+public sealed class RuntimeOperationSnapshotBuilder
+{
+    private readonly string _runtimeId;
+
+    public RuntimeOperationSnapshotBuilder(string runtimeId = "hydronom_runtime")
+    {
+        _runtimeId = string.IsNullOrWhiteSpace(runtimeId)
+            ? "hydronom_runtime"
+            : runtimeId.Trim();
+    }
+
+    public RuntimeDiagnosticsSnapshot Build(
+        SensorRuntimeHealth sensorHealth,
+        FusionRuntimeHost fusionHost,
+        VehicleStateStore stateStore)
+    {
+        ArgumentNullException.ThrowIfNull(fusionHost);
+        ArgumentNullException.ThrowIfNull(stateStore);
+
+        var stateSnapshot = stateStore.GetSnapshot();
+        var stateTelemetry = fusionHost.LastTelemetry.Sanitized();
+        var fusionDiagnostics = fusionHost.LastFusionDiagnostics.Sanitized();
+
+        return new RuntimeDiagnosticsSnapshot(
+            RuntimeId: _runtimeId,
+            TimestampUtc: DateTime.UtcNow,
+            SensorHealth: sensorHealth,
+            FusionDiagnostics: fusionDiagnostics,
+            StateStoreSnapshot: stateSnapshot,
+            StateTelemetry: stateTelemetry,
+            HasCriticalIssue: false,
+            HasWarnings: false,
+            OverallHealth: "",
+            Summary: ""
+        ).Sanitized();
+    }
+}

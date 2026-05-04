@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.PipelineSm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.RuntimePipelineSmokeTest", "tests\Hydronom.Runtime.RuntimePipelineSmokeTest\Hydronom.Runtime.RuntimePipelineSmokeTest.csproj", "{D3C99C36-D995-4E24-95A3-895FC615A32D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.DiagnosticsSmokeTest", "tests\Hydronom.Runtime.DiagnosticsSmokeTest\Hydronom.Runtime.DiagnosticsSmokeTest.csproj", "{F81D160C-C8E8-4379-839E-B2B2C95B9729}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -157,6 +159,18 @@ Global
 		{D3C99C36-D995-4E24-95A3-895FC615A32D}.Release|x64.Build.0 = Release|Any CPU
 		{D3C99C36-D995-4E24-95A3-895FC615A32D}.Release|x86.ActiveCfg = Release|Any CPU
 		{D3C99C36-D995-4E24-95A3-895FC615A32D}.Release|x86.Build.0 = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|x64.Build.0 = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Debug|x86.Build.0 = Debug|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|x64.ActiveCfg = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|x64.Build.0 = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|x86.ActiveCfg = Release|Any CPU
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,5 +186,6 @@ Global
 		{7F68AEB5-63E5-46D8-A751-756591E8DB2D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{B03EEEB7-6EB1-47CC-98A6-C7087599C717} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D3C99C36-D995-4E24-95A3-895FC615A32D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{F81D160C-C8E8-4379-839E-B2B2C95B9729} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
