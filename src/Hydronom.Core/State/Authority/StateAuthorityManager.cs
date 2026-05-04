@@ -4,11 +4,11 @@ using Hydronom.Core.State.Models;
 namespace Hydronom.Core.State.Authority
 {
     /// <summary>
-    /// Hydronom'un authoritative state gÃ¼venlik kapÄ±sÄ±.
+    /// Hydronom'un authoritative state güvenlik kapısı.
     ///
-    /// Her VehicleOperationalState gÃ¼ncellemesi bu yÃ¶neticiden geÃ§melidir.
-    /// BÃ¶ylece Python, external pose, replay, sim truth veya hatalÄ± fusion Ã§Ä±ktÄ±sÄ±
-    /// ana araÃ§ state'ini izinsiz ezemez.
+    /// Her VehicleOperationalState güncellemesi bu yöneticiden geçmelidir.
+    /// Böylece Python, external pose, replay, sim truth veya hatalı fusion çıktısı
+    /// ana araç state'ini izinsiz ezemez.
     /// </summary>
     public sealed class StateAuthorityManager
     {
@@ -52,7 +52,7 @@ namespace Hydronom.Core.State.Authority
                     current,
                     safeCandidate,
                     StateUpdateDecision.RejectedInvalidData,
-                    "Aday state sayÄ±sal olarak geÃ§ersiz.",
+                    "Aday state sayısal olarak geçersiz.",
                     candidateAgeMs,
                     positionDeltaMeters,
                     impliedSpeedMps,
@@ -67,7 +67,7 @@ namespace Hydronom.Core.State.Authority
                     current,
                     safeCandidate,
                     StateUpdateDecision.RejectedVehicleMismatch,
-                    "Aday state farklÄ± bir araÃ§ kimliÄŸine ait.",
+                    "Aday state farklı bir araç kimliğine ait.",
                     candidateAgeMs,
                     positionDeltaMeters,
                     impliedSpeedMps,
@@ -82,7 +82,7 @@ namespace Hydronom.Core.State.Authority
                     current,
                     safeCandidate,
                     StateUpdateDecision.RejectedSourceNotAuthorized,
-                    "Aday state kaynaÄŸÄ± mevcut authority policy tarafÄ±ndan yetkili deÄŸil.",
+                    "Aday state kaynağı mevcut authority policy tarafından yetkili değil.",
                     candidateAgeMs,
                     positionDeltaMeters,
                     impliedSpeedMps,
@@ -97,7 +97,7 @@ namespace Hydronom.Core.State.Authority
                     current,
                     safeCandidate,
                     StateUpdateDecision.RejectedStaleTimestamp,
-                    "Aday state timestamp deÄŸeri Ã§ok eski.",
+                    "Aday state timestamp değeri çok eski.",
                     candidateAgeMs,
                     positionDeltaMeters,
                     impliedSpeedMps,
@@ -128,7 +128,7 @@ namespace Hydronom.Core.State.Authority
                     current,
                     safeCandidate,
                     StateUpdateDecision.RejectedLowConfidence,
-                    "Aday state gÃ¼ven skoru minimum eÅŸik altÄ±nda.",
+                    "Aday state güven skoru minimum eşik altında.",
                     candidateAgeMs,
                     positionDeltaMeters,
                     impliedSpeedMps,
@@ -137,49 +137,69 @@ namespace Hydronom.Core.State.Authority
                 );
             }
 
-            if (positionDeltaMeters > policy.MaxTeleportDistanceMeters)
-            {
-                return Reject(
-                    current,
-                    safeCandidate,
-                    StateUpdateDecision.RejectedTeleportDetected,
-                    "Aday state ani konum sÄ±Ã§ramasÄ± oluÅŸturuyor.",
-                    candidateAgeMs,
-                    positionDeltaMeters,
-                    impliedSpeedMps,
-                    yawDeltaDeg,
-                    impliedYawRateDegSec
-                );
-            }
+            /*
+             * İlk authoritative acquisition özel kuralı:
+             *
+             * Sistem ilk açıldığında current state INITIAL/Unknown olabilir.
+             * Bu durumda current pose gerçek bir fiziksel ölçüm değildir; sadece güvenli başlangıç placeholder'ıdır.
+             *
+             * Bu yüzden ilk güvenilir CSharpFusion/CSharpEstimator candidate geldiğinde
+             * teleport ve implied speed kontrollerini uygulamak yanlış sonuç üretir.
+             *
+             * Önemli:
+             * - Bu sadece INITIAL/Unknown/current confidence=0 durumunda geçerlidir.
+             * - Source, frame, stale, confidence, finite ve vehicle checks yine yukarıda uygulanır.
+             * - İlk kabulden sonra current SourceKind artık CSharpFusion/CSharpEstimator olur.
+             * - Sonraki update'lerde teleport/speed/yaw-rate kontrolleri normal şekilde çalışır.
+             */
+            var isInitialAcquisition = IsInitialAuthoritativeAcquisition(current, safeCandidate);
 
-            if (impliedSpeedMps > policy.MaxPlausibleSpeedMps)
+            if (!isInitialAcquisition)
             {
-                return Reject(
-                    current,
-                    safeCandidate,
-                    StateUpdateDecision.RejectedPhysicallyImpossible,
-                    "Aday state fiziksel olarak aÅŸÄ±rÄ± yÃ¼ksek hÄ±z gerektiriyor.",
-                    candidateAgeMs,
-                    positionDeltaMeters,
-                    impliedSpeedMps,
-                    yawDeltaDeg,
-                    impliedYawRateDegSec
-                );
-            }
+                if (positionDeltaMeters > policy.MaxTeleportDistanceMeters)
+                {
+                    return Reject(
+                        current,
+                        safeCandidate,
+                        StateUpdateDecision.RejectedTeleportDetected,
+                        "Aday state ani konum sıçraması oluşturuyor.",
+                        candidateAgeMs,
+                        positionDeltaMeters,
+                        impliedSpeedMps,
+                        yawDeltaDeg,
+                        impliedYawRateDegSec
+                    );
+                }
 
-            if (impliedYawRateDegSec > policy.MaxPlausibleYawRateDegSec)
-            {
-                return Reject(
-                    current,
-                    safeCandidate,
-                    StateUpdateDecision.RejectedPhysicallyImpossible,
-                    "Aday state fiziksel olarak aÅŸÄ±rÄ± yÃ¼ksek yaw rate gerektiriyor.",
-                    candidateAgeMs,
-                    positionDeltaMeters,
-                    impliedSpeedMps,
-                    yawDeltaDeg,
-                    impliedYawRateDegSec
-                );
+                if (impliedSpeedMps > policy.MaxPlausibleSpeedMps)
+                {
+                    return Reject(
+                        current,
+                        safeCandidate,
+                        StateUpdateDecision.RejectedPhysicallyImpossible,
+                        "Aday state fiziksel olarak aşırı yüksek hız gerektiriyor.",
+                        candidateAgeMs,
+                        positionDeltaMeters,
+                        impliedSpeedMps,
+                        yawDeltaDeg,
+                        impliedYawRateDegSec
+                    );
+                }
+
+                if (impliedYawRateDegSec > policy.MaxPlausibleYawRateDegSec)
+                {
+                    return Reject(
+                        current,
+                        safeCandidate,
+                        StateUpdateDecision.RejectedPhysicallyImpossible,
+                        "Aday state fiziksel olarak aşırı yüksek yaw rate gerektiriyor.",
+                        candidateAgeMs,
+                        positionDeltaMeters,
+                        impliedSpeedMps,
+                        yawDeltaDeg,
+                        impliedYawRateDegSec
+                    );
+                }
             }
 
             var next = new VehicleOperationalState(
@@ -192,7 +212,9 @@ namespace Hydronom.Core.State.Authority
                 AuthorityMode: policy.Mode,
                 Confidence: safeCandidate.Confidence,
                 FrameId: safeCandidate.FrameId,
-                QualitySummary: safeCandidate.Reason,
+                QualitySummary: isInitialAcquisition
+                    ? $"INITIAL_ACQUISITION: {safeCandidate.Reason}"
+                    : safeCandidate.Reason,
                 TraceId: safeCandidate.TraceId
             ).Sanitized();
 
@@ -200,13 +222,33 @@ namespace Hydronom.Core.State.Authority
                 before: current,
                 after: next,
                 candidate: safeCandidate,
-                reason: "Aday state authority policy tarafÄ±ndan kabul edildi.",
+                reason: isInitialAcquisition
+                    ? "İlk güvenilir authoritative state acquisition kabul edildi."
+                    : "Aday state authority policy tarafından kabul edildi.",
                 candidateAgeMs: candidateAgeMs,
                 positionDeltaMeters: positionDeltaMeters,
                 impliedSpeedMps: impliedSpeedMps,
                 yawDeltaDeg: yawDeltaDeg,
                 impliedYawRateDegSec: impliedYawRateDegSec
             );
+        }
+
+        private static bool IsInitialAuthoritativeAcquisition(
+            VehicleOperationalState current,
+            StateUpdateCandidate candidate)
+        {
+            var currentLooksInitial =
+                current.SourceKind == VehicleStateSourceKind.Unknown &&
+                current.Confidence <= 0.0 &&
+                string.Equals(current.QualitySummary, "INITIAL", StringComparison.OrdinalIgnoreCase);
+
+            if (!currentLooksInitial)
+                return false;
+
+            return candidate.SourceKind == VehicleStateSourceKind.CSharpFusion ||
+                   candidate.SourceKind == VehicleStateSourceKind.CSharpEstimator ||
+                   candidate.SourceKind == VehicleStateSourceKind.PhysicsTruth ||
+                   candidate.SourceKind == VehicleStateSourceKind.ReplayEstimate;
         }
 
         private static StateUpdateResult Reject(
