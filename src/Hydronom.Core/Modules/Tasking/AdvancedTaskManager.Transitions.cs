@@ -35,7 +35,7 @@ namespace Hydronom.Core.Modules
 
             if (_routePoints.Count == 0)
             {
-                AbortInternal("GÃ¶revde hedef noktasÄ± yok.", state: null, insights: null);
+                AbortInternal("Görevde hedef noktası yok.", state: null, insights: null);
                 return;
             }
 
@@ -204,18 +204,48 @@ namespace Hydronom.Core.Modules
             }
 
             _completedTaskCount++;
-            LastStatusReason = "Task completed";
+            LastStatusReason = task.IsExternallyCompleted
+                ? "External scenario task reached final waypoint"
+                : "Task completed";
 
             RefreshReport(
-                reason: "TASK_COMPLETED",
+                reason: task.IsExternallyCompleted ? "EXTERNAL_SCENARIO_TASK_REACHED" : "TASK_COMPLETED",
                 state: state,
                 insights: insights,
-                distanceToWaypoint: 0.0,
-                distanceToFinal: 0.0,
+                distanceToWaypoint: distToWaypoint,
+                distanceToFinal: distToFinal,
                 speedMps: speedMps,
                 effectiveArrivalThresholdM: effectiveArrivalThresholdM,
                 progressPercentOverride: 100.0
             );
+
+            if (task.IsExternallyCompleted)
+            {
+                /*
+                 * Scenario-owned task'larda TaskManager görevi temizlemez.
+                 *
+                 * Sebep:
+                 * - TaskManager sadece navigasyon hedefinin geometrik olarak yakalandığını söyler.
+                 * - Scenario objective tamamlandı mı kararını RuntimeScenarioController /
+                 *   RuntimeScenarioObjectiveTracker verir.
+                 * - Böylece hız/settle/tolerance şartları sağlanmadan CurrentTask=null olmaz.
+                 */
+                Phase = TaskPhase.Arrived;
+                LastStatusReason = "External scenario owns task completion";
+
+                RefreshReport(
+                    reason: LastStatusReason,
+                    state: state,
+                    insights: insights,
+                    distanceToWaypoint: distToWaypoint,
+                    distanceToFinal: distToFinal,
+                    speedMps: speedMps,
+                    effectiveArrivalThresholdM: effectiveArrivalThresholdM,
+                    progressPercentOverride: 100.0
+                );
+
+                return;
+            }
 
             CurrentTask = null;
             _routePoints.Clear();
@@ -254,7 +284,7 @@ namespace Hydronom.Core.Modules
             if (_lastProgressTicks is long tProg &&
                 ElapsedSeconds(tProg, nowTicks) > _maxNoProgressSeconds)
             {
-                AbortInternal("GÃ¶rev ilerleme gÃ¶stermiyor (takÄ±lmÄ±ÅŸ olabilir).", state, insights);
+                AbortInternal("Görev ilerleme göstermiyor (takılmış olabilir).", state, insights);
             }
         }
 
@@ -295,7 +325,7 @@ namespace Hydronom.Core.Modules
             var elapsed = ElapsedSeconds(_obstacleSinceTicks.Value, nowTicks);
             if (elapsed > _maxObstacleHoldSeconds)
             {
-                AbortInternal("Engel uzun sÃ¼re kaldÄ±, gÃ¶rev iptal edildi.", state, insights);
+                AbortInternal("Engel uzun süre kaldı, görev iptal edildi.", state, insights);
             }
             else
             {

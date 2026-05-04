@@ -14,11 +14,12 @@ namespace Hydronom.Runtime.Scenarios.Mission;
 /// Scenario JSON
 ///   → ScenarioMissionPlan
 ///   → ScenarioMissionTarget
-///   → TaskDefinition.GoTo(...)
+///   → TaskDefinition.ScenarioGoTo(...)
 ///   → ITaskManager.SetTask(...)
 ///   → AdvancedDecision.Decide(...)
 ///
-/// Artık TaskDefinition yapısı net olduğu için reflection ile TaskDefinition üretmiyoruz.
+/// Scenario görevlerinde tamamlanma kararı TaskManager tarafından değil,
+/// RuntimeScenarioController / RuntimeScenarioObjectiveTracker tarafından verilmelidir.
 /// Reflection yalnızca scenario/objective tarafındaki opsiyonel alanları toleranslı okumak için kullanılır.
 /// </summary>
 public sealed class ScenarioMissionAdapter
@@ -129,9 +130,11 @@ public sealed class ScenarioMissionAdapter
     {
         ArgumentNullException.ThrowIfNull(target);
 
-        var task = TaskDefinition.GoTo(
+        var task = TaskDefinition.ScenarioGoTo(
             name: target.TaskName,
             target: target.Target,
+            scenarioId: target.ScenarioId,
+            objectiveId: target.ObjectiveId,
             holdOnArrive: target.HoldOnArrive);
 
         task.Waypoints.Clear();
@@ -168,12 +171,18 @@ public sealed class ScenarioMissionAdapter
             .Select(x => x.Target)
             .ToArray();
 
-        return TaskDefinition.Route(
+        var task = TaskDefinition.Route(
             name: $"ScenarioRoute:{plan.ScenarioId}",
             waypoints: waypoints,
             loop: loop,
             holdOnArrive: holdOnArrive,
             waitSecondsPerPoint: waitSecondsPerPoint);
+
+        task.CompletionAuthority = TaskCompletionAuthority.ExternalScenario;
+        task.ExternalOwnerId = plan.ScenarioId;
+        task.ExternalObjectiveId = plan.FirstTarget?.ObjectiveId;
+
+        return task;
     }
 
     /// <summary>

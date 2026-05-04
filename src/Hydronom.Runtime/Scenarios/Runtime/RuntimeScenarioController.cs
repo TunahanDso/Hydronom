@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
@@ -17,6 +18,7 @@ namespace Hydronom.Runtime.Scenarios.Runtime;
 /// - RuntimeScenarioExecutionHost'u Program.cs içinde dağınık local değişken olmaktan çıkarmak.
 /// - Aktif scenario durumunu sorgulanabilir hale getirmek.
 /// - Runtime loop içinde VehicleState ile objective geçişlerini takip etmek.
+/// - Scenario hâlâ aktifken TaskManager görevi erken temizlerse aktif hedefi tekrar basmak.
 /// </summary>
 public sealed class RuntimeScenarioController
 {
@@ -27,8 +29,12 @@ public sealed class RuntimeScenarioController
     private RuntimeScenarioExecutionHost? _host;
     private RuntimeScenarioSession? _session;
     private ScenarioMissionPlan? _plan;
+    private ScenarioMissionAdapter? _adapter;
     private RuntimeScenarioTickResult? _lastTick;
     private VehicleState _lastState = VehicleState.Zero;
+
+    private string? _lastReassertedObjectiveId;
+    private long _lastReassertedTickIndex = -1;
 
     public RuntimeScenarioController(
         IConfiguration config,
@@ -113,8 +119,11 @@ public sealed class RuntimeScenarioController
             }
 
             _plan = plan;
+            _adapter = adapter;
             _session = session;
             _host = host;
+            _lastReassertedObjectiveId = null;
+            _lastReassertedTickIndex = -1;
 
             startResult = _host.Start(_lastState);
             _lastTick = startResult;
@@ -159,6 +168,8 @@ public sealed class RuntimeScenarioController
 
             _host = null;
             _taskManager.ClearTask();
+            _lastReassertedObjectiveId = null;
+            _lastReassertedTickIndex = -1;
         }
 
         Console.WriteLine($"[SCN-RUNTIME] Stopped. reason={reason}");
@@ -192,6 +203,12 @@ public sealed class RuntimeScenarioController
                 RuntimeScenarioSessionState.Aborted)
             {
                 _host = null;
+                _lastReassertedObjectiveId = null;
+                _lastReassertedTickIndex = -1;
+            }
+            else
+            {
+                EnsureActiveObjectiveTaskUnsafe(tickIndex);
             }
         }
 
@@ -251,6 +268,71 @@ public sealed class RuntimeScenarioController
             LastTickSummary = _lastTick?.Summary,
             SessionSummary = _session?.Summary
         };
+    }
+
+    /// <summary>
+    /// Scenario hâlâ Running durumundayken TaskManager görevi kaybetmişse
+    /// aktif objective hedefini tekrar TaskManager'a basar.
+    ///
+    /// Bu özellikle AdvancedTaskManager'ın kendi varış kabul mantığı ile
+    /// RuntimeScenarioObjectiveTracker'ın hız/settle/tolerance mantığı ayrıştığında önemlidir.
+    /// Scenario tamamlanmadan task=null kalırsa karar modülü NO_TASK/Idle'a düşer.
+    /// </summary>
+    private void EnsureActiveObjectiveTaskUnsafe(long tickIndex)
+    {
+        if (_session is null || _plan is null || _adapter is null)
+            return;
+
+        if (_session.State != RuntimeScenarioSessionState.Running)
+            return;
+
+        var objectiveId = _session.CurrentObjectiveId;
+
+        if (string.IsNullOrWhiteSpace(objectiveId))
+            return;
+
+        var target = _plan.Targets
+            .FirstOrDefault(x => string.Equals(x.ObjectiveId, objectiveId, StringComparison.OrdinalIgnoreCase));
+
+        if (target is null)
+            return;
+
+        var currentTask = _taskManager.CurrentTask;
+
+        if (IsTaskAlreadyPointingToTarget(currentTask, target))
+            return;
+
+        var task = _adapter.ToTaskDefinition(target);
+        _taskManager.SetTask(task);
+
+        if (!string.Equals(_lastReassertedObjectiveId, objectiveId, StringComparison.OrdinalIgnoreCase) ||
+            _lastReassertedTickIndex != tickIndex)
+        {
+            Console.WriteLine(
+                $"[SCN-RUNTIME] Reasserted active objective task tick={tickIndex} " +
+                $"objective={objectiveId} task={task.Name} " +
+                $"target=({target.Target.X:F2},{target.Target.Y:F2},{target.Target.Z:F2})"
+            );
+
+            _lastReassertedObjectiveId = objectiveId;
+            _lastReassertedTickIndex = tickIndex;
+        }
+    }
+
+    private static bool IsTaskAlreadyPointingToTarget(
+        TaskDefinition? task,
+        ScenarioMissionTarget target)
+    {
+        if (task is null)
+            return false;
+
+        if (task.Target is not Vec3 taskTarget)
+            return false;
+
+        return
+            Math.Abs(taskTarget.X - target.Target.X) <= 0.0001 &&
+            Math.Abs(taskTarget.Y - target.Target.Y) <= 0.0001 &&
+            Math.Abs(taskTarget.Z - target.Target.Z) <= 0.0001;
     }
 
     private string ResolveScenarioPath(string? requestedPath)

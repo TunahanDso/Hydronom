@@ -43,13 +43,34 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// GÃ¶rev tanÄ±mÄ±:
-    /// - Name: GÃ¶rev adÄ±
-    /// - Target: Tek hedef noktasÄ±
-    /// - Waypoints: Ã‡ok noktalÄ± rota
+    /// Görev tamamlanma yetkisinin kimde olduğunu belirtir.
+    ///
+    /// TaskManager:
+    /// - Normal GoToPoint / manuel rota görevleri için kullanılır.
+    /// - TaskManager hedefe vardığını düşündüğünde görevi temizleyebilir.
+    ///
+    /// ExternalScenario:
+    /// - Scenario / parkur / yarış görevi için kullanılır.
+    /// - TaskManager görevi erken temizlememelidir.
+    /// - Objective gerçekten tamamlandı mı kararını RuntimeScenarioController / ScenarioObjectiveTracker verir.
+    /// </summary>
+    public enum TaskCompletionAuthority
+    {
+        TaskManager = 0,
+        ExternalScenario = 1
+    }
+
+    /// <summary>
+    /// Görev tanımı:
+    /// - Name: Görev adı
+    /// - Target: Tek hedef noktası
+    /// - Waypoints: Çok noktalı rota
     /// - HoldOnArrive: Son noktada bekle
-    /// - WaitSecondsPerPoint: Her waypoint'te bekleme sÃ¼resi
-    /// - Loop: Rota bittiÄŸinde baÅŸa sar
+    /// - WaitSecondsPerPoint: Her waypoint'te bekleme süresi
+    /// - Loop: Rota bittiğinde başa sar
+    /// - CompletionAuthority: Görevin kim tarafından tamamlanacağı
+    /// - ExternalOwnerId: Scenario / mission / fleet operation gibi dış sahiplik bilgisi
+    /// - ExternalObjectiveId: Dış görev sistemindeki objective kimliği
     /// </summary>
     public record TaskDefinition(string Name, Vec3? Target)
     {
@@ -62,12 +83,37 @@ namespace Hydronom.Core.Domain
         public bool Loop { get; set; } = false;
 
         /// <summary>
-        /// GÃ¶rev aktif olarak hedef iÃ§eriyor mu?
+        /// Görevin tamamlanma yetkisi.
+        /// Varsayılan olarak normal görevlerde TaskManager yetkilidir.
+        /// Scenario görevlerinde ExternalScenario yapılmalıdır.
+        /// </summary>
+        public TaskCompletionAuthority CompletionAuthority { get; set; } = TaskCompletionAuthority.TaskManager;
+
+        /// <summary>
+        /// Görevi dışarıdan sahiplenen sistemin kimliği.
+        /// Örnek: scenario id, mission id, fleet operation id.
+        /// </summary>
+        public string? ExternalOwnerId { get; set; }
+
+        /// <summary>
+        /// Dış görev sistemindeki objective/hedef kimliği.
+        /// Örnek: reach_wp_1.
+        /// </summary>
+        public string? ExternalObjectiveId { get; set; }
+
+        /// <summary>
+        /// Bu task dış scenario/controller tarafından mı tamamlanacak?
+        /// </summary>
+        public bool IsExternallyCompleted =>
+            CompletionAuthority == TaskCompletionAuthority.ExternalScenario;
+
+        /// <summary>
+        /// Görev aktif olarak hedef içeriyor mu?
         /// </summary>
         public bool HasTarget => Target is not null || Waypoints.Count > 0;
 
         /// <summary>
-        /// Tek hedefli gÃ¶rev oluÅŸturmak iÃ§in kÄ±sa yardÄ±mcÄ±.
+        /// Tek hedefli görev oluşturmak için kısa yardımcı.
         /// </summary>
         public static TaskDefinition GoTo(string name, Vec3 target, bool holdOnArrive = false)
         {
@@ -78,7 +124,29 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Ã‡ok noktalÄ± rota gÃ¶revi oluÅŸturmak iÃ§in yardÄ±mcÄ±.
+        /// Scenario / parkur objective'i için tek hedefli görev oluşturur.
+        ///
+        /// Bu görevlerde TaskManager görevi erken temizlememelidir;
+        /// tamamlanma kararı dış scenario controller tarafındadır.
+        /// </summary>
+        public static TaskDefinition ScenarioGoTo(
+            string name,
+            Vec3 target,
+            string scenarioId,
+            string objectiveId,
+            bool holdOnArrive = false)
+        {
+            return new TaskDefinition(name, target)
+            {
+                HoldOnArrive = holdOnArrive,
+                CompletionAuthority = TaskCompletionAuthority.ExternalScenario,
+                ExternalOwnerId = scenarioId,
+                ExternalObjectiveId = objectiveId
+            };
+        }
+
+        /// <summary>
+        /// Çok noktalı rota görevi oluşturmak için yardımcı.
         /// </summary>
         public static TaskDefinition Route(
             string name,
@@ -97,6 +165,19 @@ namespace Hydronom.Core.Domain
             task.Waypoints.AddRange(waypoints);
             return task;
         }
+
+        /// <summary>
+        /// Mevcut görevi dış scenario completion authority ile işaretlemek için yardımcı.
+        /// </summary>
+        public TaskDefinition WithExternalScenarioCompletion(
+            string scenarioId,
+            string objectiveId)
+        {
+            CompletionAuthority = TaskCompletionAuthority.ExternalScenario;
+            ExternalOwnerId = scenarioId;
+            ExternalObjectiveId = objectiveId;
+            return this;
+        }
     }
 
     public record Insights(bool HasObstacleAhead, double ClearanceLeft, double ClearanceRight)
@@ -105,11 +186,11 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// Manuel sÃ¼rÃ¼ÅŸ komutu.
-    /// Karar modÃ¼lÃ¼nden baÄŸÄ±msÄ±z doÄŸrudan kullanÄ±cÄ± veya Ã¼st runtime tarafÄ±ndan Ã¼retilebilir.
-    /// Normalize alan Ã¶nerisi:
+    /// Manuel sürüş komutu.
+    /// Karar modülünden bağımsız doğrudan kullanıcı veya üst runtime tarafından üretilebilir.
+    /// Normalize alan önerisi:
     /// - Surge/Sway/Heave/Roll/Pitch/Yaw -> genelde [-1, +1]
-    /// Ancak bu sÄ±nÄ±f deÄŸeri zorla clamp etmez.
+    /// Ancak bu sınıf değeri zorla clamp etmez.
     /// </summary>
     public readonly record struct ManualDriveCommand(
         double Surge,
@@ -130,8 +211,8 @@ namespace Hydronom.Core.Domain
             Math.Abs(Yaw) < 1e-12;
 
         /// <summary>
-        /// Manuel komutu fiziksel karara dÃ¶nÃ¼ÅŸtÃ¼rmek iÃ§in basit yardÄ±mcÄ±.
-        /// KatsayÄ±larÄ± Ã¼st katman verebilir.
+        /// Manuel komutu fiziksel karara dönüştürmek için basit yardımcı.
+        /// Katsayıları üst katman verebilir.
         /// </summary>
         public DecisionCommand ToDecisionCommand(
             double maxFx,
@@ -153,11 +234,11 @@ namespace Hydronom.Core.Domain
     }
 
     /// <summary>
-    /// 6-DoF karar Ã§Ä±ktÄ±sÄ±:
-    /// - Fx, Fy, Fz : body-frame kuvvet bileÅŸenleri
-    /// - Tx, Ty, Tz : body-frame tork bileÅŸenleri
+    /// 6-DoF karar çıktısı:
+    /// - Fx, Fy, Fz : body-frame kuvvet bileşenleri
+    /// - Tx, Ty, Tz : body-frame tork bileşenleri
     ///
-    /// Geriye dÃ¶nÃ¼k uyumluluk:
+    /// Geriye dönük uyumluluk:
     /// - Throttle01      -> Fx
     /// - RudderNeg1To1   -> Tz
     /// </summary>
@@ -174,7 +255,7 @@ namespace Hydronom.Core.Domain
         public double Tz { get; init; }
 
         /// <summary>
-        /// Eski planar API alias'Ä±.
+        /// Eski planar API alias'ı.
         /// </summary>
         public double Throttle01
         {
@@ -183,7 +264,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Eski planar API alias'Ä±.
+        /// Eski planar API alias'ı.
         /// </summary>
         public double RudderNeg1To1
         {
@@ -206,7 +287,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Geriye dÃ¶nÃ¼k planar kurucu:
+        /// Geriye dönük planar kurucu:
         /// throttle -> Fx
         /// rudder   -> Tz
         /// </summary>
@@ -250,7 +331,7 @@ namespace Hydronom.Core.Domain
             => manual.ToDecisionCommand(maxFx, maxFy, maxFz, maxTx, maxTy, maxTz);
 
         /// <summary>
-        /// Belirli katsayÄ± ile tÃ¼m eksenleri Ã¶lÃ§ekler.
+        /// Belirli katsayı ile tüm eksenleri ölçekler.
         /// </summary>
         public DecisionCommand Scale(double factor)
         {
@@ -265,7 +346,7 @@ namespace Hydronom.Core.Domain
         }
 
         /// <summary>
-        /// Manual / safety override akÄ±ÅŸlarÄ±nda hÄ±zlÄ± toplama iÃ§in.
+        /// Manual / safety override akışlarında hızlı toplama için.
         /// </summary>
         public DecisionCommand Add(DecisionCommand other)
         {
