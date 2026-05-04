@@ -19,7 +19,7 @@ namespace Hydronom.Core.Modules
         private const double MaxTzNm = 8.0;
 
         // ---------------------------------------------------------------------
-        // MESAFE / HIZ PROFİLİ
+        // TEMEL MESAFE / HIZ PROFİLİ
         // ---------------------------------------------------------------------
         private const double SlowRadiusM = 4.0;
         private const double StopRadiusM = 0.7;
@@ -39,7 +39,21 @@ namespace Hydronom.Core.Modules
         private const double NearTurnInPlaceDeg = 95.0;
 
         // ---------------------------------------------------------------------
-        // SCENARIO ARRIVAL PROFILE
+        // GENEL GÖREV ARRIVAL PROFILE
+        // ---------------------------------------------------------------------
+        private const double GeneralArrivalSlowRadiusM = 8.0;
+        private const double GeneralArrivalCaptureRadiusM = 0.90;
+        private const double GeneralArrivalCoastRadiusM = 2.20;
+
+        private const double GeneralMaxCaptureSpeedMps = 0.95;
+        private const double GeneralDesiredSpeedFloorMps = 0.22;
+        private const double GeneralEstimatedDecelMps2 = 0.22;
+
+        private const double GeneralCreepThrottleNorm = 0.035;
+        private const double GeneralMaxApproachThrottleNorm = 0.52;
+
+        // ---------------------------------------------------------------------
+        // SCENARIO / PARKUR ARRIVAL PROFILE
         // ---------------------------------------------------------------------
         private const double ScenarioSlowRadiusM = 12.0;
         private const double ScenarioCaptureRadiusM = 1.50;
@@ -48,6 +62,10 @@ namespace Hydronom.Core.Modules
         private const double ScenarioMaxCaptureSpeedMps = 0.70;
         private const double ScenarioDesiredSpeedFloorMps = 0.18;
 
+        /*
+         * Tek yönlü thruster varsayımında aktif geri fren yoktur.
+         * Bu yüzden decel değeri agresif değil, erken yavaşlamayı zorlayan muhafazakâr bir tahmindir.
+         */
         private const double ScenarioEstimatedCoastDecelMps2 = 0.16;
 
         private const double ScenarioMinThrottleNorm = 0.00;

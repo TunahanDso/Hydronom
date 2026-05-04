@@ -79,6 +79,8 @@ namespace Hydronom.Core.Modules
         bool ShouldCoast,
         bool ShouldHold,
         bool IsOvershootLikely,
+        double SpeedErrorMps,
+        double RecommendedYawGain,
         string Reason
     );
 

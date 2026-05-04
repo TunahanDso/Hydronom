@@ -61,14 +61,7 @@ namespace Hydronom.Core.Modules
             double absYawRate = Math.Abs(nav.YawRateDeg);
             bool scenarioOwnedTask = task.IsExternallyCompleted;
 
-            double rudderNorm = 0.0;
-
-            if (absDelta > RudderDeadbandDeg || absYawRate > YawRateDeadbandDeg)
-            {
-                double p = nav.HeadingErrorDeg * NavYawKp;
-                double d = -nav.YawRateDeg * NavYawKd;
-                rudderNorm = Math.Clamp(p + d, -1.0, 1.0);
-            }
+            double rudderNorm = ComputeNavigationRudder(nav, gainMultiplier: 1.0);
 
             if (nav.DistanceXY < BrakeRadiusM)
             {
@@ -84,42 +77,39 @@ namespace Hydronom.Core.Modules
             if (absDelta >= NearTurnInPlaceDeg)
                 throttleNorm = Math.Min(throttleNorm, 0.03);
 
-            string reason = "NAVIGATE";
+            var arrival = PlanMissionArrival(task, throttleNorm, nav);
+
+            throttleNorm = arrival.ThrottleNorm;
+            string reason = arrival.Reason;
+
+            rudderNorm = ComputeNavigationRudder(
+                nav,
+                gainMultiplier: arrival.RecommendedYawGain);
+
+            if (arrival.Phase is ArrivalPhase.Capture or ArrivalPhase.CaptureCoast)
+            {
+                rudderNorm *= scenarioOwnedTask ? 0.75 : 0.85;
+            }
+
+            if (arrival.Phase == ArrivalPhase.OvershootRecovery)
+            {
+                rudderNorm = ComputeOvershootRecoveryRudder(nav);
+            }
 
             if (scenarioOwnedTask)
             {
-                var arrival = PlanScenarioArrival(throttleNorm, nav);
-                throttleNorm = arrival.ThrottleNorm;
-                reason = arrival.Reason;
+                throttleNorm = Math.Clamp(
+                    throttleNorm,
+                    ScenarioMinThrottleNorm,
+                    ScenarioMaxApproachThrottleNorm);
             }
             else
             {
-                double desiredForwardSign = nav.TargetBody.X >= 0.0 ? 1.0 : -1.0;
-
-                if (nav.DistanceXY < BrakeRadiusM && desiredForwardSign > 0.0)
-                {
-                    double brakeNorm = ComputeApproachBrakeNorm(nav.DistanceXY, nav.ForwardSpeedMps);
-                    if (brakeNorm > 0.0)
-                        throttleNorm = -brakeNorm;
-                }
-
-                if (absDelta > 70.0 && nav.ForwardSpeedMps > 0.35)
-                {
-                    double brakeAssist = Math.Clamp(
-                        (nav.ForwardSpeedMps - 0.35) / 0.75,
-                        0.0,
-                        MaxReverseThrottleNorm * 0.7
-                    );
-
-                    throttleNorm = Math.Min(throttleNorm, 0.0);
-                    throttleNorm -= brakeAssist;
-                }
-
-                throttleNorm = Math.Clamp(throttleNorm, -MaxReverseThrottleNorm, CruiseThrottleNorm);
+                throttleNorm = Math.Clamp(
+                    throttleNorm,
+                    arrival.AllowReverseSurge ? -MaxReverseThrottleNorm : 0.0,
+                    GeneralMaxApproachThrottleNorm);
             }
-
-            if (scenarioOwnedTask)
-                throttleNorm = Math.Clamp(throttleNorm, ScenarioMinThrottleNorm, ScenarioMaxApproachThrottleNorm);
 
             var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
             var output = ScaleCommand(raw);
@@ -133,6 +123,35 @@ namespace Hydronom.Core.Modules
             );
 
             return ConstrainExternalScenarioCommandIfNeeded(task, result, reasonOverride: reason);
+        }
+
+        private static double ComputeNavigationRudder(
+            NavigationGeometry nav,
+            double gainMultiplier)
+        {
+            double absDelta = Math.Abs(nav.HeadingErrorDeg);
+            double absYawRate = Math.Abs(nav.YawRateDeg);
+
+            if (absDelta <= RudderDeadbandDeg && absYawRate <= YawRateDeadbandDeg)
+                return 0.0;
+
+            double p = nav.HeadingErrorDeg * NavYawKp;
+            double d = -nav.YawRateDeg * NavYawKd;
+
+            return Math.Clamp((p + d) * Math.Clamp(gainMultiplier, 0.25, 2.0), -1.0, 1.0);
+        }
+
+        private static double ComputeOvershootRecoveryRudder(NavigationGeometry nav)
+        {
+            double p = nav.HeadingErrorDeg * NavYawKp * 1.35;
+            double d = -nav.YawRateDeg * NavYawKd * 0.65;
+
+            double rudder = p + d;
+
+            if (Math.Abs(rudder) < 0.25)
+                rudder = nav.HeadingErrorDeg >= 0.0 ? 0.25 : -0.25;
+
+            return Math.Clamp(rudder, -1.0, 1.0);
         }
 
         private static double ComputeApproachThrottle(double distanceM)
