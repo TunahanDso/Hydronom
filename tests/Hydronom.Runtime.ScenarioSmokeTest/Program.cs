@@ -4,6 +4,7 @@ using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
 using Hydronom.Runtime.Scenarios.Mission;
 using Hydronom.Runtime.Scenarios.Replay;
+using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Scenarios.Telemetry;
 using Hydronom.Runtime.Telemetry;
 using Hydronom.Runtime.Testing.Scenarios;
@@ -63,6 +64,7 @@ if (boundObjects.Count != scenario.Objects.Count(x => x.IsActive))
 }
 
 RunScenarioMissionAdapterSmokeTest(scenario);
+RunRuntimeScenarioExecutionHostSmokeTest(scenario);
 
 var runner = new RuntimeScenarioTestRunner();
 
@@ -223,6 +225,212 @@ static void RunScenarioMissionAdapterSmokeTest(
     if (!Vec3AlmostEquals(taskManager.CurrentTask.Target.Value, first.Target))
     {
         throw new InvalidOperationException("Applied task target does not match first scenario mission target.");
+    }
+}
+
+static void RunRuntimeScenarioExecutionHostSmokeTest(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    var adapter = new ScenarioMissionAdapter();
+    var plan = adapter.BuildPlan(scenario);
+
+    if (!plan.HasTargets)
+    {
+        throw new InvalidOperationException("Runtime scenario execution host test requires mission targets.");
+    }
+
+    var taskManager = new InMemoryScenarioTaskManager();
+
+    var options = new RuntimeScenarioExecutionOptions
+    {
+        AutoApplyFirstTarget = true,
+        AutoAdvanceObjectives = true,
+        ClearTaskOnCompletion = true,
+        ClearTaskOnStop = true,
+        UseDistanceTrackerForAdvance = true,
+
+        // Smoke testte state doğrudan waypoint'e taşındığı için bekleme süresi sıfırlanır.
+        SettleSeconds = 0.0,
+
+        // Bu test dinamik frenleme testi değildir.
+        // Amaç objective/task geçiş hattını izole biçimde doğrulamaktır.
+        MaxArrivalSpeedMps = 999.0,
+        MaxArrivalYawRateDegPerSec = 999.0,
+
+        DefaultToleranceMeters = 1.0,
+        EvaluateJudgeEveryTick = true
+    };
+
+    var session = new RuntimeScenarioSession(plan);
+
+    var host = new RuntimeScenarioExecutionHost(
+        session,
+        taskManager,
+        options,
+        adapter);
+
+    var initialState = CreateScenarioSmokeVehicleState(
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        yawDeg: 0.0);
+
+    var startResult = host.Start(initialState);
+
+    Console.WriteLine();
+    Console.WriteLine("Runtime scenario execution host report:");
+    Console.WriteLine($"  StartState          : {startResult.SessionState}");
+    Console.WriteLine($"  StartCurrentObj     : {startResult.CurrentObjectiveId}");
+    Console.WriteLine($"  StartAppliedTask    : {startResult.AppliedNewTask}");
+    Console.WriteLine($"  TaskSetCount        : {taskManager.SetTaskCount}");
+    Console.WriteLine($"  CurrentTask         : {taskManager.CurrentTask?.Name ?? "null"}");
+
+    if (session.State != RuntimeScenarioSessionState.Running)
+    {
+        throw new InvalidOperationException($"Expected runtime scenario session state Running after start, got {session.State}.");
+    }
+
+    if (taskManager.CurrentTask is null)
+    {
+        throw new InvalidOperationException("Runtime scenario host should apply first target task on start.");
+    }
+
+    if (taskManager.SetTaskCount != 1)
+    {
+        throw new InvalidOperationException($"Expected first task to be applied once on start, got {taskManager.SetTaskCount}.");
+    }
+
+    var orderedTargets = plan.Targets
+        .OrderBy(x => x.Order)
+        .ThenBy(x => x.ObjectiveId, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    if (orderedTargets.Count != scenario.Objectives.Count)
+    {
+        throw new InvalidOperationException(
+            $"Expected ordered target count to match objective count. Targets={orderedTargets.Count}, Objectives={scenario.Objectives.Count}");
+    }
+
+    for (var i = 0; i < orderedTargets.Count; i++)
+    {
+        var target = orderedTargets[i];
+
+        var stateAtTarget = CreateScenarioSmokeVehicleState(
+            x: target.Target.X,
+            y: target.Target.Y,
+            z: target.Target.Z,
+            yawDeg: 0.0);
+
+        var tick = host.Tick(stateAtTarget);
+
+        Console.WriteLine($"  Tick {i + 1}:");
+        Console.WriteLine($"    TargetObjective   : {target.ObjectiveId}");
+        Console.WriteLine($"    CompletedObjective: {tick.CompletedObjectiveId ?? "null"}");
+        Console.WriteLine($"    CurrentObjective  : {tick.CurrentObjectiveId ?? "null"}");
+        Console.WriteLine($"    AppliedNewTask    : {tick.AppliedNewTask}");
+        Console.WriteLine($"    ObjectiveCompleted: {tick.ObjectiveCompleted}");
+        Console.WriteLine($"    AllCompleted      : {tick.AllObjectivesCompleted}");
+        Console.WriteLine($"    DistanceXY        : {tick.DistanceToCurrentTargetMeters:F3}");
+        Console.WriteLine($"    Distance3D        : {tick.Distance3DToCurrentTargetMeters:F3}");
+        Console.WriteLine($"    SessionState      : {tick.SessionState}");
+        Console.WriteLine($"    CurrentTask       : {taskManager.CurrentTask?.Name ?? "null"}");
+
+        if (!tick.ObjectiveCompleted)
+        {
+            throw new InvalidOperationException($"Expected objective {target.ObjectiveId} to be completed.");
+        }
+
+        if (!string.Equals(tick.CompletedObjectiveId, target.ObjectiveId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Expected completed objective {target.ObjectiveId}, got {tick.CompletedObjectiveId ?? "null"}.");
+        }
+
+        if (!session.CompletedObjectiveIds.Contains(target.ObjectiveId, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Session should contain completed objective {target.ObjectiveId}.");
+        }
+
+        var isLastTarget = i == orderedTargets.Count - 1;
+
+        if (!isLastTarget)
+        {
+            var nextTarget = orderedTargets[i + 1];
+
+            if (!string.Equals(session.CurrentObjectiveId, nextTarget.ObjectiveId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Expected current objective to advance to {nextTarget.ObjectiveId}, got {session.CurrentObjectiveId ?? "null"}.");
+            }
+
+            if (taskManager.CurrentTask is null)
+            {
+                throw new InvalidOperationException("Task manager should contain next objective task before final completion.");
+            }
+
+            if (taskManager.CurrentTask.Target is null)
+            {
+                throw new InvalidOperationException("Next objective task should contain Vec3 target.");
+            }
+
+            if (!Vec3AlmostEquals(taskManager.CurrentTask.Target.Value, nextTarget.Target))
+            {
+                throw new InvalidOperationException(
+                    $"Current task target does not match next mission target {nextTarget.ObjectiveId}.");
+            }
+        }
+    }
+
+    Console.WriteLine("  Final session:");
+    Console.WriteLine($"    State             : {session.State}");
+    Console.WriteLine($"    CompletedCount    : {session.CompletedObjectiveIds.Count}/{orderedTargets.Count}");
+    Console.WriteLine($"    CurrentObjective  : {session.CurrentObjectiveId ?? "null"}");
+    Console.WriteLine($"    SetTaskCount      : {taskManager.SetTaskCount}");
+    Console.WriteLine($"    ClearTaskCount    : {taskManager.ClearTaskCount}");
+    Console.WriteLine($"    LastReportNull    : {session.LastReport is null}");
+    Console.WriteLine($"    Summary           : {session.Summary}");
+
+    if (session.State != RuntimeScenarioSessionState.Completed)
+    {
+        throw new InvalidOperationException($"Expected runtime scenario session Completed, got {session.State}.");
+    }
+
+    if (session.CompletedObjectiveIds.Count != orderedTargets.Count)
+    {
+        throw new InvalidOperationException(
+            $"Expected all objectives completed. Completed={session.CompletedObjectiveIds.Count}, Total={orderedTargets.Count}");
+    }
+
+    if (session.CurrentObjectiveId is not null)
+    {
+        throw new InvalidOperationException($"Expected CurrentObjectiveId null after completion, got {session.CurrentObjectiveId}.");
+    }
+
+    if (taskManager.CurrentTask is not null)
+    {
+        throw new InvalidOperationException("Expected CurrentTask null after scenario completion.");
+    }
+
+    if (taskManager.ClearTaskCount < 1)
+    {
+        throw new InvalidOperationException("Expected task manager ClearTask to be called after scenario completion.");
+    }
+
+    if (session.LastReport is null)
+    {
+        throw new InvalidOperationException("Expected runtime scenario host to keep last judge report.");
+    }
+
+    if (session.LastReport.TotalObjectiveCount != scenario.Objectives.Count)
+    {
+        throw new InvalidOperationException(
+            $"Expected last report total objective count to match scenario. TotalInReport={session.LastReport.TotalObjectiveCount}, ScenarioTotal={scenario.Objectives.Count}");
+    }
+
+    if (session.LastReport.CompletedObjectiveCount < 1)
+    {
+        throw new InvalidOperationException(
+            $"Expected last report to confirm at least one completed objective on final evaluation. Completed={session.LastReport.CompletedObjectiveCount}");
     }
 }
 
@@ -628,6 +836,29 @@ static bool Vec3AlmostEquals(Vec3 a, Vec3 b, double epsilon = 0.0001)
         Math.Abs(a.X - b.X) <= epsilon &&
         Math.Abs(a.Y - b.Y) <= epsilon &&
         Math.Abs(a.Z - b.Z) <= epsilon;
+}
+
+static VehicleState CreateScenarioSmokeVehicleState(
+    double x,
+    double y,
+    double z,
+    double yawDeg,
+    double vx = 0.0,
+    double vy = 0.0,
+    double vz = 0.0,
+    double yawRateDegPerSec = 0.0)
+{
+    return new VehicleState(
+        Position: new Vec3(x, y, z),
+        Orientation: new Orientation(
+            0.0,
+            0.0,
+            yawDeg),
+        LinearVelocity: new Vec3(vx, vy, vz),
+        AngularVelocity: new Vec3(0.0, 0.0, yawRateDegPerSec),
+        LinearForce: Vec3.Zero,
+        AngularTorque: Vec3.Zero
+    ).Sanitized();
 }
 
 /// <summary>
