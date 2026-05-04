@@ -6,16 +6,17 @@ using Hydronom.Core.Interfaces;
 namespace Hydronom.Runtime.Actuators
 {
     /// <summary>
-    /// ActuatorManager allocation / control effectiveness / solver bÃ¶lÃ¼mÃ¼.
+    /// ActuatorManager allocation / control effectiveness / solver bölümü.
     ///
-    /// Bu partial dosya ÅŸunlardan sorumludur:
-    /// - Thruster geometrisinden 6xM B matrisi Ã¼retmek
-    /// - SaÄŸlÄ±klÄ± thruster maskesine gÃ¶re solver cache oluÅŸturmak
-    /// - Ridge least-squares ile istenen wrench iÃ§in thruster Ã§Ã¶zÃ¼mÃ¼ Ã¼retmek
+    /// Bu partial dosya şunlardan sorumludur:
+    /// - Thruster geometrisinden 6xM B matrisi üretmek
+    /// - Sağlıklı thruster maskesine göre solver cache oluşturmak
+    /// - Ridge least-squares ile istenen wrench için thruster çözümü üretmek
+    /// - CanReverse=false thruster'lar için negatif komutu çözüm aşamasında engellemek
     /// - Control authority profilini hesaplamak
-    /// - Hedef/gerÃ§ek wrench farkÄ±nÄ± raporlamak
+    /// - Hedef/gerçek wrench farkını raporlamak
     ///
-    /// Frame sÃ¶zleÅŸmesi:
+    /// Frame sözleşmesi:
     /// - B matrisi body frame'dedir.
     /// - RequestedForceBody ve RequestedTorqueBody body frame'dedir.
     /// - Thruster ForceDir ve Position body frame'dedir.
@@ -23,13 +24,13 @@ namespace Hydronom.Runtime.Actuators
     public sealed partial class ActuatorManager
     {
         /// <summary>
-        /// DecisionCommand iÃ§inden 6 elemanlÄ± hedef wrench vektÃ¶rÃ¼ Ã¼retir.
+        /// DecisionCommand içinden 6 elemanlı hedef wrench vektörü üretir.
         ///
-        /// SÄ±ra:
+        /// Sıra:
         /// [Fx, Fy, Fz, Tx, Ty, Tz]
         ///
-        /// TorqueWeight yalnÄ±zca solver hedefinde moment eksenlerinin sayÄ±sal aÄŸÄ±rlÄ±ÄŸÄ±nÄ±
-        /// deÄŸiÅŸtirmek iÃ§in kullanÄ±lÄ±r. Rapor tarafÄ±nda gerÃ§ek istenen tork korunur.
+        /// TorqueWeight yalnızca solver hedefinde moment eksenlerinin sayısal ağırlığını
+        /// değiştirmek için kullanılır. Rapor tarafında gerçek istenen tork korunur.
         /// </summary>
         private double[] BuildRequestedWrenchVector(DecisionCommand cmd)
         {
@@ -45,11 +46,17 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// DecisionCommand iÃ§in aÃ§Ä±klanabilir allocation iÅŸlemi yapar.
+        /// DecisionCommand için açıklanabilir allocation işlemi yapar.
         ///
-        /// Bu metot thruster Current deÄŸerlerini doÄŸrudan deÄŸiÅŸtirmez.
-        /// Sadece solver Ã§Ä±ktÄ±sÄ± ve rapor Ã¼retir.
-        /// Uygulama/slew/health/capability etkisi ana Apply metodunda iÅŸlenir.
+        /// Bu metot thruster Current değerlerini doğrudan değiştirmez.
+        /// Sadece solver çıktısı ve rapor üretir.
+        ///
+        /// v2:
+        /// - Solver artık tek yönlü thruster'ların negatif çözüm almasına izin vermez.
+        /// - Unconstrained ridge çözümden sonra active-set benzeri bir düzeltme yapılır.
+        /// - CanReverse=false ve çözüm negatifse ilgili thruster 0'a sabitlenir,
+        ///   kalan aktif thruster'larla hedef wrench yeniden çözülür.
+        /// - Apply tarafındaki reverse clamp artık yalnızca safety-net olarak kalır.
         /// </summary>
         private AllocationSolveResult SolveAllocation(DecisionCommand cmd)
         {
@@ -68,10 +75,22 @@ namespace Hydronom.Runtime.Actuators
             double[] requestedWrench = BuildRequestedWrenchVector(cmd);
 
             SolverCache solver;
-            lock (_stateLock)
-                solver = _solverCache;
+            bool[] canReverse;
+            bool[] healthy;
 
-            double[] raw = SolveWithCache(solver, requestedWrench);
+            lock (_stateLock)
+            {
+                solver = _solverCache;
+                canReverse = _thrusters.Select(t => t.CanReverse).ToArray();
+                healthy = _thrusters.Select(t => t.IsHealthy).ToArray();
+            }
+
+            double[] raw = SolveWithCapabilityBounds(
+                solver,
+                requestedWrench,
+                canReverse,
+                healthy
+            );
 
             if (raw.Length == 0 && _thrusters.Count > 0)
                 raw = new double[_thrusters.Count];
@@ -85,7 +104,7 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Uygulanan thruster Ã§Ä±kÄ±ÅŸlarÄ±ndan gerÃ§ek body-frame wrench hesaplar.
+        /// Uygulanan thruster çıkışlarından gerçek body-frame wrench hesaplar.
         /// </summary>
         private (Vec3 forceBody, Vec3 torqueBody) ComputeAchievedWrench_NoLock()
         {
@@ -108,8 +127,8 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Allocation raporu Ã¼retir.
-        /// Hedef wrench ile uygulanmÄ±ÅŸ thruster current'larÄ±ndan hesaplanan gerÃ§ek wrench'i karÅŸÄ±laÅŸtÄ±rÄ±r.
+        /// Allocation raporu üretir.
+        /// Hedef wrench ile uygulanmış thruster current'larından hesaplanan gerçek wrench'i karşılaştırır.
         /// </summary>
         private ActuatorAllocationReport BuildAllocationReport_NoLock(
             AllocationSolveResult solve,
@@ -171,11 +190,11 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Geometriye baÄŸlÄ± sabit 6xM B matrisi Ã¼retir.
+        /// Geometriye bağlı sabit 6xM B matrisi üretir.
         ///
-        /// Her kolon bir thruster'Ä±n normalize +1 komutunda Ã¼reteceÄŸi body-frame wrench'tir.
-        /// CanReverse=false olan thruster iÃ§in kolon yine +1 yÃ¶nÃ¼nÃ¼ temsil eder;
-        /// negatif komut kabiliyeti Apply aÅŸamasÄ±nda fiziksel Ã§Ä±kÄ±ÅŸtan Ã¶nce kÄ±rpÄ±lÄ±r.
+        /// Her kolon bir thruster'ın normalize +1 komutunda üreteceği body-frame wrench'tir.
+        /// CanReverse=false olan thruster için kolon yine +1 yönünü temsil eder.
+        /// Ancak negatif komut artık yalnızca Apply aşamasında değil, solver aşamasında da engellenir.
         /// </summary>
         private double[,] BuildThrusterMatrixFromGeometry()
         {
@@ -203,12 +222,12 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// SaÄŸlÄ±k durumuna gÃ¶re effective B matrisi ve Ridge LS cache'i Ã¼retir.
+        /// Sağlık durumuna göre effective B matrisi ve Ridge LS cache'i üretir.
         ///
         /// Not:
-        /// CanReverse=false iÃ§in negatif komut sÄ±nÄ±rÄ± burada deÄŸil Apply aÅŸamasÄ±nda uygulanÄ±r.
-        /// Ã‡Ã¼nkÃ¼ mevcut ridge solver box-constraint Ã§Ã¶zÃ¼mÃ¼ yapmÄ±yor.
-        /// Bu nedenle rapor tarafÄ±nda reverse clamp aÃ§Ä±kÃ§a iÅŸaretlenir.
+        /// CanReverse=false sınırı cache seviyesinde B kolonunu silmez.
+        /// Çünkü tek yönlü thruster pozitif yönde hâlâ otorite sağlar.
+        /// Negatif komut sınırı SolveWithCapabilityBounds içinde active-set mantığıyla uygulanır.
         /// </summary>
         private void RebuildSolverCache_NoLockRequired()
         {
@@ -250,14 +269,14 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Mevcut geometri ve saÄŸlÄ±klÄ± thruster'lara gÃ¶re eksen otoritesi hesaplar.
+        /// Mevcut geometri ve sağlıklı thruster'lara göre eksen otoritesi hesaplar.
         ///
         /// CanReverse=true:
-        ///   +1 komut kolon yÃ¶nÃ¼nde, -1 komut kolonun ters yÃ¶nÃ¼nde otorite saÄŸlar.
+        ///   +1 komut kolon yönünde, -1 komut kolonun ters yönünde otorite sağlar.
         ///
         /// CanReverse=false:
-        ///   yalnÄ±zca +1 komut yÃ¶nÃ¼ geÃ§erli kabul edilir.
-        ///   BÃ¶ylece tek yÃ¶nlÃ¼ ESC kullanÄ±lan araÃ§larda negatif eksen otoritesi yanlÄ±ÅŸ ÅŸiÅŸirilmez.
+        ///   yalnızca +1 komut yönü geçerli kabul edilir.
+        ///   Böylece tek yönlü ESC kullanılan araçlarda negatif eksen otoritesi yanlış şişirilmez.
         /// </summary>
         private void RecomputeAuthorityProfile_NoLockRequired()
         {
@@ -322,15 +341,173 @@ namespace Hydronom.Runtime.Actuators
         }
 
         /// <summary>
-        /// Ridge least-squares Ã§Ã¶zÃ¼mÃ¼.
+        /// CanReverse-aware allocation solver.
         ///
-        /// KullanÄ±lan form:
-        /// u = S^-1 * (Bs^T Bs + Î»I)^-1 * Bs^T * target
+        /// Akış:
+        /// 1. Sağlıklı thruster maskesiyle ridge LS çözümü alınır.
+        /// 2. CanReverse=false thruster'lardan negatif çıkanlar 0'a sabitlenir.
+        /// 3. Kalan aktif thruster'larla hedef tekrar çözülür.
+        /// 4. Bu işlem negatif tek yönlü ihlal kalmayana kadar veya iterasyon limiti dolana kadar sürer.
+        /// 5. Son çözüm fiziksel sınırlarla sanitize edilir.
         ///
-        /// Not:
-        /// Bu Ã§Ã¶zÃ¼m unconstrained ridge LS'tir. CanReverse=false iÃ§in negatif komut
-        /// Apply aÅŸamasÄ±nda kÄ±rpÄ±lÄ±r. Ä°leride box-constrained NNLS/QP solver eklenirse
-        /// tek yÃ¶nlÃ¼ thruster'lar Ã§Ã¶zÃ¼m aÅŸamasÄ±nda da [0,+1] sÄ±nÄ±rÄ±na alÄ±nabilir.
+        /// Bu tam QP/NNLS değildir; ancak eski "çöz sonra clamp et" davranışından çok daha doğrudur.
+        /// Amaç reverse clamp'i normal operasyonda neredeyse sıfıra indirmektir.
+        /// </summary>
+        private static double[] SolveWithCapabilityBounds(
+            SolverCache cache,
+            double[] targetWrench,
+            bool[] canReverse,
+            bool[] healthy)
+        {
+            if (cache.IsEmpty)
+                return Array.Empty<double>();
+
+            int cols = cache.B.GetLength(1);
+
+            if (cols <= 0)
+                return Array.Empty<double>();
+
+            bool[] active = new bool[cols];
+
+            for (int j = 0; j < cols; j++)
+            {
+                bool cacheActive = j < cache.ActiveMask.Length && cache.ActiveMask[j];
+                bool isHealthy = j < healthy.Length && healthy[j];
+
+                active[j] = cacheActive && isHealthy;
+            }
+
+            double[] solution = SolveWithMask(cache.B, targetWrench, active);
+
+            int maxIterations = Math.Max(1, cols + 1);
+
+            for (int iter = 0; iter < maxIterations; iter++)
+            {
+                bool changed = false;
+
+                for (int j = 0; j < cols; j++)
+                {
+                    bool supportsReverse = j < canReverse.Length && canReverse[j];
+
+                    if (!active[j])
+                        continue;
+
+                    if (supportsReverse)
+                        continue;
+
+                    if (j < solution.Length && solution[j] < -1e-7)
+                    {
+                        /*
+                         * Tek yönlü thruster negatif çözüm istiyor.
+                         * Bu thruster'ı bu allocation için 0'a sabitleyip
+                         * kalan thruster'larla hedefi tekrar çözüyoruz.
+                         */
+                        active[j] = false;
+                        changed = true;
+                    }
+                }
+
+                if (!changed)
+                    break;
+
+                solution = SolveWithMask(cache.B, targetWrench, active);
+            }
+
+            if (solution.Length != cols)
+                Array.Resize(ref solution, cols);
+
+            for (int j = 0; j < cols; j++)
+            {
+                bool supportsReverse = j < canReverse.Length && canReverse[j];
+
+                if (!active[j])
+                {
+                    solution[j] = 0.0;
+                    continue;
+                }
+
+                if (!double.IsFinite(solution[j]))
+                    solution[j] = 0.0;
+
+                solution[j] = supportsReverse
+                    ? Math.Clamp(solution[j], -1.0, 1.0)
+                    : Math.Clamp(solution[j], 0.0, 1.0);
+            }
+
+            return solution;
+        }
+
+        /// <summary>
+        /// Verilen active mask için ridge LS çözümü üretir.
+        /// Pasif kolonlar B içinde sıfırlanır; sonuç dizisinde de 0 kalır.
+        /// </summary>
+        private static double[] SolveWithMask(
+            double[,] baseB,
+            double[] targetWrench,
+            bool[] activeMask)
+        {
+            int rows = baseB.GetLength(0);
+            int cols = baseB.GetLength(1);
+
+            if (rows == 0 || cols == 0)
+                return Array.Empty<double>();
+
+            double[,] bEff = new double[rows, cols];
+
+            for (int j = 0; j < cols; j++)
+            {
+                double gain = j < activeMask.Length && activeMask[j] ? 1.0 : 0.0;
+
+                for (int i = 0; i < rows; i++)
+                    bEff[i, j] = baseB[i, j] * gain;
+            }
+
+            double[] colScale = ComputeColumnScales(bEff);
+            double[,] bs = ScaleColumns(bEff, colScale);
+
+            double[,] a = BuildRegularizedNormalMatrix(bs, SolverLambda);
+            double[,] aInv;
+
+            try
+            {
+                aInv = InvertMatrix(a);
+            }
+            catch
+            {
+                return new double[cols];
+            }
+
+            double[] solution = SolveWithCache(
+                new SolverCache(
+                    B: bEff,
+                    Bs: bs,
+                    ColScale: colScale,
+                    AInv: aInv,
+                    ActiveMask: activeMask.ToArray()
+                ),
+                targetWrench
+            );
+
+            if (solution.Length != cols)
+                Array.Resize(ref solution, cols);
+
+            for (int j = 0; j < cols; j++)
+            {
+                if (j >= activeMask.Length || !activeMask[j])
+                    solution[j] = 0.0;
+            }
+
+            return solution;
+        }
+
+        /// <summary>
+        /// Ridge least-squares çözümü.
+        ///
+        /// Kullanılan form:
+        /// u = S^-1 * (Bs^T Bs + λI)^-1 * Bs^T * target
+        ///
+        /// Bu fonksiyon tek başına unconstrained çözüm üretir.
+        /// CanReverse / one-way sınırları SolveWithCapabilityBounds içinde uygulanır.
         /// </summary>
         private static double[] SolveWithCache(SolverCache cache, double[] targetWrench)
         {
