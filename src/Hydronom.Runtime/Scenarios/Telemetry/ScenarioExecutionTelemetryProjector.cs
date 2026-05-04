@@ -10,6 +10,9 @@ namespace Hydronom.Runtime.Scenarios.Telemetry;
 /// </summary>
 public sealed class ScenarioExecutionTelemetryProjector
 {
+    private const int ScenarioReplaySensorCount = 1;
+    private const int ScenarioReplayHealthySensorCount = 1;
+
     /// <summary>
     /// Scenario execution final sonucundan tek bir final RuntimeTelemetrySummary üretir.
     /// </summary>
@@ -109,10 +112,11 @@ public sealed class ScenarioExecutionTelemetryProjector
             HasCriticalIssue: hasCriticalIssue,
             HasWarnings: hasWarnings,
 
-            // Bu projector şimdilik gerçek sensör runtime'ı temsil etmiyor.
-            // Scenario execution/replay state'ini Ops'a göstermek için state telemetry üretiyor.
-            SensorCount: 0,
-            HealthySensorCount: 0,
+            // Bu projector gerçek fiziksel sensör runtime'ı temsil etmiyor;
+            // ancak Gateway/Ops tarafında scenario replay kaynağının sağlıklı bir sanal telemetry source
+            // olduğunu göstermek için 1 adet sağlıklı sanal kaynak bildiriyoruz.
+            SensorCount: ScenarioReplaySensorCount,
+            HealthySensorCount: ScenarioReplayHealthySensorCount,
 
             FusionEngineName: "scenario_kinematic_executor",
             FusionProducedCandidate: true,
