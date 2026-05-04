@@ -1,5 +1,6 @@
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
+using Hydronom.Runtime.Scenarios.Telemetry;
 using Hydronom.Runtime.Testing.Scenarios;
 using Hydronom.Runtime.World.Runtime;
 
@@ -60,7 +61,8 @@ var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
 RunTimelineEvaluationSmokeTest(scenario, runner);
-RunKinematicExecutionSmokeTest(scenario);
+var executionResult = RunKinematicExecutionSmokeTest(scenario);
+RunScenarioExecutionTelemetrySmokeTest(executionResult);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
@@ -221,7 +223,7 @@ static void RunTimelineEvaluationSmokeTest(
     }
 }
 
-static void RunKinematicExecutionSmokeTest(
+static ScenarioExecutionResult RunKinematicExecutionSmokeTest(
     Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
 {
     var executor = new ScenarioKinematicExecutor();
@@ -278,6 +280,77 @@ static void RunKinematicExecutionSmokeTest(
     if (!string.Equals(result.Report.JudgeStatus, Hydronom.Core.Scenarios.Judging.ScenarioJudgeStatus.Success, StringComparison.OrdinalIgnoreCase))
     {
         throw new InvalidOperationException($"Expected report judge status Success, got {result.Report.JudgeStatus}.");
+    }
+
+    return result;
+}
+
+static void RunScenarioExecutionTelemetrySmokeTest(ScenarioExecutionResult executionResult)
+{
+    var projector = new ScenarioExecutionTelemetryProjector();
+
+    var timelineSummaries = projector.ProjectTimeline(executionResult);
+    var finalSummary = projector.ProjectFinalSummary(executionResult);
+
+    Console.WriteLine();
+    Console.WriteLine("Scenario execution telemetry report:");
+    Console.WriteLine($"  TimelineTelemetryCount : {timelineSummaries.Count}");
+    Console.WriteLine($"  FinalRuntimeId         : {finalSummary.RuntimeId}");
+    Console.WriteLine($"  FinalVehicleId         : {finalSummary.VehicleId}");
+    Console.WriteLine($"  FinalOverallHealth     : {finalSummary.OverallHealth}");
+    Console.WriteLine($"  FinalHasState          : {finalSummary.HasState}");
+    Console.WriteLine($"  FinalStateX            : {finalSummary.StateX}");
+    Console.WriteLine($"  FinalStateY            : {finalSummary.StateY}");
+    Console.WriteLine($"  FinalStateZ            : {finalSummary.StateZ}");
+    Console.WriteLine($"  FinalYawDeg            : {finalSummary.StateYawDeg}");
+    Console.WriteLine($"  FinalSummary           : {finalSummary.Summary}");
+
+    if (timelineSummaries.Count == 0)
+    {
+        throw new InvalidOperationException("Expected timeline telemetry summaries.");
+    }
+
+    if (!string.Equals(finalSummary.RuntimeId, "hydronom_scenario_executor", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected RuntimeId hydronom_scenario_executor, got {finalSummary.RuntimeId}.");
+    }
+
+    if (!finalSummary.HasState)
+    {
+        throw new InvalidOperationException("Expected final telemetry summary to contain state.");
+    }
+
+    if (!string.Equals(finalSummary.OverallHealth, "Healthy", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected final telemetry health Healthy, got {finalSummary.OverallHealth}.");
+    }
+
+    if (Math.Abs(finalSummary.StateX - executionResult.Report.FinalVehicleX) > 0.0001)
+    {
+        throw new InvalidOperationException("Final telemetry StateX does not match report final X.");
+    }
+
+    if (Math.Abs(finalSummary.StateY - executionResult.Report.FinalVehicleY) > 0.0001)
+    {
+        throw new InvalidOperationException("Final telemetry StateY does not match report final Y.");
+    }
+
+    if (Math.Abs(finalSummary.StateZ - executionResult.Report.FinalVehicleZ) > 0.0001)
+    {
+        throw new InvalidOperationException("Final telemetry StateZ does not match report final Z.");
+    }
+
+    var first = timelineSummaries[0];
+    var last = timelineSummaries[^1];
+
+    if (!first.HasState || !last.HasState)
+    {
+        throw new InvalidOperationException("Expected first and last timeline telemetry summaries to contain state.");
+    }
+
+    if (last.AcceptedStateUpdateCount < first.AcceptedStateUpdateCount)
+    {
+        throw new InvalidOperationException("Telemetry accepted state update count should be monotonic.");
     }
 }
 
