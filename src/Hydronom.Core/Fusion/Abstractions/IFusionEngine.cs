@@ -1,15 +1,25 @@
-﻿/*
- * IFusionEngine
- *
- * Amaç:
- * SensorSample listesinden fusion/state estimation çıktısı üretmek için ortak Core sözleşmesi.
- *
- * Durum:
- * Bu dosya Hydronom C# Primary mimari scaffold paketinde oluşturulmuştur.
- * Şimdilik bilinçli olarak yalnızca açıklama içerir.
- * Gerçek implementasyon ilgili paket sırasında eklenecektir.
- *
- * Mimari not:
- * Bu dosya SensorSample -> Fusion/StateEstimator -> StateAuthority -> VehicleState
- * zincirinin parçası olacak şekilde planlanmıştır.
- */
+﻿using Hydronom.Core.Fusion.Diagnostics;
+using Hydronom.Core.Fusion.Models;
+using Hydronom.Core.Sensors.Common.Models;
+using Hydronom.Core.State.Authority;
+
+namespace Hydronom.Core.Fusion.Abstractions;
+
+/// <summary>
+/// SensorSample listesinden fusion/state estimation çıktısı üreten ortak Core sözleşmesi.
+/// Fusion katmanı doğrudan authoritative state yazmaz; StateUpdateCandidate üretir.
+/// </summary>
+public interface IFusionEngine
+{
+    string Name { get; }
+
+    FusionDiagnostics LastDiagnostics { get; }
+
+    StateUpdateCandidate? Estimate(
+        IReadOnlyList<SensorSample> samples,
+        FusionContext context);
+
+    FusedState? Fuse(
+        IReadOnlyList<SensorSample> samples,
+        FusionContext context);
+}
