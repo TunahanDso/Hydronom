@@ -1,15 +1,42 @@
-﻿/*
- * HydronomWorldObject
- *
- * Amaç:
- * Gerçek, sim veya ground-station kaynaklı world object bilgisini ortak Core modelde temsil etmek.
- *
- * Durum:
- * Bu dosya Hydronom ürünleşme seviyesi C# Primary mimari scaffold paketinde oluşturulmuştur.
- * Şimdilik bilinçli olarak yalnızca açıklama içerir.
- * Gerçek implementasyon ilgili geliştirme paketinde eklenecektir.
- *
- * Ürün mimarisi notu:
- * Hydronom ürün halinde Core, Runtime, AI, Gateway, GroundStation ve Ops katmanları
- * tek bir izlenebilir, test edilebilir, state-authority kontrollü mimari zincir halinde çalışmalıdır.
- */
+﻿namespace Hydronom.Core.World.Models;
+
+/// <summary>
+/// Runtime içinde kullanılan genel dünya objesi.
+/// Scenario objeleri bu modele bind edilir.
+/// </summary>
+public sealed record HydronomWorldObject
+{
+    public string Id { get; init; } = string.Empty;
+
+    public string Kind { get; init; } = string.Empty;
+
+    public string Name { get; init; } = string.Empty;
+
+    public string Layer { get; init; } = "mission";
+
+    public double X { get; init; }
+
+    public double Y { get; init; }
+
+    public double Z { get; init; }
+
+    public double Radius { get; init; }
+
+    public double Width { get; init; }
+
+    public double Height { get; init; }
+
+    public double YawDeg { get; init; }
+
+    public bool IsActive { get; init; } = true;
+
+    public bool IsBlocking { get; init; }
+
+    public Dictionary<string, string> Tags { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool IsObstacleLike =>
+        IsBlocking ||
+        Kind.Equals("obstacle", StringComparison.OrdinalIgnoreCase) ||
+        Kind.Equals("buoy", StringComparison.OrdinalIgnoreCase) ||
+        Kind.Equals("no_go_zone", StringComparison.OrdinalIgnoreCase);
+}
