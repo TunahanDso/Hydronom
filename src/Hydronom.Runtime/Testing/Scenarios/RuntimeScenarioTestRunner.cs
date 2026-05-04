@@ -63,6 +63,7 @@ public sealed class RuntimeScenarioTestRunner
             FailedObjectiveCount = judgeResult.FailedObjectiveCount,
             CurrentObjectiveId = judgeResult.CurrentObjectiveId ?? runState.CurrentObjectiveId,
             CurrentObjectiveTitle = judgeResult.CurrentObjectiveTitle ?? runState.CurrentObjectiveTitle,
+            NextObjectiveId = judgeResult.NextObjectiveId ?? runState.NextObjectiveId,
             FailureReason = judgeResult.FailureReason,
             Summary = judgeResult.Summary
         };
@@ -76,6 +77,7 @@ public sealed class RuntimeScenarioTestRunner
     /// <summary>
     /// Çoklu araç state örneği üzerinden ardışık değerlendirme çalıştırır.
     /// Bu method ileride replay/timeline testleri için temel oluşturur.
+    /// Timeline boyunca tamamlanan objective'leri hafızada tutar.
     /// </summary>
     public ScenarioRunReport RunTimelineEvaluation(
         ScenarioDefinition scenario,
@@ -98,11 +100,16 @@ public sealed class RuntimeScenarioTestRunner
 
         var startedUtc = options.StartedUtc ?? timeline[0].TimestampUtc ?? DateTime.UtcNow;
 
+        var completedObjectiveIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var failedObjectiveIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         var previousEvents = new List<ScenarioJudgeEvent>();
         var previousViolations = new List<ScenarioJudgeViolation>();
 
         ScenarioRunState? lastRunState = null;
         ScenarioJudgeResult? lastJudgeResult = null;
+
+        var currentObjectiveId = ResolveFirstObjectiveId(scenario, options.CurrentObjectiveId);
 
         for (var i = 0; i < timeline.Count; i++)
         {
@@ -114,6 +121,7 @@ public sealed class RuntimeScenarioTestRunner
                 RunId = runId,
                 StartedUtc = startedUtc,
                 TimestampUtc = now,
+                CurrentObjectiveId = currentObjectiveId,
                 PreviousEvents = previousEvents,
                 PreviousViolations = previousViolations
             };
@@ -121,35 +129,57 @@ public sealed class RuntimeScenarioTestRunner
             var runState = BuildRunState(scenario, vehicleState, stepOptions, startedUtc, now);
             var context = BuildJudgeContext(scenario, runState, vehicleState, stepOptions, now);
 
-            var judgeResult = _judge.Evaluate(context);
+            var rawJudgeResult = _judge.Evaluate(context);
 
-            previousEvents = judgeResult.Events.ToList();
-            previousViolations = judgeResult.Violations.ToList();
+            foreach (var objective in rawJudgeResult.Objectives.Where(x => x.IsCompleted))
+            {
+                completedObjectiveIds.Add(objective.ObjectiveId);
+            }
+
+            foreach (var objective in rawJudgeResult.Objectives.Where(x => x.IsFailed))
+            {
+                failedObjectiveIds.Add(objective.ObjectiveId);
+            }
+
+            previousEvents = rawJudgeResult.Events.ToList();
+            previousViolations = rawJudgeResult.Violations.ToList();
+
+            var cumulativeJudgeResult = BuildCumulativeJudgeResult(
+                scenario,
+                runState,
+                rawJudgeResult,
+                completedObjectiveIds,
+                failedObjectiveIds,
+                previousEvents,
+                previousViolations);
+
+            currentObjectiveId = cumulativeJudgeResult.CurrentObjectiveId;
 
             lastRunState = runState with
             {
-                Status = ResolveRunStatus(judgeResult),
-                IsCompleted = judgeResult.IsSuccess,
-                IsFailed = judgeResult.IsFailure,
-                IsRunning = judgeResult.IsRunning,
-                IsAborted = string.Equals(judgeResult.Status, ScenarioJudgeStatus.Aborted, StringComparison.OrdinalIgnoreCase),
-                IsTimedOut = string.Equals(judgeResult.Status, ScenarioJudgeStatus.Timeout, StringComparison.OrdinalIgnoreCase),
-                FinishedUtc = judgeResult.IsSuccess || judgeResult.IsFailure ? now : runState.FinishedUtc,
-                Score = judgeResult.Score,
-                Penalty = judgeResult.Penalty,
-                CompletionRatio = judgeResult.CompletionRatio,
-                TotalObjectiveCount = judgeResult.TotalObjectiveCount,
-                CompletedObjectiveCount = judgeResult.CompletedObjectiveCount,
-                FailedObjectiveCount = judgeResult.FailedObjectiveCount,
-                CurrentObjectiveId = judgeResult.CurrentObjectiveId ?? runState.CurrentObjectiveId,
-                CurrentObjectiveTitle = judgeResult.CurrentObjectiveTitle ?? runState.CurrentObjectiveTitle,
-                FailureReason = judgeResult.FailureReason,
-                Summary = judgeResult.Summary
+                Status = ResolveRunStatus(cumulativeJudgeResult),
+                IsCompleted = cumulativeJudgeResult.IsSuccess,
+                IsFailed = cumulativeJudgeResult.IsFailure,
+                IsRunning = cumulativeJudgeResult.IsRunning,
+                IsAborted = string.Equals(cumulativeJudgeResult.Status, ScenarioJudgeStatus.Aborted, StringComparison.OrdinalIgnoreCase),
+                IsTimedOut = string.Equals(cumulativeJudgeResult.Status, ScenarioJudgeStatus.Timeout, StringComparison.OrdinalIgnoreCase),
+                FinishedUtc = cumulativeJudgeResult.IsSuccess || cumulativeJudgeResult.IsFailure ? now : runState.FinishedUtc,
+                Score = cumulativeJudgeResult.Score,
+                Penalty = cumulativeJudgeResult.Penalty,
+                CompletionRatio = cumulativeJudgeResult.CompletionRatio,
+                TotalObjectiveCount = cumulativeJudgeResult.TotalObjectiveCount,
+                CompletedObjectiveCount = cumulativeJudgeResult.CompletedObjectiveCount,
+                FailedObjectiveCount = cumulativeJudgeResult.FailedObjectiveCount,
+                CurrentObjectiveId = cumulativeJudgeResult.CurrentObjectiveId ?? runState.CurrentObjectiveId,
+                CurrentObjectiveTitle = cumulativeJudgeResult.CurrentObjectiveTitle ?? runState.CurrentObjectiveTitle,
+                NextObjectiveId = cumulativeJudgeResult.NextObjectiveId ?? runState.NextObjectiveId,
+                FailureReason = cumulativeJudgeResult.FailureReason,
+                Summary = cumulativeJudgeResult.Summary
             };
 
-            lastJudgeResult = judgeResult;
+            lastJudgeResult = cumulativeJudgeResult;
 
-            if (judgeResult.IsSuccess || judgeResult.IsFailure)
+            if (cumulativeJudgeResult.IsSuccess || cumulativeJudgeResult.IsFailure)
             {
                 break;
             }
@@ -164,6 +194,154 @@ public sealed class RuntimeScenarioTestRunner
             scenario,
             lastRunState,
             lastJudgeResult);
+    }
+
+    private static ScenarioJudgeResult BuildCumulativeJudgeResult(
+        ScenarioDefinition scenario,
+        ScenarioRunState runState,
+        ScenarioJudgeResult rawJudgeResult,
+        HashSet<string> completedObjectiveIds,
+        HashSet<string> failedObjectiveIds,
+        IReadOnlyList<ScenarioJudgeEvent> events,
+        IReadOnlyList<ScenarioJudgeViolation> violations)
+    {
+        var orderedObjectives = scenario.Objectives
+            .OrderBy(x => x.Order)
+            .ThenBy(x => x.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var rawObjectiveMap = rawJudgeResult.Objectives
+            .ToDictionary(x => x.ObjectiveId, StringComparer.OrdinalIgnoreCase);
+
+        var cumulativeObjectiveStates = new List<ScenarioObjectiveJudgeState>(orderedObjectives.Count);
+
+        foreach (var objective in orderedObjectives)
+        {
+            rawObjectiveMap.TryGetValue(objective.Id, out var rawState);
+
+            var isCompleted = completedObjectiveIds.Contains(objective.Id);
+            var isFailed = failedObjectiveIds.Contains(objective.Id);
+
+            cumulativeObjectiveStates.Add(new ScenarioObjectiveJudgeState
+            {
+                ObjectiveId = objective.Id,
+                ObjectiveType = objective.Type,
+                Title = objective.Title,
+                Order = objective.Order,
+                IsRequired = objective.IsRequired,
+                IsCompleted = isCompleted,
+                IsFailed = isFailed,
+                IsActive = false,
+                ScoreEarned = isCompleted ? objective.ScoreValue : 0.0,
+                PenaltyApplied = isFailed && objective.IsRequired ? objective.ScoreValue : 0.0,
+                DistanceToTargetMeters = rawState?.DistanceToTargetMeters,
+                HorizontalDistanceToTargetMeters = rawState?.HorizontalDistanceToTargetMeters,
+                VerticalDistanceToTargetMeters = rawState?.VerticalDistanceToTargetMeters,
+                StartedUtc = rawState?.StartedUtc,
+                CompletedUtc = isCompleted ? rawState?.CompletedUtc ?? rawJudgeResult.TimestampUtc : null,
+                FailureReason = isFailed ? rawState?.FailureReason ?? "Objective failed by timeline judge." : null,
+                TargetObjectId = objective.TargetObjectId,
+                Metrics = rawState?.Metrics is null
+                    ? new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, double>(rawState.Metrics, StringComparer.OrdinalIgnoreCase),
+                Fields = rawState?.Fields is null
+                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(rawState.Fields, StringComparer.OrdinalIgnoreCase)
+            });
+        }
+
+        var currentObjective = cumulativeObjectiveStates
+            .Where(x => !x.IsCompleted && !x.IsFailed)
+            .OrderBy(x => x.Order)
+            .FirstOrDefault();
+
+        if (currentObjective is not null)
+        {
+            var index = cumulativeObjectiveStates.FindIndex(x =>
+                string.Equals(x.ObjectiveId, currentObjective.ObjectiveId, StringComparison.OrdinalIgnoreCase));
+
+            if (index >= 0)
+            {
+                cumulativeObjectiveStates[index] = cumulativeObjectiveStates[index] with
+                {
+                    IsActive = true
+                };
+            }
+        }
+
+        var nextObjective = cumulativeObjectiveStates
+            .Where(x => !x.IsCompleted && !x.IsFailed && x.Order > (currentObjective?.Order ?? -1))
+            .OrderBy(x => x.Order)
+            .FirstOrDefault();
+
+        var score = cumulativeObjectiveStates.Sum(x => x.ScoreEarned);
+        var penalty = cumulativeObjectiveStates.Sum(x => x.PenaltyApplied) + rawJudgeResult.Penalty;
+        var totalObjectiveCount = cumulativeObjectiveStates.Count;
+        var completedObjectiveCount = cumulativeObjectiveStates.Count(x => x.IsCompleted);
+        var failedObjectiveCount = cumulativeObjectiveStates.Count(x => x.IsFailed);
+
+        var completionRatio = totalObjectiveCount <= 0
+            ? 0.0
+            : Clamp01((double)completedObjectiveCount / totalObjectiveCount);
+
+        var isTimedOut = string.Equals(rawJudgeResult.Status, ScenarioJudgeStatus.Timeout, StringComparison.OrdinalIgnoreCase);
+        var hasHardFailure =
+            rawJudgeResult.IsFailure ||
+            isTimedOut ||
+            violations.Any(x =>
+                string.Equals(x.Severity, "Critical", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(x.Type, "Collision", StringComparison.OrdinalIgnoreCase));
+
+        var netScore = score - penalty;
+        var isSuccess =
+            !hasHardFailure &&
+            totalObjectiveCount > 0 &&
+            completedObjectiveCount == totalObjectiveCount &&
+            netScore >= scenario.MinimumSuccessScore;
+
+        var status = ResolveCumulativeStatus(isSuccess, hasHardFailure, isTimedOut);
+
+        return rawJudgeResult with
+        {
+            Status = status,
+            IsSuccess = isSuccess,
+            IsFailure = hasHardFailure && !isSuccess,
+            IsRunning = string.Equals(status, ScenarioJudgeStatus.Running, StringComparison.OrdinalIgnoreCase),
+
+            Score = score,
+            Penalty = penalty,
+            CompletionRatio = completionRatio,
+
+            TotalObjectiveCount = totalObjectiveCount,
+            CompletedObjectiveCount = completedObjectiveCount,
+            FailedObjectiveCount = failedObjectiveCount,
+
+            CurrentObjectiveId = currentObjective?.ObjectiveId,
+            CurrentObjectiveTitle = currentObjective?.Title,
+            NextObjectiveId = nextObjective?.ObjectiveId,
+
+            CollisionCount = violations.Count(x => string.Equals(x.Type, "Collision", StringComparison.OrdinalIgnoreCase)),
+            NoGoZoneViolationCount = violations.Count(x => string.Equals(x.Type, "NoGoZone", StringComparison.OrdinalIgnoreCase)),
+            DegradedEventCount = rawJudgeResult.DegradedEventCount,
+            SafetyInterventionCount = rawJudgeResult.SafetyInterventionCount,
+
+            FinishedUtc = isSuccess || hasHardFailure ? rawJudgeResult.TimestampUtc : rawJudgeResult.FinishedUtc,
+            FailureReason = hasHardFailure ? rawJudgeResult.FailureReason : null,
+            Summary = BuildCumulativeSummary(
+                status,
+                completedObjectiveCount,
+                totalObjectiveCount,
+                score,
+                penalty,
+                hasHardFailure ? rawJudgeResult.FailureReason : null),
+
+            Objectives = cumulativeObjectiveStates,
+            Events = events,
+            Violations = violations,
+
+            Metrics = MergeCumulativeMetrics(rawJudgeResult, score, penalty, completionRatio, runState),
+            Fields = MergeCumulativeFields(rawJudgeResult, status)
+        };
     }
 
     private static ScenarioRunState BuildRunState(
@@ -328,6 +506,14 @@ public sealed class RuntimeScenarioTestRunner
             .FirstOrDefault();
     }
 
+    private static string? ResolveFirstObjectiveId(
+        ScenarioDefinition scenario,
+        string? preferredObjectiveId)
+    {
+        var objective = ResolveActiveObjective(scenario, preferredObjectiveId);
+        return objective?.Id;
+    }
+
     private static string? ResolveNextObjectiveId(
         ScenarioDefinition scenario,
         ScenarioMissionObjectiveDefinition? activeObjective)
@@ -370,6 +556,84 @@ public sealed class RuntimeScenarioTestRunner
         return ScenarioRunStatus.Running;
     }
 
+    private static string ResolveCumulativeStatus(
+        bool isSuccess,
+        bool hasHardFailure,
+        bool isTimedOut)
+    {
+        if (isTimedOut)
+        {
+            return ScenarioJudgeStatus.Timeout;
+        }
+
+        if (isSuccess)
+        {
+            return ScenarioJudgeStatus.Success;
+        }
+
+        if (hasHardFailure)
+        {
+            return ScenarioJudgeStatus.Failed;
+        }
+
+        return ScenarioJudgeStatus.Running;
+    }
+
+    private static Dictionary<string, double> MergeCumulativeMetrics(
+        ScenarioJudgeResult rawJudgeResult,
+        double score,
+        double penalty,
+        double completionRatio,
+        ScenarioRunState runState)
+    {
+        var metrics = rawJudgeResult.Metrics is null
+            ? new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, double>(rawJudgeResult.Metrics, StringComparer.OrdinalIgnoreCase);
+
+        metrics["score"] = score;
+        metrics["penalty"] = penalty;
+        metrics["netScore"] = score - penalty;
+        metrics["completionRatio"] = completionRatio;
+        metrics["run.elapsedSeconds"] = runState.ElapsedSeconds;
+        metrics["vehicle.x"] = runState.VehicleX;
+        metrics["vehicle.y"] = runState.VehicleY;
+        metrics["vehicle.z"] = runState.VehicleZ;
+        metrics["vehicle.yawDeg"] = runState.VehicleYawDeg;
+
+        return metrics;
+    }
+
+    private static Dictionary<string, string> MergeCumulativeFields(
+        ScenarioJudgeResult rawJudgeResult,
+        string status)
+    {
+        var fields = rawJudgeResult.Fields is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(rawJudgeResult.Fields, StringComparer.OrdinalIgnoreCase);
+
+        fields["timeline.status"] = status;
+        fields["timeline.cumulativeObjectives"] = "true";
+
+        return fields;
+    }
+
+    private static string BuildCumulativeSummary(
+        string status,
+        int completedObjectiveCount,
+        int totalObjectiveCount,
+        double score,
+        double penalty,
+        string? failureReason)
+    {
+        var baseText =
+            $"{status}: objectives={completedObjectiveCount}/{totalObjectiveCount}, " +
+            $"score={score:F1}, penalty={penalty:F1}, net={(score - penalty):F1}";
+
+        return string.IsNullOrWhiteSpace(failureReason)
+            ? baseText
+            : $"{baseText}, failure={failureReason}";
+    }
+
     private static double CalculateSpeed2D(double vx, double vy)
     {
         return Math.Sqrt((vx * vx) + (vy * vy));
@@ -378,6 +642,21 @@ public sealed class RuntimeScenarioTestRunner
     private static double CalculateSpeed3D(double vx, double vy, double vz)
     {
         return Math.Sqrt((vx * vx) + (vy * vy) + (vz * vz));
+    }
+
+    private static double Clamp01(double value)
+    {
+        if (value < 0.0)
+        {
+            return 0.0;
+        }
+
+        if (value > 1.0)
+        {
+            return 1.0;
+        }
+
+        return value;
     }
 }
 
