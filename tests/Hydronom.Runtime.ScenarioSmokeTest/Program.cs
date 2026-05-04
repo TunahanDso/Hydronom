@@ -122,7 +122,11 @@ try
         telemetry.Objects.Any(x => x.ObjectId == "no_go_north" && x.Collidable),
         "Telemetry içinde no_go_north collidable olmalı.");
 
+    Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine("PASS: Scenario loading + runtime world binding + telemetry projection başarılı.");
+    Console.ResetColor();
+
+    return 0;
 }
 finally
 {
@@ -251,6 +255,9 @@ static void Require(bool condition, string message)
         return;
     }
 
+    Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine($"FAIL: {message}");
+    Console.ResetColor();
+
     throw new InvalidOperationException(message);
 }
