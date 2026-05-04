@@ -1,6 +1,28 @@
 {
   "Runtime": {
     "TickMs": 100,
-    "DevMode": false
+    "DevMode": false,
+    "TelemetrySummary": {
+      "Enabled": true,
+      "RuntimeId": "hydronom_runtime",
+      "VehicleId": "hydronom-main",
+      "FrameId": "map",
+      "Every": 10,
+      "LogEvery": 50,
+      "MaxSampleAgeMs": 2000,
+      "EnableDefaultSimSensors": true,
+      "EnableImu": true,
+      "EnableGps": true,
+      "EnableLidar": false,
+      "EnableCamera": false,
+      "StateAuthority": {
+        "MaxStateAgeMs": 2000,
+        "MinConfidence": 0.5,
+        "MaxTeleportDistanceMeters": 50,
+        "MaxPlausibleSpeedMps": 50,
+        "MaxPlausibleYawRateDegSec": 360,
+        "RequireFrameMatch": true
+      }
+    }
   }
 }

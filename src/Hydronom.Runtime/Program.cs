@@ -62,6 +62,7 @@ partial class Program
         IFrameSource frameSource;
         TcpJsonFrameSource? tcpFrameSource = null;
         ITwinPublisher? twinPublisher = null;
+        RuntimeTelemetryRuntime? runtimeTelemetryRuntime = null;
 
         var sourceType = config["SensorSource:Type"] ?? "TcpJson";
 
@@ -82,6 +83,19 @@ partial class Program
             _ = tcpFrameSource.StartAsync(cts.Token);
 
             Console.WriteLine($"[SRC] TcpJsonFrameSource started on {host}:{port} (fresh={fresh}ms).");
+
+            if (IsRuntimeTelemetryEnabled(config))
+            {
+                runtimeTelemetryRuntime = CreateRuntimeTelemetryRuntime(
+                    config,
+                    tcpFrameSource.Server,
+                    state
+                );
+            }
+            else
+            {
+                Console.WriteLine("[RT-TEL] Runtime telemetry summary disabled.");
+            }
 
             bool twinEnabled = ReadBool(config, "Twin:Enabled", false);
             if (twinEnabled)
@@ -282,6 +296,14 @@ partial class Program
                     }
                 }
 
+                await TryTickRuntimeTelemetryPipelineAsync(
+                    runtimeTelemetryRuntime,
+                    runtime,
+                    state,
+                    loopState.TickIndex,
+                    cts.Token
+                );
+
                 EmitVerboseModuleReports(runtime, state, diagnostics);
 
                 feedback.Record(new FeedbackRecord(
@@ -328,6 +350,11 @@ partial class Program
         }
         finally
         {
+            if (runtimeTelemetryRuntime is not null)
+            {
+                await runtimeTelemetryRuntime.DisposeAsync();
+            }
+
             await ShutdownRuntimeAsync(frameSource, pythonProc, actuatorManager);
         }
     }
