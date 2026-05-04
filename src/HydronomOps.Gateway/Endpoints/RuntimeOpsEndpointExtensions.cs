@@ -1,4 +1,5 @@
 using HydronomOps.Gateway.Contracts.Diagnostics;
+using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Domain;
 using HydronomOps.Gateway.Services.State;
 
@@ -36,7 +37,7 @@ public static class RuntimeOpsEndpointExtensions
     {
         var now = DateTime.UtcNow;
         var vehicleTelemetry = state.VehicleTelemetry;
-        var sensorState = state.SensorState;
+        var sensorState = ResolvePrimarySensorState(state);
         var diagnosticsState = state.DiagnosticsState;
 
         var overallHealth = ResolveOverallHealth(state, out var hasCritical, out var hasWarnings);
@@ -95,6 +96,7 @@ public static class RuntimeOpsEndpointExtensions
     {
         var issues = BuildIssues(state);
         var overallHealth = ResolveOverallHealth(state, out var hasCritical, out var hasWarnings);
+        var sensorState = ResolvePrimarySensorState(state);
 
         return new GatewayRuntimeDiagnosticsDto
         {
@@ -120,7 +122,7 @@ public static class RuntimeOpsEndpointExtensions
 
             VehicleId = state.VehicleId ?? "hydronom-main",
             HasVehicleTelemetry = state.VehicleTelemetry is not null,
-            HasSensorState = state.SensorState is not null,
+            HasSensorState = sensorState is not null,
             HasDiagnosticsState = state.DiagnosticsState is not null,
             GatewayStatus = state.DiagnosticsState?.GatewayStatus,
             LastError = state.LastError,
@@ -131,16 +133,22 @@ public static class RuntimeOpsEndpointExtensions
                 overallHealth,
                 state.RuntimeConnected,
                 state.VehicleTelemetry is not null,
-                state.SensorState?.IsHealthy,
+                sensorState?.IsHealthy,
                 state.TotalMessagesReceived,
                 state.WebSocketClientCount,
                 state.LastError)
         };
     }
 
+    private static SensorStateDto? ResolvePrimarySensorState(VehicleAggregateState state)
+    {
+        return state.RuntimeSensorState ?? state.SensorState;
+    }
+
     private static IReadOnlyList<GatewayRuntimeDiagnosticIssueDto> BuildIssues(VehicleAggregateState state)
     {
         var issues = new List<GatewayRuntimeDiagnosticIssueDto>();
+        var sensorState = ResolvePrimarySensorState(state);
 
         if (!state.RuntimeConnected)
         {
@@ -162,22 +170,33 @@ public static class RuntimeOpsEndpointExtensions
             });
         }
 
-        if (state.SensorState is null)
+        if (sensorState is null)
         {
             issues.Add(new GatewayRuntimeDiagnosticIssueDto
             {
                 Severity = "Warning",
                 Code = "NO_SENSOR_STATE",
-                Message = "Gateway henüz sensor state almadı."
+                Message = "Gateway henüz ana sensor state almadı."
             });
         }
-        else if (!state.SensorState.IsHealthy)
+        else if (!sensorState.IsHealthy)
         {
             issues.Add(new GatewayRuntimeDiagnosticIssueDto
             {
                 Severity = "Critical",
                 Code = "SENSOR_UNHEALTHY",
-                Message = $"Sensor unhealthy: {state.SensorState.SensorName ?? "unknown"}"
+                Message = $"Ana sensor state unhealthy: {sensorState.SensorName ?? "unknown"}"
+            });
+        }
+
+        if (state.DebugSensorState is not null &&
+            !string.IsNullOrWhiteSpace(state.DebugSensorState.SensorName))
+        {
+            issues.Add(new GatewayRuntimeDiagnosticIssueDto
+            {
+                Severity = "Info",
+                Code = "DEBUG_SENSOR_PRESENT",
+                Message = $"Son debug sensor: {state.DebugSensorState.SensorName}"
             });
         }
 

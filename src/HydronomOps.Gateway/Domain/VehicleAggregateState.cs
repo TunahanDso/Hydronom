@@ -9,62 +9,67 @@ using HydronomOps.Gateway.Contracts.Vehicle;
 namespace HydronomOps.Gateway.Domain;
 
 /// <summary>
-/// Gateway tarafÄ±nda tek araÃ§ iÃ§in tutulan birleÅŸik durum modeli.
+/// Gateway tarafında tek araç için tutulan birleşik durum modeli.
 /// </summary>
 public sealed class VehicleAggregateState
 {
     /// <summary>
-    /// AraÃ§ kimliÄŸi.
+    /// Araç kimliği.
     /// </summary>
     public string VehicleId { get; set; } = "hydronom-main";
 
     /// <summary>
-    /// Gateway baÅŸlangÄ±Ã§ zamanÄ±.
+    /// Gateway başlangıç zamanı.
     /// </summary>
     public DateTime StartedUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Son genel gÃ¼ncelleme zamanÄ±.
+    /// Son genel güncelleme zamanı.
     /// </summary>
     public DateTime? LastUpdatedUtc { get; set; }
 
     /// <summary>
-    /// Runtimeâ€™dan son veri geliÅŸ zamanÄ±.
+    /// Runtime'dan son veri geliş zamanı.
     /// </summary>
     public DateTime? LastRuntimeIngressUtc { get; set; }
 
     /// <summary>
-    /// Son araÃ§ telemetri zamanÄ±.
+    /// Son araç telemetri zamanı.
     /// </summary>
     public DateTime? LastVehicleTelemetryUtc { get; set; }
 
     /// <summary>
-    /// Son gÃ¶rev durumu zamanÄ±.
+    /// Son görev durumu zamanı.
     /// </summary>
     public DateTime? LastMissionStateUtc { get; set; }
 
     /// <summary>
-    /// Son sensÃ¶r durumu zamanÄ±.
+    /// Son sensör durumu zamanı.
     /// </summary>
     public DateTime? LastSensorStateUtc { get; set; }
 
     /// <summary>
-    /// Son aktÃ¼atÃ¶r durumu zamanÄ±.
+    /// Son debug/twin sensör durumu zamanı.
+    /// </summary>
+    public DateTime? LastDebugSensorStateUtc { get; set; }
+
+    /// <summary>
+    /// Son aktüatör durumu zamanı.
     /// </summary>
     public DateTime? LastActuatorStateUtc { get; set; }
 
     /// <summary>
-    /// Son tanÄ± durumu zamanÄ±.
+    /// Son tanı durumu zamanı.
     /// </summary>
     public DateTime? LastDiagnosticsStateUtc { get; set; }
 
     /// <summary>
-    /// Son gateway broadcast zamanÄ±.
+    /// Son gateway broadcast zamanı.
     /// </summary>
     public DateTime? LastGatewayBroadcastUtc { get; set; }
 
     /// <summary>
-    /// Runtimeâ€™dan gelen son ham satÄ±r.
+    /// Runtime'dan gelen son ham satır.
     /// </summary>
     public string? LastRawRuntimeLine { get; set; }
 
@@ -74,57 +79,84 @@ public sealed class VehicleAggregateState
     public string? LastError { get; set; }
 
     /// <summary>
-    /// Runtime baÄŸlÄ± kabul ediliyor mu.
+    /// Runtime bağlı kabul ediliyor mu.
     /// </summary>
     public bool RuntimeConnected { get; set; }
 
     /// <summary>
-    /// Python baÄŸlÄ± kabul ediliyor mu.
+    /// Python bağlı kabul ediliyor mu.
     /// </summary>
     public bool PythonConnected { get; set; }
 
     /// <summary>
-    /// Aktif websocket istemci sayÄ±sÄ±.
+    /// Aktif websocket istemci sayısı.
     /// </summary>
     public int WebSocketClientCount { get; set; }
 
     /// <summary>
-    /// Runtimeâ€™dan alÄ±nan toplam mesaj sayÄ±sÄ±.
+    /// Runtime'dan alınan toplam mesaj sayısı.
     /// </summary>
     public long TotalMessagesReceived { get; set; }
 
     /// <summary>
-    /// Gatewayâ€™den yayÄ±nlanan toplam mesaj sayÄ±sÄ±.
+    /// Gateway'den yayınlanan toplam mesaj sayısı.
     /// </summary>
     public long TotalMessagesBroadcast { get; set; }
 
     /// <summary>
-    /// Son telemetri verisi.
+    /// Ana araç telemetri verisi.
+    /// C# Primary modda bu alan authoritative RuntimeTelemetrySummary üzerinden beslenmelidir.
+    /// Twin/debug sensörler bu alanı ezmemelidir.
     /// </summary>
     public VehicleTelemetryDto? VehicleTelemetry { get; set; }
 
     /// <summary>
-    /// Son gÃ¶rev durumu.
+    /// Son görev durumu.
     /// </summary>
     public MissionStateDto? MissionState { get; set; }
 
     /// <summary>
-    /// Son sensÃ¶r durumu.
+    /// Geriye dönük uyumluluk için ana sensör durumu.
+    /// C# Primary modda bu alan RuntimeSensorState ile aynı ana sensör özetini taşır.
     /// </summary>
     public SensorStateDto? SensorState { get; set; }
 
     /// <summary>
-    /// Son aktÃ¼atÃ¶r durumu.
+    /// C# Primary RuntimeTelemetrySummary üzerinden gelen ana sensör sağlık özeti.
+    /// Twin, raw veya debug sensörler bu alanı ezmemelidir.
+    /// </summary>
+    public SensorStateDto? RuntimeSensorState { get; set; }
+
+    /// <summary>
+    /// Twin, sim, raw veya debug amaçlı son sensör durumu.
+    /// Bu alan ana operasyonel sensör sağlığını temsil etmez.
+    /// </summary>
+    public SensorStateDto? DebugSensorState { get; set; }
+
+    /// <summary>
+    /// Ana sensör state kaynağı.
+    /// Örn: runtime-telemetry-summary.
+    /// </summary>
+    public string? LastSensorStateSource { get; set; }
+
+    /// <summary>
+    /// Son debug/twin sensör adı.
+    /// Örn: TwinImu, TwinGps.
+    /// </summary>
+    public string? LastDebugSensorName { get; set; }
+
+    /// <summary>
+    /// Son aktüatör durumu.
     /// </summary>
     public ActuatorStateDto? ActuatorState { get; set; }
 
     /// <summary>
-    /// Son tanÄ± durumu.
+    /// Son tanı durumu.
     /// </summary>
     public DiagnosticsStateDto? DiagnosticsState { get; set; }
 
     /// <summary>
-    /// Son log kayÄ±tlarÄ±.
+    /// Son log kayıtları.
     /// </summary>
     public List<GatewayLogDto> Logs { get; set; } = new();
 }

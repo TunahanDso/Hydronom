@@ -40,7 +40,7 @@ public sealed class RuntimeFrameParser
     private double _lastPitchRateDeg;
     private double _lastYawRateDeg;
 
-    // GPS -> yerel XY dönüşümü için referans origin
+    // GPS -> yerel XY dönüşümü için referans origin.
     private bool _gpsOriginInitialized;
     private double _originLatDeg;
     private double _originLonDeg;
@@ -194,10 +194,25 @@ public sealed class RuntimeFrameParser
         existing.PitchRateDeg = mapped.PitchRateDeg;
         existing.YawRateDeg = mapped.YawRateDeg;
 
-        if (mapped.TargetX is not null) existing.TargetX = mapped.TargetX;
-        if (mapped.TargetY is not null) existing.TargetY = mapped.TargetY;
-        if (mapped.DistanceToGoalM is not null) existing.DistanceToGoalM = mapped.DistanceToGoalM;
-        if (mapped.HeadingErrorDeg is not null) existing.HeadingErrorDeg = mapped.HeadingErrorDeg;
+        if (mapped.TargetX is not null)
+        {
+            existing.TargetX = mapped.TargetX;
+        }
+
+        if (mapped.TargetY is not null)
+        {
+            existing.TargetY = mapped.TargetY;
+        }
+
+        if (mapped.DistanceToGoalM is not null)
+        {
+            existing.DistanceToGoalM = mapped.DistanceToGoalM;
+        }
+
+        if (mapped.HeadingErrorDeg is not null)
+        {
+            existing.HeadingErrorDeg = mapped.HeadingErrorDeg;
+        }
 
         // ExternalState çoğu zaman pose/twist taşır.
         // Bu yüzden boş obstacle/landmark listeleri gelirse mevcut harita bilgisini ezmeyelim.
@@ -281,7 +296,9 @@ public sealed class RuntimeFrameParser
          * Bu sayede Gateway tarafında:
          * - RuntimeConnected true olur.
          * - PythonConnected gereksiz yere true olmaz.
-         * - VehicleTelemetry / DiagnosticsState / SensorState runtime summary'den beslenir.
+         * - VehicleTelemetry authoritative C# runtime özetinden beslenir.
+         * - RuntimeSensorState ana sensör sağlık özeti olarak korunur.
+         * - Twin/debug sensörler ana SensorState'i ezemez.
          */
         var vehicle = _mapper.MapVehicleTelemetryFromRuntimeSummary(root);
         var diagnostics = _mapper.MapDiagnosticsStateFromRuntimeSummary(root);
@@ -289,7 +306,7 @@ public sealed class RuntimeFrameParser
 
         _stateStore.SetVehicleTelemetry(vehicle);
         _stateStore.SetDiagnosticsState(diagnostics);
-        _stateStore.SetSensorState(sensor);
+        _stateStore.SetRuntimeSensorState(sensor);
         _stateStore.TouchRuntimeMessage("RuntimeTelemetrySummary");
     }
 
@@ -335,7 +352,7 @@ public sealed class RuntimeFrameParser
             _lastPitchRateDeg = pitchRateDeg;
             _lastYawRateDeg = yawRateDeg;
 
-            _stateStore.SetSensorState(new SensorStateDto
+            _stateStore.SetDebugSensorState(new SensorStateDto
             {
                 TimestampUtc = timestamp,
                 VehicleId = "hydronom-main",
@@ -349,18 +366,11 @@ public sealed class RuntimeFrameParser
                 LastSampleUtc = timestamp
             });
 
-            var telemetry = GetOrCreateVehicleTelemetry();
-            telemetry.TimestampUtc = timestamp;
-            telemetry.VehicleId = "hydronom-main";
-            telemetry.RollDeg = _lastRollDeg;
-            telemetry.PitchDeg = _lastPitchDeg;
-            telemetry.YawDeg = _lastYawDeg;
-            telemetry.HeadingDeg = _lastHeadingDeg;
-            telemetry.RollRateDeg = _lastRollRateDeg;
-            telemetry.PitchRateDeg = _lastPitchRateDeg;
-            telemetry.YawRateDeg = _lastYawRateDeg;
-
-            _stateStore.SetVehicleTelemetry(telemetry);
+            /*
+             * TwinImu artık ana VehicleTelemetry'yi güncellemez.
+             * C# Primary modda ana araç marker'ı RuntimeTelemetrySummary / authoritative state üzerinden gelmelidir.
+             * TwinImu yalnızca debug/sensor layer olarak tutulur.
+             */
         }
 
         _stateStore.TouchRuntimeMessage("TwinImu");
@@ -436,7 +446,7 @@ public sealed class RuntimeFrameParser
                 _lastYawDeg = yawDeg.Value;
             }
 
-            _stateStore.SetSensorState(new SensorStateDto
+            _stateStore.SetDebugSensorState(new SensorStateDto
             {
                 TimestampUtc = timestamp,
                 VehicleId = "hydronom-main",
@@ -450,27 +460,11 @@ public sealed class RuntimeFrameParser
                 LastSampleUtc = timestamp
             });
 
-            var telemetry = GetOrCreateVehicleTelemetry();
-            telemetry.TimestampUtc = timestamp;
-            telemetry.VehicleId = "hydronom-main";
-            telemetry.X = _lastX;
-            telemetry.Y = _lastY;
-            telemetry.Z = _lastZ;
-            telemetry.Vx = vx ?? telemetry.Vx;
-            telemetry.Vy = vy ?? telemetry.Vy;
-            telemetry.Vz = vz ?? telemetry.Vz;
-
-            if (headingDeg.HasValue)
-            {
-                telemetry.HeadingDeg = headingDeg.Value;
-            }
-
-            if (yawDeg.HasValue)
-            {
-                telemetry.YawDeg = yawDeg.Value;
-            }
-
-            _stateStore.SetVehicleTelemetry(telemetry);
+            /*
+             * TwinGps artık ana VehicleTelemetry'yi güncellemez.
+             * GPS twin verisi yalnızca debug/sensor layer olarak tutulur.
+             * Ana konum C# Primary RuntimeTelemetrySummary üzerinden korunur.
+             */
         }
 
         _stateStore.TouchRuntimeMessage("TwinGps");

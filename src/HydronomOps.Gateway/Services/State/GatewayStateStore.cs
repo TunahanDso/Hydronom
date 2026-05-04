@@ -8,7 +8,7 @@ using HydronomOps.Gateway.Domain;
 namespace HydronomOps.Gateway.Services.State;
 
 /// <summary>
-/// Gateway'in tuttuÄŸu birleÅŸik araÃ§ durumunu thread-safe ÅŸekilde yÃ¶netir.
+/// Gateway'in tuttuğu birleşik araç durumunu thread-safe şekilde yönetir.
 /// </summary>
 public sealed class GatewayStateStore : IGatewayStateStore
 {
@@ -72,7 +72,47 @@ public sealed class GatewayStateStore : IGatewayStateStore
         lock (_lock)
         {
             _current.SensorState = CloneSensorState(sensorState);
+            _current.LastSensorStateSource = sensorState.Source;
             _current.LastSensorStateUtc = DateTime.UtcNow;
+            _current.LastUpdatedUtc = DateTime.UtcNow;
+        }
+    }
+
+    public void SetRuntimeSensorState(SensorStateDto sensorState)
+    {
+        ArgumentNullException.ThrowIfNull(sensorState);
+
+        lock (_lock)
+        {
+            var cloned = CloneSensorState(sensorState);
+
+            _current.RuntimeSensorState = cloned;
+
+            // Eski endpoint ve websocket akışı bozulmasın diye genel SensorState
+            // ana runtime sensör özetiyle beslenir.
+            // Twin/debug sensörler bu alanı ezmemelidir.
+            _current.SensorState = CloneSensorState(cloned);
+
+            _current.LastSensorStateSource = "runtime-telemetry-summary";
+            _current.LastSensorStateUtc = DateTime.UtcNow;
+            _current.LastUpdatedUtc = DateTime.UtcNow;
+        }
+    }
+
+    public void SetDebugSensorState(SensorStateDto sensorState)
+    {
+        ArgumentNullException.ThrowIfNull(sensorState);
+
+        lock (_lock)
+        {
+            var cloned = CloneSensorState(sensorState);
+
+            _current.DebugSensorState = cloned;
+            _current.LastDebugSensorName = cloned.SensorName;
+            _current.LastDebugSensorStateUtc = DateTime.UtcNow;
+
+            // Bilerek _current.SensorState güncellenmiyor.
+            // TwinImu/TwinGps gibi debug sensörler ana runtime sensor özetini ezmemeli.
             _current.LastUpdatedUtc = DateTime.UtcNow;
         }
     }
@@ -136,7 +176,7 @@ public sealed class GatewayStateStore : IGatewayStateStore
         {
             _current.RuntimeConnected = isConnected;
 
-            // Runtime hattÄ± dÃ¼ÅŸtÃ¼yse Python akÄ±ÅŸÄ± da baÄŸlÄ± kabul edilmemeli.
+            // Runtime hattı düştüyse Python akışı da bağlı kabul edilmemeli.
             if (!isConnected)
             {
                 _current.PythonConnected = false;
@@ -194,6 +234,7 @@ public sealed class GatewayStateStore : IGatewayStateStore
             LastVehicleTelemetryUtc = source.LastVehicleTelemetryUtc,
             LastMissionStateUtc = source.LastMissionStateUtc,
             LastSensorStateUtc = source.LastSensorStateUtc,
+            LastDebugSensorStateUtc = source.LastDebugSensorStateUtc,
             LastActuatorStateUtc = source.LastActuatorStateUtc,
             LastDiagnosticsStateUtc = source.LastDiagnosticsStateUtc,
             LastGatewayBroadcastUtc = source.LastGatewayBroadcastUtc,
@@ -207,6 +248,10 @@ public sealed class GatewayStateStore : IGatewayStateStore
             VehicleTelemetry = source.VehicleTelemetry is null ? null : CloneVehicleTelemetry(source.VehicleTelemetry),
             MissionState = source.MissionState is null ? null : CloneMissionState(source.MissionState),
             SensorState = source.SensorState is null ? null : CloneSensorState(source.SensorState),
+            RuntimeSensorState = source.RuntimeSensorState is null ? null : CloneSensorState(source.RuntimeSensorState),
+            DebugSensorState = source.DebugSensorState is null ? null : CloneSensorState(source.DebugSensorState),
+            LastSensorStateSource = source.LastSensorStateSource,
+            LastDebugSensorName = source.LastDebugSensorName,
             ActuatorState = source.ActuatorState is null ? null : CloneActuatorState(source.ActuatorState),
             DiagnosticsState = source.DiagnosticsState is null ? null : CloneDiagnosticsState(source.DiagnosticsState),
             Logs = source.Logs.Select(CloneGatewayLog).ToList()
@@ -278,7 +323,14 @@ public sealed class GatewayStateStore : IGatewayStateStore
             Shape = source.Shape,
             Points = source.Points is null
                 ? new List<ObstaclePointDto>()
-                : source.Points.Select(CloneObstaclePoint).ToList()
+                : source.Points.Select(CloneObstaclePoint).ToList(),
+            Style = source.Style,
+            Metrics = source.Metrics is null
+                ? new Dictionary<string, double>()
+                : new Dictionary<string, double>(source.Metrics),
+            Fields = source.Fields is null
+                ? new Dictionary<string, string>()
+                : new Dictionary<string, string>(source.Fields)
         };
     }
 
@@ -328,6 +380,12 @@ public sealed class GatewayStateStore : IGatewayStateStore
             EffectiveRateHz = source.EffectiveRateHz,
             LastSampleUtc = source.LastSampleUtc,
             LastError = source.LastError,
+            Metrics = source.Metrics is null
+                ? new Dictionary<string, double>()
+                : new Dictionary<string, double>(source.Metrics),
+            Fields = source.Fields is null
+                ? new Dictionary<string, string>()
+                : new Dictionary<string, string>(source.Fields),
             Freshness = source.Freshness
         };
     }
