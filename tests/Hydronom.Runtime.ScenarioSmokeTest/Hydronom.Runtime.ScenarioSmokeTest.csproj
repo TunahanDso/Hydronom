@@ -1,9 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Hydronom.Core\Hydronom.Core.csproj" />
-    <ProjectReference Include="..\..\src\Hydronom.Runtime\Hydronom.Runtime.csproj" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -11,5 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hydronom.Core\Hydronom.Core.csproj" />
+    <ProjectReference Include="..\..\src\Hydronom.Runtime\Hydronom.Runtime.csproj" />
+  </ItemGroup>
 
 </Project>
