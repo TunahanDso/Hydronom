@@ -1,6 +1,8 @@
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
+using Hydronom.Runtime.Scenarios.Replay;
 using Hydronom.Runtime.Scenarios.Telemetry;
+using Hydronom.Runtime.Telemetry;
 using Hydronom.Runtime.Testing.Scenarios;
 using Hydronom.Runtime.World.Runtime;
 
@@ -61,8 +63,11 @@ var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
 RunTimelineEvaluationSmokeTest(scenario, runner);
+
 var executionResult = RunKinematicExecutionSmokeTest(scenario);
+
 RunScenarioExecutionTelemetrySmokeTest(executionResult);
+await RunScenarioTelemetryReplayPublisherSmokeTest(executionResult);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
@@ -354,6 +359,94 @@ static void RunScenarioExecutionTelemetrySmokeTest(ScenarioExecutionResult execu
     }
 }
 
+static async Task RunScenarioTelemetryReplayPublisherSmokeTest(ScenarioExecutionResult executionResult)
+{
+    var projector = new ScenarioExecutionTelemetryProjector();
+    var inMemoryPublisher = new InMemoryRuntimeTelemetryPublisher();
+
+    var replayPublisher = new ScenarioTelemetryReplayPublisher(
+        projector,
+        inMemoryPublisher);
+
+    var result = await replayPublisher.PublishTimelineAsync(
+        executionResult,
+        new ScenarioTelemetryReplayOptions
+        {
+            DelayBetweenFramesMs = 0,
+            FrameStride = 2,
+            PublishFinalSummary = true
+        });
+
+    Console.WriteLine();
+    Console.WriteLine("Scenario telemetry replay publisher report:");
+    Console.WriteLine($"  Published              : {result.Published}");
+    Console.WriteLine($"  TimelineFrameCount     : {result.TimelineFrameCount}");
+    Console.WriteLine($"  PublishedFrameCount    : {result.PublishedFrameCount}");
+    Console.WriteLine($"  SkippedFrameCount      : {result.SkippedFrameCount}");
+    Console.WriteLine($"  FrameStride            : {result.FrameStride}");
+    Console.WriteLine($"  PublishedFinalSummary  : {result.PublishedFinalSummary}");
+    Console.WriteLine($"  CapturedSummaries      : {inMemoryPublisher.PublishedSummaries.Count}");
+    Console.WriteLine($"  Summary                : {result.Summary}");
+
+    if (!result.Published)
+    {
+        throw new InvalidOperationException("Expected scenario telemetry replay to be published.");
+    }
+
+    if (result.TimelineFrameCount <= 0)
+    {
+        throw new InvalidOperationException("Expected replay timeline frame count to be positive.");
+    }
+
+    if (result.PublishedFrameCount <= 0)
+    {
+        throw new InvalidOperationException("Expected replay published frame count to be positive.");
+    }
+
+    if (!result.PublishedFinalSummary)
+    {
+        throw new InvalidOperationException("Expected replay publisher to publish final summary.");
+    }
+
+    if (inMemoryPublisher.PublishedSummaries.Count != result.PublishedFrameCount)
+    {
+        throw new InvalidOperationException(
+            $"Captured summary count must match published frame count. Captured={inMemoryPublisher.PublishedSummaries.Count}, Published={result.PublishedFrameCount}");
+    }
+
+    var last = inMemoryPublisher.PublishedSummaries[^1];
+
+    if (!string.Equals(last.RuntimeId, "hydronom_scenario_executor", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected last published RuntimeId hydronom_scenario_executor, got {last.RuntimeId}.");
+    }
+
+    if (!last.HasState)
+    {
+        throw new InvalidOperationException("Expected last published summary to contain vehicle state.");
+    }
+
+    if (!string.Equals(last.OverallHealth, "Healthy", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"Expected last published health Healthy, got {last.OverallHealth}.");
+    }
+
+    if (Math.Abs(last.StateX - executionResult.Report.FinalVehicleX) > 0.0001)
+    {
+        throw new InvalidOperationException("Last published StateX does not match report final X.");
+    }
+
+    if (Math.Abs(last.StateY - executionResult.Report.FinalVehicleY) > 0.0001)
+    {
+        throw new InvalidOperationException("Last published StateY does not match report final Y.");
+    }
+
+    if (Math.Abs(last.StateZ - executionResult.Report.FinalVehicleZ) > 0.0001)
+    {
+        throw new InvalidOperationException("Last published StateZ does not match report final Z.");
+    }
+}
+
 static void PrintReport(Hydronom.Core.Scenarios.Reports.ScenarioRunReport report)
 {
     Console.WriteLine($"  ReportRunId        : {report.RunId}");
@@ -366,4 +459,25 @@ static void PrintReport(Hydronom.Core.Scenarios.Reports.ScenarioRunReport report
     Console.WriteLine($"  CompletedObjectives: {report.CompletedObjectiveCount}/{report.TotalObjectiveCount}");
     Console.WriteLine($"  FinalObjective     : {report.FinalObjectiveId}");
     Console.WriteLine($"  Summary            : {report.Summary}");
+}
+
+/// <summary>
+/// Smoke test içinde gerçek TCP kullanmadan RuntimeTelemetrySummary yayınlarını yakalayan test publisher'ı.
+/// </summary>
+public sealed class InMemoryRuntimeTelemetryPublisher : IRuntimeTelemetryPublisher
+{
+    private readonly List<RuntimeTelemetrySummary> _publishedSummaries = new();
+
+    public IReadOnlyList<RuntimeTelemetrySummary> PublishedSummaries => _publishedSummaries;
+
+    public Task PublishAsync(RuntimeTelemetrySummary summary, CancellationToken cancellationToken = default)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.CompletedTask;
+        }
+
+        _publishedSummaries.Add(summary.Sanitized());
+        return Task.CompletedTask;
+    }
 }
