@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Hydronom.Runtime.Planning;
 using Hydronom.Runtime.Actuators;
 using Hydronom.AI.Orchestration;
 using Hydronom.Core.Control;
@@ -57,6 +58,14 @@ partial class Program
         var controlModule = new PlatformControlModule();
 
         ITaskManager tasks = CreateTaskManager(config);
+
+        var planningHost = new RuntimePlanningHost(
+            config,
+            tasks,
+            runtimeWorldModel);
+
+        var planningCache = new RuntimePlanningCache();
+
         var feedback = CreateFeedbackRecorder(config);
         var motors = CreateMotorController(config);
 
@@ -237,6 +246,39 @@ partial class Program
             });
 
         runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.TrajectoryGenerator,
+            "RuntimePlanningHost",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:PlanningHz", 10.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                try
+                {
+                    var snapshot = planningHost.Tick(
+                        state,
+                        DateTime.UtcNow);
+
+                    planningCache.Update(snapshot);
+
+                    if (!snapshot.HasPlan)
+                        return RuntimeModuleTickResult.Warn(snapshot.Summary);
+
+                    return RuntimeModuleTickResult.Ok(
+                        snapshot.Summary,
+                        producedOutput: true);
+                }
+                catch (Exception ex)
+                {
+                    planningCache.SetError(ex.Message);
+
+                    return RuntimeModuleTickResult.Fail(
+                        $"PLANNING_ERROR:{ex.Message}");
+                }
+            });
+
+        runtimeScheduler.RegisterSync(
             RuntimeModuleKind.Decision,
             "AdvancedDecisionIntent",
             RuntimeFrequencyProfile.FromHz(
@@ -382,11 +424,56 @@ partial class Program
                 {
                     advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
 
+                    var taskForDecision = tasks.CurrentTask;
+                    var planningSnapshot = planningCache.Snapshot();
+
+                    if (taskForDecision is not null &&
+                        planningSnapshot.HasPlan &&
+                        planningSnapshot.IsValid &&
+                        planningSnapshot.AgeMs <= 500.0 &&
+                        planningSnapshot.Trajectory.LookAheadPoint is not null)
+                    {
+                        var lookAhead = planningSnapshot.Trajectory.LookAheadPoint;
+
+                        var plannedTask = new TaskDefinition(
+                            taskForDecision.Name,
+                            lookAhead.Position)
+                        {
+                            HoldOnArrive = false,
+                            WaitSecondsPerPoint = taskForDecision.WaitSecondsPerPoint,
+                            Loop = taskForDecision.Loop,
+                            CompletionAuthority = taskForDecision.CompletionAuthority,
+                            ExternalOwnerId = taskForDecision.ExternalOwnerId,
+                            ExternalObjectiveId = taskForDecision.ExternalObjectiveId
+                        };
+
+                        taskForDecision = plannedTask;
+                    }
+
                     var intent = advancedDecision.DecideIntent(
                         insights,
-                        tasks.CurrentTask,
+                        taskForDecision,
                         state,
                         currentDtSeconds);
+
+                    if (planningSnapshot.HasPlan &&
+                        planningSnapshot.IsValid &&
+                        planningSnapshot.AgeMs <= 500.0 &&
+                        planningSnapshot.Trajectory.LookAheadPoint is not null)
+                    {
+                        var reference = planningSnapshot.Trajectory.ToControlReference(intent.TargetPosition);
+
+                        intent = intent with
+                        {
+                            TargetPosition = reference.TargetPosition,
+                            TargetHeadingDeg = reference.TargetHeadingDeg,
+                            DesiredForwardSpeedMps = reference.RequiresSlowMode
+                                ? Math.Min(intent.DesiredForwardSpeedMps, reference.DesiredSpeedMps)
+                                : reference.DesiredSpeedMps,
+                            RiskLevel = Math.Max(intent.RiskLevel, reference.RiskScore),
+                            Reason = $"{intent.Reason}|PLAN:{planningSnapshot.Trajectory.Summary}|REF:{reference.Reason}"
+                        };
+                    }
 
                     var report = advancedDecision.LastDecisionReport;
 
@@ -398,7 +485,7 @@ partial class Program
                     lastControlMode = "AUTO";
                     lastDecisionReport = report;
 
-                    return RuntimeModuleTickResult.Ok("INTENT_UPDATED", producedOutput: true);
+                    return RuntimeModuleTickResult.Ok("INTENT_UPDATED_WITH_PLAN", producedOutput: true);
                 }
 
                 var fallbackReport = AdvancedDecisionReport.Empty with

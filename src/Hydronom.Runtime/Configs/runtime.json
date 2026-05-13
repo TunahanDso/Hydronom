@@ -6,6 +6,7 @@
 
     "Scheduler": {
       "AnalysisHz": 10.0,
+      "PlanningHz": 10.0,
       "DecisionHz": 10.0,
       "ControlHz": 50.0,
       "ActuatorCommandHz": 100.0,
@@ -34,5 +35,16 @@
         "RequireFrameMatch": true
       }
     }
+  },
+
+  "Planning": {
+    "LookAheadMeters": 8.0,
+    "SafetyMarginMeters": 1.25,
+    "VehicleRadiusMeters": 0.75,
+    "MaxPlanSpeedMps": 1.6,
+    "MaxTurnRateDegPerSec": 90.0,
+    "DefaultAcceptanceRadiusMeters": 1.0,
+    "DesiredCruiseSpeedMps": 1.2,
+    "DesiredArrivalSpeedMps": 0.35
   }
 }
