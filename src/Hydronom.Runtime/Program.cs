@@ -7,8 +7,10 @@ using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Modules;
 using Hydronom.Runtime.Scenarios.Runtime;
+using Hydronom.Runtime.Scheduling;
 using Hydronom.Runtime.Tuning;
 using Hydronom.Runtime.Twin;
+using Hydronom.Runtime.World.Runtime;
 
 partial class Program
 {
@@ -32,6 +34,13 @@ partial class Program
             e.Cancel = true;
             cts.Cancel();
         };
+
+        /*
+         * Senaryo dünyası, sim LiDAR ve Ops/Gateway dünya yayını aynı runtime dünya modelini kullanmalıdır.
+         * Böylece Parkur-2 JSON içindeki duba/engel nesneleri sadece 3D haritada görünmez;
+         * aynı zamanda SimLidarBackend tarafından raycast edilebilir hale gelir.
+         */
+        var runtimeWorldModel = new RuntimeWorldModel();
 
         Process? pythonProc = null;
         if (ReadBool(config, "Python:AutoStart", false))
@@ -90,7 +99,8 @@ partial class Program
                 runtimeTelemetryRuntime = CreateRuntimeTelemetryRuntime(
                     config,
                     tcpFrameSource.Server,
-                    state
+                    state,
+                    runtimeWorldModel
                 );
             }
             else
@@ -151,7 +161,8 @@ partial class Program
 
         var runtimeScenarioController = new RuntimeScenarioController(
             config,
-            tasks);
+            tasks,
+            runtimeWorldModel);
 
         await runtimeScenarioController.AutoStartFromConfigAsync(
             state,
@@ -176,6 +187,24 @@ partial class Program
         int manualCommandTimeoutMs = ReadInt(config, "Control:ManualCommandTimeoutMs", 1000);
         var manualLimits = ReadManualControlLimits(config);
 
+        var runtimeScheduler = CreateRuntimeScheduler(config);
+
+        runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.Heartbeat,
+            "HeartbeatDiagnostics",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:HeartbeatHz", 1.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                EmitSchedulerSnapshot(
+                    runtimeScheduler.Snapshot(),
+                    runtime.LogVerbose);
+
+                return RuntimeModuleTickResult.Ok("HEARTBEAT_DIAGNOSTICS");
+            });
+
         var loopState = LoopRuntimeState.Create(tickMs);
 
         try
@@ -183,6 +212,8 @@ partial class Program
             while (!cts.IsCancellationRequested)
             {
                 long loopStartTicks = Stopwatch.GetTimestamp();
+
+                await runtimeScheduler.TickDueAsync(cts.Token);
 
                 if (loopState.NextLoopTicks == 0)
                     loopState.NextLoopTicks = loopStartTicks + loopState.PeriodTicks;
@@ -211,6 +242,7 @@ partial class Program
                     frameSource,
                     state,
                     tasks,
+                    runtimeWorldModel,
                     runtime.DevMode,
                     runtime.LogVerbose,
                     externalApplied,
@@ -222,18 +254,18 @@ partial class Program
                 var analysisReport = analysisImpl.LastReport;
 
                 /*
-                * Analysis → Decision Advice Bridge
-                *
-                * AdvancedAnalysis, IAnalysisModule sözleşmesini bozmadan dışarıya hâlâ Insights döndürür.
-                * Ancak içeride LastOperationalContext üzerinden daha zengin bir operasyonel karar tavsiyesi üretir.
-                *
-                * Bu köprü:
-                * - obstacle/sector riskinden türetilen throttle/yaw/slow-mode/coast/safe-heading tavsiyesini
-                * - AdvancedDecision içine aktarır.
-                *
-                * Böylece karar modülü sadece hedef geometrisine göre değil,
-                * analiz katmanının operasyonel risk değerlendirmesine göre de davranabilir.
-                */
+                 * Analysis → Decision Advice Bridge
+                 *
+                 * AdvancedAnalysis, IAnalysisModule sözleşmesini bozmadan dışarıya hâlâ Insights döndürür.
+                 * Ancak içeride LastOperationalContext üzerinden daha zengin bir operasyonel karar tavsiyesi üretir.
+                 *
+                 * Bu köprü:
+                 * - obstacle/sector riskinden türetilen throttle/yaw/slow-mode/coast/safe-heading tavsiyesini
+                 * - AdvancedDecision içine aktarır.
+                 *
+                 * Böylece karar modülü sadece hedef geometrisine göre değil,
+                 * analiz katmanının operasyonel risk değerlendirmesine göre de davranabilir.
+                 */
                 if (decision is AdvancedDecision advancedDecision)
                 {
                     advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
@@ -303,6 +335,15 @@ partial class Program
                 );
 
                 runtimeScenarioController.Tick(state, loopState.TickIndex);
+
+                await TryPublishOpsTelemetryFramesAsync(
+                    tcpFrameSource,
+                    runtimeScenarioController,
+                    actuatorManager,
+                    state,
+                    loopState.TickIndex,
+                    cts.Token
+                );
 
                 if (runtime.EnableNativeTick)
                 {
