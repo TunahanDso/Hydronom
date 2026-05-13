@@ -4,6 +4,7 @@ using Hydronom.Core.Control;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Modules;
 using Hydronom.Runtime.Actuators;
+using Hydronom.Runtime.Planning;
 
 partial class Program
 {
@@ -113,11 +114,119 @@ partial class Program
     );
 
     /// <summary>
+    /// Planning katmanının loop/heartbeat loglarına taşınacak sade özetidir.
+    ///
+    /// RuntimePlanningSnapshot doğrudan log modeline gömülmez; çünkü log tarafı
+    /// sadece okunabilir, kısa ve güvenli telemetry görmek ister.
+    /// </summary>
+    private readonly record struct RuntimePlanningTelemetrySnapshot(
+        bool HasPlan,
+        bool IsValid,
+        bool RequiresReplan,
+        bool RequiresSlowMode,
+        double AgeMs,
+        string PlanningSummary,
+        string GlobalSummary,
+        string LocalSummary,
+        string TrajectorySummary,
+        string LookAheadId,
+        double LookAheadX,
+        double LookAheadY,
+        double LookAheadZ,
+        double LookAheadHeadingDeg,
+        double LookAheadSpeedMps,
+        double RiskScore
+    )
+    {
+        public static RuntimePlanningTelemetrySnapshot Empty { get; } = new(
+            HasPlan: false,
+            IsValid: false,
+            RequiresReplan: false,
+            RequiresSlowMode: false,
+            AgeMs: double.PositiveInfinity,
+            PlanningSummary: "NO_PLAN",
+            GlobalSummary: "NO_GLOBAL",
+            LocalSummary: "NO_LOCAL",
+            TrajectorySummary: "NO_TRAJECTORY",
+            LookAheadId: "none",
+            LookAheadX: 0.0,
+            LookAheadY: 0.0,
+            LookAheadZ: 0.0,
+            LookAheadHeadingDeg: 0.0,
+            LookAheadSpeedMps: 0.0,
+            RiskScore: 0.0
+        );
+
+        public static RuntimePlanningTelemetrySnapshot FromPlanningSnapshot(
+            RuntimePlanningSnapshot snapshot)
+        {
+            var safe = (snapshot ?? RuntimePlanningSnapshot.Empty).Sanitized();
+            var lookAhead = safe.Trajectory.LookAheadPoint;
+
+            return new RuntimePlanningTelemetrySnapshot(
+                HasPlan: safe.HasPlan,
+                IsValid: safe.IsValid,
+                RequiresReplan: safe.RequiresReplan,
+                RequiresSlowMode: safe.RequiresSlowMode,
+                AgeMs: safe.AgeMs,
+                PlanningSummary: Normalize(safe.Summary, "NO_PLAN"),
+                GlobalSummary: Normalize(safe.GlobalPath.Summary, "NO_GLOBAL"),
+                LocalSummary: Normalize(safe.LocalPath.Summary, "NO_LOCAL"),
+                TrajectorySummary: Normalize(safe.Trajectory.Summary, "NO_TRAJECTORY"),
+                LookAheadId: Normalize(lookAhead?.Id, "none"),
+                LookAheadX: lookAhead?.Position.X ?? 0.0,
+                LookAheadY: lookAhead?.Position.Y ?? 0.0,
+                LookAheadZ: lookAhead?.Position.Z ?? 0.0,
+                LookAheadHeadingDeg: lookAhead?.HeadingDeg ?? 0.0,
+                LookAheadSpeedMps: lookAhead?.DesiredSpeedMps ?? 0.0,
+                RiskScore: Math.Max(
+                    safe.Trajectory.Risk.RiskScore,
+                    lookAhead?.RiskScore ?? 0.0)
+            );
+        }
+
+        public string CompactPlanInfo()
+        {
+            if (!HasPlan)
+                return "plan=none";
+
+            return
+                $"plan={Shorten(LocalSummary, 72)} " +
+                $"traj={Shorten(TrajectorySummary, 60)} " +
+                $"lookahead={LookAheadId}@({LookAheadX:F1},{LookAheadY:F1}) " +
+                $"lhHead={LookAheadHeadingDeg:F1}° " +
+                $"lhSpeed={LookAheadSpeedMps:F2}m/s " +
+                $"planRisk={RiskScore:F2} " +
+                $"planAge={(double.IsFinite(AgeMs) ? AgeMs : -1):F0}ms";
+        }
+
+        private static string Normalize(string? value, string fallback)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? fallback
+                : value.Trim().Replace(Environment.NewLine, " ");
+        }
+
+        private static string Shorten(string value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "-";
+
+            value = value.Trim();
+
+            return value.Length <= maxLength
+                ? value
+                : value[..Math.Max(0, maxLength - 1)] + "…";
+        }
+    }
+
+    /// <summary>
     /// Loop log / heartbeat için ortak telemetry paketi.
     /// </summary>
     private readonly record struct RuntimeDiagnosticsSnapshot(
         string ControlMode,
         TargetTelemetrySnapshot TargetTelemetry,
+        RuntimePlanningTelemetrySnapshot PlanningTelemetry,
         AdvancedAnalysisReport AnalysisReport,
         AdvancedDecisionReport DecisionReport,
         SafetyLimitReport LimitReport,

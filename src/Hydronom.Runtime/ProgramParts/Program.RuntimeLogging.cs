@@ -8,8 +8,8 @@ using Hydronom.Runtime.Tuning;
 partial class Program
 {
     /// <summary>
-    /// Ana loop logunun basÄ±lÄ±p basÄ±lmayacaÄŸÄ±nÄ± belirler.
-    /// Verbose modda her dÃ¶ngÃ¼de, compact modda belirli aralÄ±klarla log basÄ±lÄ±r.
+    /// Ana loop logunun basılıp basılmayacağını belirler.
+    /// Verbose modda her döngüde, compact modda belirli aralıklarla log basılır.
     /// </summary>
     private static bool ShouldEmitLoopLog(RuntimeOptions runtime, long tickIndex)
     {
@@ -17,7 +17,7 @@ partial class Program
     }
 
     /// <summary>
-    /// LOOP / CTL loglarÄ±nÄ± basar.
+    /// LOOP / CTL loglarını basar.
     /// </summary>
     private static void EmitLoopDiagnostics(
         RuntimeOptions runtime,
@@ -50,7 +50,7 @@ partial class Program
 
     /// <summary>
     /// Compact loop logu.
-    /// Tek satÄ±rda operasyonel durum verir.
+    /// Tek satırda operasyonel durum verir.
     /// </summary>
     private static void EmitCompactLoopDiagnostics(
         RuntimeDiagnosticsSnapshot diagnostics,
@@ -59,6 +59,7 @@ partial class Program
         DecisionCommand limitedCommand)
     {
         var target = diagnostics.TargetTelemetry;
+        var planning = diagnostics.PlanningTelemetry;
         var decision = diagnostics.DecisionReport;
         var analysis = diagnostics.AnalysisReport;
         var limit = diagnostics.LimitReport;
@@ -66,6 +67,7 @@ partial class Program
         Console.WriteLine(
             $"[LOOP] mode={diagnostics.ControlMode} " +
             $"decision={decision.Mode} reason={decision.Reason} " +
+            $"{planning.CompactPlanInfo()} " +
             $"task={target.TaskInfoInline} " +
             $"taskPhase={target.TaskReport.Phase} " +
             $"taskProg={target.TaskReport.ProgressPercent:F1}% " +
@@ -73,11 +75,11 @@ partial class Program
             $"accept={target.TaskReport.EffectiveArrivalThresholdM:F2}m " +
             $"queue={target.TaskReport.QueuedTaskCount} " +
             $"pos=({state.Position.X:F2},{state.Position.Y:F2}) " +
-            $"yaw={state.Orientation.YawDeg:F1}Â° " +
-            $"yawRate={state.AngularVelocity.Z:F1}Â°/s " +
+            $"yaw={state.Orientation.YawDeg:F1}° " +
+            $"yawRate={state.AngularVelocity.Z:F1}°/s " +
             $"dist={(double.IsNaN(target.DistanceToTargetM) ? -1 : target.DistanceToTargetM):F1}m " +
-            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}Â° " +
-            $"decDHead={decision.HeadingErrorDeg:F1}Â° " +
+            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}° " +
+            $"decDHead={decision.HeadingErrorDeg:F1}° " +
             $"vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"Fx={limitedCommand.Fx:F2} Fy={limitedCommand.Fy:F2} Fz={limitedCommand.Fz:F2} Tz={limitedCommand.Tz:F2} " +
             $"obsAhead={(insights.HasObstacleAhead ? "True" : "False")} " +
@@ -89,7 +91,7 @@ partial class Program
 
     /// <summary>
     /// Verbose loop logu.
-    /// AyrÄ±ntÄ±lÄ± state + control bilgisi verir.
+    /// Ayrıntılı state + control bilgisi verir.
     /// </summary>
     private static void EmitVerboseLoopDiagnostics(
         RuntimeDiagnosticsSnapshot diagnostics,
@@ -99,6 +101,7 @@ partial class Program
         DecisionCommand limitedCommand)
     {
         var target = diagnostics.TargetTelemetry;
+        var planning = diagnostics.PlanningTelemetry;
         var decision = diagnostics.DecisionReport;
         var analysis = diagnostics.AnalysisReport;
         var limit = diagnostics.LimitReport;
@@ -107,6 +110,7 @@ partial class Program
             $"[{DateTime.UtcNow:O}] " +
             $"mode={diagnostics.ControlMode} " +
             $"decision={decision.Mode} reason={decision.Reason} " +
+            $"{planning.CompactPlanInfo()} " +
             $"task={target.TaskInfoInline} " +
             $"taskPhase={target.TaskReport.Phase} taskReason={target.TaskReport.Reason} " +
             $"taskProg={target.TaskReport.ProgressPercent:F1}% wp={FormatWaypoint(target.TaskReport)} " +
@@ -124,10 +128,15 @@ partial class Program
         Console.WriteLine(
             $"[CTL] mode={diagnostics.ControlMode} " +
             $"decision={decision.Mode} reason={decision.Reason} " +
+            $"planValid={planning.IsValid} replan={planning.RequiresReplan} slow={planning.RequiresSlowMode} " +
+            $"localPlan={planning.LocalSummary} " +
+            $"traj={planning.TrajectorySummary} " +
+            $"lookahead={planning.LookAheadId}@({planning.LookAheadX:F2},{planning.LookAheadY:F2},{planning.LookAheadZ:F2}) " +
+            $"lhHead={planning.LookAheadHeadingDeg:F1}° lhSpeed={planning.LookAheadSpeedMps:F2}m/s " +
             $"task={target.TaskInfoInline} " +
             $"dist={(double.IsNaN(target.DistanceToTargetM) ? -1 : target.DistanceToTargetM):F1}m " +
-            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}Â° " +
-            $"decDHead={decision.HeadingErrorDeg:F1}Â° " +
+            $"dHead={(double.IsNaN(target.DeltaHeadingDeg) ? 0 : target.DeltaHeadingDeg):F1}° " +
+            $"decDHead={decision.HeadingErrorDeg:F1}° " +
             $"vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"pre(Fx={desiredCommand.Fx:F2},Fy={desiredCommand.Fy:F2},Fz={desiredCommand.Fz:F2},Tz={desiredCommand.Tz:F2}) -> " +
             $"post(Fx={limitedCommand.Fx:F2},Fy={limitedCommand.Fy:F2},Fz={limitedCommand.Fz:F2},Tz={limitedCommand.Tz:F2}) " +
@@ -136,7 +145,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Verbose modda state ve aÃ§Ä±klanabilir modÃ¼l raporlarÄ±nÄ± basar.
+    /// Verbose modda state ve açıklanabilir modül raporlarını basar.
     /// </summary>
     private static void EmitVerboseModuleReports(
         RuntimeOptions runtime,
@@ -155,6 +164,10 @@ partial class Program
 
         Console.WriteLine(
             $"[TASK] {diagnostics.TargetTelemetry.TaskReport} | " +
+            $"[PLAN] {diagnostics.PlanningTelemetry.PlanningSummary} | " +
+            $"[GLOBAL] {diagnostics.PlanningTelemetry.GlobalSummary} | " +
+            $"[LOCAL] {diagnostics.PlanningTelemetry.LocalSummary} | " +
+            $"[TRAJ] {diagnostics.PlanningTelemetry.TrajectorySummary} | " +
             $"[ANALYSIS] {diagnostics.AnalysisReport} | " +
             $"[DECISION] {diagnostics.DecisionReport} | " +
             $"[LIMIT] {diagnostics.LimitReport} | " +
@@ -181,6 +194,7 @@ partial class Program
 
         var target = diagnostics.TargetTelemetry;
         var task = target.TaskReport;
+        var planning = diagnostics.PlanningTelemetry;
         var analysis = diagnostics.AnalysisReport;
         var decision = diagnostics.DecisionReport;
         var allocation = diagnostics.AllocationReport;
@@ -189,19 +203,20 @@ partial class Program
             $"[HEARTBEAT] tick={tickIndex} " +
             $"mode={diagnostics.ControlMode} " +
             $"decision={decision.Mode} reason={decision.Reason} " +
+            $"{planning.CompactPlanInfo()} " +
             $"task={target.TaskInfoInline} " +
             $"taskPhase={task.Phase} taskProg={task.ProgressPercent:F1}% " +
             $"wp={FormatWaypoint(task)} accept={task.EffectiveArrivalThresholdM:F2}m " +
             $"queue={task.QueuedTaskCount} taskReason={task.Reason} " +
             $"dtTarget={tickMs}ms dtMeasured={dtMeasured * 1000.0:F0}ms " +
             $"pos=({state.Position.X:F2},{state.Position.Y:F2}) " +
-            $"yaw={state.Orientation.YawDeg:F1}Â° " +
-            $"yawRate={state.AngularVelocity.Z:F1}Â°/s " +
+            $"yaw={state.Orientation.YawDeg:F1}° " +
+            $"yawRate={state.AngularVelocity.Z:F1}°/s " +
             $"frameAgeMs={(double.IsNaN(frameAgeMs) ? -1 : frameAgeMs):F0} " +
             $"armed={cmdSrv.IsArmed} estop={cmdSrv.IsEmergencyStop} manual={cmdSrv.IsManualMode} " +
             $"serial={(actuatorManager.IsSerialOpen ? "open" : "closed")} " +
             $"risk={analysis.FrontRiskScore:F2} avoid={analysis.SuggestedSide} " +
-            $"decDHead={decision.HeadingErrorDeg:F1}Â° vFwd={decision.ForwardSpeedMps:F2}m/s " +
+            $"decDHead={decision.HeadingErrorDeg:F1}° vFwd={decision.ForwardSpeedMps:F2}m/s " +
             $"thr={decision.ThrottleNorm:F2} rud={decision.RudderNorm:F2} " +
             $"lim={diagnostics.LimitFlags} " +
             $"alloc={allocation.Reason} allocErr={allocation.NormalizedError:F2}"

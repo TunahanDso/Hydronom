@@ -650,6 +650,10 @@ partial class Program
                     ? intentSnapshotForDiagnostics.DecisionReport
                     : lastDecisionReport;
 
+                var planningSnapshotForDiagnostics = planningCache.Snapshot();
+                var planningTelemetry = RuntimePlanningTelemetrySnapshot.FromPlanningSnapshot(
+                    planningSnapshotForDiagnostics);
+
                 LogTaskChangeIfNeeded(tasks, ref loopState);
 
                 var targetTelemetry = BuildTargetTelemetrySnapshot(tasks, state);
@@ -657,6 +661,7 @@ partial class Program
                 var diagnostics = new RuntimeDiagnosticsSnapshot(
                     ControlMode: lastControlMode,
                     TargetTelemetry: targetTelemetry,
+                    PlanningTelemetry: planningTelemetry,
                     AnalysisReport: analysisReport,
                     DecisionReport: decisionReport,
                     LimitReport: lastLimitReport,
