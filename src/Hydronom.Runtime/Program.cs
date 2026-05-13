@@ -2,10 +2,13 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Hydronom.Runtime.Actuators;
 using Hydronom.AI.Orchestration;
+using Hydronom.Core.Control;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Modules;
+using Hydronom.Core.Modules.Control;
 using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Scheduling;
 using Hydronom.Runtime.Tuning;
@@ -51,6 +54,8 @@ partial class Program
         IAnalysisModule analysis = analysisImpl;
 
         var decision = CreateDecisionModule(config);
+        var controlModule = new PlatformControlModule();
+
         ITaskManager tasks = CreateTaskManager(config);
         var feedback = CreateFeedbackRecorder(config);
         var motors = CreateMotorController(config);
@@ -182,8 +187,29 @@ partial class Program
         int manualCommandTimeoutMs = ReadInt(config, "Control:ManualCommandTimeoutMs", 1000);
         var manualLimits = ReadManualControlLimits(config);
 
+        var loopState = LoopRuntimeState.Create(tickMs);
+
         var analysisCache = new RuntimeAnalysisCache();
+        var intentCache = new RuntimeControlIntentCache();
+        var outputCache = new RuntimeControlOutputCache();
+
         FusedFrame? latestFrameForAnalysis = null;
+
+        double currentDtSeconds = tickMs / 1000.0;
+
+        var initialLimitReport = limiter.LimitAdvanced(DecisionCommand.Zero, currentDtSeconds);
+
+        DecisionCommand lastDesiredCommand = DecisionCommand.Zero;
+        DecisionCommand lastLimitedCommand = initialLimitReport.Output;
+        LimitFlags lastLimitFlags = initialLimitReport.Flags;
+        SafetyLimitReport lastLimitReport = initialLimitReport;
+
+        Vec3 lastForceBody = Vec3.Zero;
+        Vec3 lastTorqueBody = Vec3.Zero;
+        ActuatorAllocationReport lastAllocationReport = actuatorManager.LastAllocationReport;
+
+        string lastControlMode = "INIT";
+        AdvancedDecisionReport lastDecisionReport = AdvancedDecisionReport.Empty;
 
         var runtimeScheduler = CreateRuntimeScheduler(config);
 
@@ -211,6 +237,257 @@ partial class Program
             });
 
         runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.Decision,
+            "AdvancedDecisionIntent",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:DecisionHz", 10.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                var analysisSnapshot = analysisCache.Snapshot();
+                var insights = analysisSnapshot.HasValue
+                    ? analysisSnapshot.Insights
+                    : Insights.Clear;
+
+                var nowUtc = DateTime.UtcNow;
+                var heartbeatAgeMs = (nowUtc - cmdSrv.LastHeartbeatUtc).TotalMilliseconds;
+                var manualAgeMs = (nowUtc - cmdSrv.LastManualCommandUtc).TotalMilliseconds;
+
+                bool heartbeatFresh = heartbeatAgeMs <= heartbeatTimeoutMs;
+                bool manualFresh = manualAgeMs <= manualCommandTimeoutMs;
+
+                if (cmdSrv.IsEmergencyStop)
+                {
+                    if (!loopState.EstopTaskCleared)
+                    {
+                        tasks.ClearTask();
+                        loopState.EstopTaskCleared = true;
+                    }
+
+                    var report = AdvancedDecisionReport.Empty with
+                    {
+                        Reason = "ESTOP_INTENT"
+                    };
+
+                    intentCache.Update(
+                        new ControlIntent(
+                            Kind: ControlIntentKind.EmergencyStop,
+                            TargetPosition: state.Position,
+                            TargetHeadingDeg: state.Orientation.YawDeg,
+                            DesiredForwardSpeedMps: 0.0,
+                            DesiredDepthMeters: state.Position.Z,
+                            DesiredAltitudeMeters: 0.0,
+                            HoldHeading: true,
+                            HoldDepth: true,
+                            AllowReverse: false,
+                            RiskLevel: 1.0,
+                            Reason: "ESTOP_INTENT"),
+                        report,
+                        DateTime.UtcNow);
+
+                    lastControlMode = "ESTOP";
+                    lastDecisionReport = report;
+
+                    return RuntimeModuleTickResult.Ok("ESTOP_INTENT", producedOutput: true);
+                }
+
+                if (cmdSrv.IsManualMode)
+                {
+                    loopState.EstopTaskCleared = false;
+
+                    DecisionCommand manualCommand = DecisionCommand.Zero;
+                    string reason;
+
+                    if (cmdSrv.IsArmed && heartbeatFresh && manualFresh)
+                    {
+                        var md = cmdSrv.CurrentManualDrive;
+
+                        manualCommand = new DecisionCommand(
+                            fx: md.Surge * manualLimits.MaxFxN,
+                            fy: md.Sway * manualLimits.MaxFyN,
+                            fz: md.Heave * manualLimits.MaxFzN,
+                            tx: md.Roll * manualLimits.MaxTxNm,
+                            ty: md.Pitch * manualLimits.MaxTyNm,
+                            tz: md.Yaw * manualLimits.MaxTzNm
+                        );
+
+                        reason = "MANUAL_DIRECT";
+                    }
+                    else
+                    {
+                        reason = cmdSrv.IsArmed ? "MANUAL_HOLD" : "DISARMED";
+                    }
+
+                    if (invertRudder)
+                        manualCommand = manualCommand with { Tz = -manualCommand.Tz };
+
+                    outputCache.Update(
+                        new ControlOutput(
+                            manualCommand,
+                            "MANUAL",
+                            reason),
+                        DateTime.UtcNow);
+
+                    var report = AdvancedDecisionReport.Empty with
+                    {
+                        Reason = reason
+                    };
+
+                    intentCache.Update(
+                        new ControlIntent(
+                            Kind: ControlIntentKind.Manual,
+                            TargetPosition: state.Position,
+                            TargetHeadingDeg: state.Orientation.YawDeg,
+                            DesiredForwardSpeedMps: 0.0,
+                            DesiredDepthMeters: state.Position.Z,
+                            DesiredAltitudeMeters: 0.0,
+                            HoldHeading: true,
+                            HoldDepth: true,
+                            AllowReverse: true,
+                            RiskLevel: 0.0,
+                            Reason: reason),
+                        report,
+                        DateTime.UtcNow);
+
+                    lastControlMode = cmdSrv.IsArmed ? "MANUAL" : "DISARMED";
+                    lastDecisionReport = report;
+
+                    return RuntimeModuleTickResult.Ok(reason, producedOutput: true);
+                }
+
+                loopState.EstopTaskCleared = false;
+
+                tasks.Update(insights, state);
+
+                if (!cmdSrv.IsArmed)
+                {
+                    var report = AdvancedDecisionReport.Empty with
+                    {
+                        Reason = "DISARMED"
+                    };
+
+                    intentCache.Update(
+                        ControlIntent.Idle,
+                        report,
+                        DateTime.UtcNow);
+
+                    lastControlMode = "DISARMED";
+                    lastDecisionReport = report;
+
+                    return RuntimeModuleTickResult.Ok("DISARMED_INTENT", producedOutput: true);
+                }
+
+                if (decision is AdvancedDecision advancedDecision)
+                {
+                    advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
+
+                    var intent = advancedDecision.DecideIntent(
+                        insights,
+                        tasks.CurrentTask,
+                        state,
+                        currentDtSeconds);
+
+                    var report = advancedDecision.LastDecisionReport;
+
+                    intentCache.Update(
+                        intent,
+                        report,
+                        DateTime.UtcNow);
+
+                    lastControlMode = "AUTO";
+                    lastDecisionReport = report;
+
+                    return RuntimeModuleTickResult.Ok("INTENT_UPDATED", producedOutput: true);
+                }
+
+                var fallbackReport = AdvancedDecisionReport.Empty with
+                {
+                    Reason = "DECISION_MODULE_HAS_NO_INTENT_API"
+                };
+
+                intentCache.Update(
+                    ControlIntent.Idle,
+                    fallbackReport,
+                    DateTime.UtcNow);
+
+                lastControlMode = "AUTO";
+                lastDecisionReport = fallbackReport;
+
+                return RuntimeModuleTickResult.Warn("DECISION_MODULE_HAS_NO_INTENT_API");
+            });
+
+        runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.Control,
+            "PlatformControl",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:ControlHz", 50.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                if (cmdSrv.IsManualMode)
+                {
+                    return RuntimeModuleTickResult.Ok("MANUAL_OUTPUT_PASSTHROUGH");
+                }
+
+                var intentSnapshot = intentCache.Snapshot();
+
+                var intent = intentSnapshot.HasValue
+                    ? intentSnapshot.Intent
+                    : ControlIntent.Idle;
+
+                var controlOutput = controlModule.Update(
+                    intent,
+                    state,
+                    currentDtSeconds);
+
+                outputCache.Update(
+                    controlOutput,
+                    DateTime.UtcNow);
+
+                return RuntimeModuleTickResult.Ok("CONTROL_OUTPUT_UPDATED", producedOutput: true);
+            });
+
+        runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.ActuatorCommand,
+            "ActuatorCommand",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:ActuatorCommandHz", 100.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                var outputSnapshot = outputCache.Snapshot();
+
+                var desiredCommand = outputSnapshot.HasValue
+                    ? outputSnapshot.Output.Command
+                    : DecisionCommand.Zero;
+
+                if (outputSnapshot.HasValue && outputSnapshot.AgeMs > 500.0)
+                    desiredCommand = DecisionCommand.Zero;
+
+                var limitReport = limiter.LimitAdvanced(
+                    desiredCommand,
+                    currentDtSeconds);
+
+                var limitedCommand = limitReport.Output;
+
+                actuatorBus.Apply(limitedCommand);
+
+                lastDesiredCommand = desiredCommand;
+                lastLimitedCommand = limitedCommand;
+                lastLimitReport = limitReport;
+                lastLimitFlags = limitReport.Flags;
+
+                lastForceBody = actuatorManager.VehicleState.LinearForce;
+                lastTorqueBody = actuatorManager.VehicleState.AngularTorque;
+                lastAllocationReport = actuatorManager.LastAllocationReport;
+
+                return RuntimeModuleTickResult.Ok("ACTUATOR_COMMAND_APPLIED", producedOutput: true);
+            });
+
+        runtimeScheduler.RegisterSync(
             RuntimeModuleKind.Heartbeat,
             "HeartbeatDiagnostics",
             RuntimeFrequencyProfile.FromHz(
@@ -226,8 +503,6 @@ partial class Program
                 return RuntimeModuleTickResult.Ok("HEARTBEAT_DIAGNOSTICS");
             });
 
-        var loopState = LoopRuntimeState.Create(tickMs);
-
         try
         {
             while (!cts.IsCancellationRequested)
@@ -237,15 +512,14 @@ partial class Program
                 if (loopState.NextLoopTicks == 0)
                     loopState.NextLoopTicks = loopStartTicks + loopState.PeriodTicks;
 
-                double dtMeasured;
                 if (loopState.TickIndex == 0)
                 {
-                    dtMeasured = tickMs / 1000.0;
+                    currentDtSeconds = tickMs / 1000.0;
                 }
                 else
                 {
-                    dtMeasured = StopwatchTicksToSeconds(loopStartTicks - (loopState.NextLoopTicks - loopState.PeriodTicks));
-                    dtMeasured = NormalizeLoopDt(dtMeasured, tickMs);
+                    currentDtSeconds = StopwatchTicksToSeconds(loopStartTicks - (loopState.NextLoopTicks - loopState.PeriodTicks));
+                    currentDtSeconds = NormalizeLoopDt(currentDtSeconds, tickMs);
                 }
 
                 bool externalApplied = TryApplyExternalPose(
@@ -277,64 +551,30 @@ partial class Program
 
                 var insights = analysisSnapshot.HasValue
                     ? analysisSnapshot.Insights
-                    : new Insights(
-                        HasObstacleAhead: false,
-                        ClearanceLeft: double.PositiveInfinity,
-                        ClearanceRight: double.PositiveInfinity);
+                    : Insights.Clear;
 
                 var analysisReport = analysisSnapshot.HasValue
                     ? analysisSnapshot.Report
                     : AdvancedAnalysisReport.Empty;
 
-                /*
-                 * Analysis → Decision Advice Bridge
-                 *
-                 * Analysis artık scheduler slot'u üzerinden kendi frekansında çalışır.
-                 * Decision ise son sağlıklı cached analysis/advice sonucunu kullanır.
-                 */
-                if (decision is AdvancedDecision advancedDecision)
-                {
-                    advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
-                }
+                var intentSnapshotForDiagnostics = intentCache.Snapshot();
 
-                var control = SelectControlCommand(
-                    cmdSrv,
-                    decision,
-                    tasks,
-                    insights,
-                    state,
-                    dtMeasured,
-                    invertRudder,
-                    loopState.EstopTaskCleared,
-                    heartbeatTimeoutMs,
-                    manualCommandTimeoutMs,
-                    manualLimits
-                );
-
-                loopState.EstopTaskCleared = control.EstopTaskCleared;
+                var decisionReport = intentSnapshotForDiagnostics.HasValue
+                    ? intentSnapshotForDiagnostics.DecisionReport
+                    : lastDecisionReport;
 
                 LogTaskChangeIfNeeded(tasks, ref loopState);
 
                 var targetTelemetry = BuildTargetTelemetrySnapshot(tasks, state);
 
-                var limitReport = limiter.LimitAdvanced(control.DesiredCommand, dtMeasured);
-                var cmd = limitReport.Output;
-                var limFlags = limitReport.Flags;
-
-                actuatorBus.Apply(cmd);
-
-                Vec3 forceBody = actuatorManager.VehicleState.LinearForce;
-                Vec3 torqueBody = actuatorManager.VehicleState.AngularTorque;
-                var allocationReport = actuatorManager.LastAllocationReport;
-
                 var diagnostics = new RuntimeDiagnosticsSnapshot(
-                    ControlMode: control.ControlMode,
+                    ControlMode: lastControlMode,
                     TargetTelemetry: targetTelemetry,
                     AnalysisReport: analysisReport,
-                    DecisionReport: control.DecisionReport,
-                    LimitReport: limitReport,
-                    AllocationReport: allocationReport,
-                    LimitFlags: limFlags
+                    DecisionReport: decisionReport,
+                    LimitReport: lastLimitReport,
+                    AllocationReport: lastAllocationReport,
+                    LimitFlags: lastLimitFlags
                 );
 
                 if (ShouldEmitLoopLog(runtime, loopState.TickIndex))
@@ -344,16 +584,16 @@ partial class Program
                         diagnostics,
                         state,
                         insights,
-                        control.DesiredCommand,
-                        cmd
+                        lastDesiredCommand,
+                        lastLimitedCommand
                     );
                 }
 
                 state = IntegrateSyntheticStateIfNeeded(
                     state,
-                    forceBody,
-                    torqueBody,
-                    dtMeasured,
+                    lastForceBody,
+                    lastTorqueBody,
+                    currentDtSeconds,
                     physics,
                     runtime,
                     externalApplied,
@@ -374,10 +614,10 @@ partial class Program
                 if (runtime.EnableNativeTick)
                 {
                     NativeSensors.TickIfAvailable(
-                        dtMeasured,
+                        currentDtSeconds,
                         state,
-                        cmd.Throttle01,
-                        cmd.RudderNeg1To1
+                        lastLimitedCommand.Throttle01,
+                        lastLimitedCommand.RudderNeg1To1
                     );
                 }
 
@@ -407,10 +647,10 @@ partial class Program
                     timestampUtc: DateTime.UtcNow,
                     frame: frameToUse,
                     insights: insights,
-                    command: cmd,
+                    command: lastLimitedCommand,
                     state: state,
-                    forceBody: forceBody,
-                    torqueBody: torqueBody
+                    forceBody: lastForceBody,
+                    torqueBody: lastTorqueBody
                 ));
 
                 loopState.TickIndex++;
@@ -419,7 +659,7 @@ partial class Program
                     runtime,
                     loopState.TickIndex,
                     tickMs,
-                    dtMeasured,
+                    currentDtSeconds,
                     state,
                     cmdSrv,
                     actuatorManager,

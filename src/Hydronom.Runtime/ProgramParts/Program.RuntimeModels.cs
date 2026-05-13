@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using Hydronom.Core.Control;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Modules;
 using Hydronom.Runtime.Actuators;
@@ -136,10 +137,7 @@ partial class Program
     {
         private readonly object _lock = new();
 
-        private Insights _insights = new(
-            HasObstacleAhead: false,
-            ClearanceLeft: double.PositiveInfinity,
-            ClearanceRight: double.PositiveInfinity);
+        private Insights _insights = Insights.Clear;
         private AdvancedAnalysisReport _report = AdvancedAnalysisReport.Empty;
         private DateTime _timestampUtc = DateTime.MinValue;
         private long _version;
@@ -181,6 +179,133 @@ partial class Program
     private readonly record struct RuntimeAnalysisSnapshot(
         Insights Insights,
         AdvancedAnalysisReport Report,
+        DateTime TimestampUtc,
+        long Version
+    )
+    {
+        public bool HasValue => Version > 0;
+
+        public double AgeMs =>
+            HasValue
+                ? (DateTime.UtcNow - TimestampUtc).TotalMilliseconds
+                : double.PositiveInfinity;
+    }
+
+    /// <summary>
+    /// Decision scheduler slot'unun son ürettiği ControlIntent değerini taşır.
+    ///
+    /// Amaç:
+    /// - Decision kendi frekansında çalışır.
+    /// - Control daha hızlı frekansta son intent'i takip eder.
+    /// - Decision ve Control cadence'i birbirinden ayrılır.
+    /// </summary>
+    private sealed class RuntimeControlIntentCache
+    {
+        private readonly object _lock = new();
+
+        private ControlIntent _intent = ControlIntent.Idle;
+        private AdvancedDecisionReport _decisionReport = AdvancedDecisionReport.Empty;
+        private DateTime _timestampUtc = DateTime.MinValue;
+        private long _version;
+
+        public void Update(
+            ControlIntent intent,
+            AdvancedDecisionReport decisionReport,
+            DateTime timestampUtc)
+        {
+            lock (_lock)
+            {
+                _intent = intent ?? ControlIntent.Idle;
+                _decisionReport = decisionReport;
+                _timestampUtc = timestampUtc == default
+                    ? DateTime.UtcNow
+                    : timestampUtc;
+
+                _version++;
+            }
+        }
+
+        public RuntimeControlIntentSnapshot Snapshot()
+        {
+            lock (_lock)
+            {
+                return new RuntimeControlIntentSnapshot(
+                    _intent,
+                    _decisionReport,
+                    _timestampUtc,
+                    _version
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Intent cache immutable snapshot modeli.
+    /// </summary>
+    private readonly record struct RuntimeControlIntentSnapshot(
+        ControlIntent Intent,
+        AdvancedDecisionReport DecisionReport,
+        DateTime TimestampUtc,
+        long Version
+    )
+    {
+        public bool HasValue => Version > 0;
+
+        public double AgeMs =>
+            HasValue
+                ? (DateTime.UtcNow - TimestampUtc).TotalMilliseconds
+                : double.PositiveInfinity;
+    }
+
+    /// <summary>
+    /// Control scheduler slot'unun son ürettiği ControlOutput değerini taşır.
+    ///
+    /// Amaç:
+    /// - Control kendi yüksek frekansında command üretir.
+    /// - ActuatorCommand slot'u son sağlıklı command'i uygular.
+    /// - Control ve actuator cadence'i ayrılabilir.
+    /// </summary>
+    private sealed class RuntimeControlOutputCache
+    {
+        private readonly object _lock = new();
+
+        private ControlOutput _output = ControlOutput.Zero;
+        private DateTime _timestampUtc = DateTime.MinValue;
+        private long _version;
+
+        public void Update(
+            ControlOutput output,
+            DateTime timestampUtc)
+        {
+            lock (_lock)
+            {
+                _output = output ?? ControlOutput.Zero;
+                _timestampUtc = timestampUtc == default
+                    ? DateTime.UtcNow
+                    : timestampUtc;
+
+                _version++;
+            }
+        }
+
+        public RuntimeControlOutputSnapshot Snapshot()
+        {
+            lock (_lock)
+            {
+                return new RuntimeControlOutputSnapshot(
+                    _output,
+                    _timestampUtc,
+                    _version
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Control output cache immutable snapshot modeli.
+    /// </summary>
+    private readonly record struct RuntimeControlOutputSnapshot(
+        ControlOutput Output,
         DateTime TimestampUtc,
         long Version
     )
