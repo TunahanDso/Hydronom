@@ -1,15 +1,10 @@
 ﻿using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Contracts.Vehicle;
-using System.Globalization;
 using System.Text.Json;
 
 namespace HydronomOps.Gateway.Services.Mapping;
 
-/// <summary>
-/// RuntimeTelemetrySummary / RuntimeSummary mesajlarÄ±nÄ± Gateway DTO modellerine dÃ¶nÃ¼ÅŸtÃ¼ren mapper parÃ§asÄ±.
-/// Ana RuntimeToGatewayMapper dosyasÄ±nÄ± bÃ¼yÃ¼tmemek iÃ§in partial olarak ayrÄ±lmÄ±ÅŸtÄ±r.
-/// </summary>
 public sealed partial class RuntimeToGatewayMapper
 {
     public VehicleTelemetryDto MapVehicleTelemetryFromRuntimeSummary(JsonElement root)
@@ -97,6 +92,98 @@ public sealed partial class RuntimeToGatewayMapper
             Metrics = metrics,
             Fields = fields,
             Freshness = BuildFreshness(timestampUtc, "runtime-summary")
+        };
+    }
+
+    public VehicleTelemetryDto MapVehicleTelemetryFromRuntimeTelemetry(JsonElement root)
+    {
+        var now = _clock.UtcNow;
+
+        var timestampUtc =
+            GetNullableDateTime(root, "timestampUtc", "TimestampUtc") ??
+            now;
+
+        var vehicleId =
+            GetString(root, "vehicleId", "VehicleId") ??
+            "hydronom-main";
+
+        var x = GetDouble(root, "x", "X", "stateX", "StateX");
+        var y = GetDouble(root, "y", "Y", "stateY", "StateY");
+        var z = GetDouble(root, "z", "Z", "stateZ", "StateZ");
+
+        var rollDeg = GetDouble(root, "rollDeg", "RollDeg");
+        var pitchDeg = GetDouble(root, "pitchDeg", "PitchDeg");
+        var yawDeg = GetDouble(root, "yawDeg", "YawDeg", "headingDeg", "HeadingDeg");
+        var headingDeg = GetDouble(root, "headingDeg", "HeadingDeg", "yawDeg", "YawDeg");
+
+        var vx = GetDouble(root, "vx", "Vx");
+        var vy = GetDouble(root, "vy", "Vy");
+        var vz = GetDouble(root, "vz", "Vz");
+
+        var rollRateDeg = GetDouble(root, "rollRateDeg", "RollRateDeg");
+        var pitchRateDeg = GetDouble(root, "pitchRateDeg", "PitchRateDeg");
+        var yawRateDeg = GetDouble(root, "yawRateDeg", "YawRateDeg");
+
+        var speed = GetDouble(root, "speed", "Speed");
+        if (speed <= 0.0)
+        {
+            speed = Math.Sqrt(vx * vx + vy * vy + vz * vz);
+        }
+
+        var metrics = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["vehicle.x"] = x,
+            ["vehicle.y"] = y,
+            ["vehicle.z"] = z,
+            ["vehicle.rollDeg"] = rollDeg,
+            ["vehicle.pitchDeg"] = pitchDeg,
+            ["vehicle.yawDeg"] = yawDeg,
+            ["vehicle.headingDeg"] = headingDeg,
+            ["vehicle.vx"] = vx,
+            ["vehicle.vy"] = vy,
+            ["vehicle.vz"] = vz,
+            ["vehicle.speed"] = speed,
+            ["vehicle.rollRateDeg"] = rollRateDeg,
+            ["vehicle.pitchRateDeg"] = pitchRateDeg,
+            ["vehicle.yawRateDeg"] = yawRateDeg
+        };
+
+        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["origin"] = "runtime-telemetry",
+            ["runtime.messageType"] = "RuntimeTelemetry"
+        };
+
+        return new VehicleTelemetryDto
+        {
+            TimestampUtc = timestampUtc,
+            VehicleId = vehicleId,
+
+            X = x,
+            Y = y,
+            Z = z,
+
+            RollDeg = rollDeg,
+            PitchDeg = pitchDeg,
+            YawDeg = yawDeg,
+            HeadingDeg = headingDeg,
+
+            Vx = vx,
+            Vy = vy,
+            Vz = vz,
+
+            RollRateDeg = rollRateDeg,
+            PitchRateDeg = pitchRateDeg,
+            YawRateDeg = yawRateDeg,
+
+            ObstacleAhead = false,
+            ObstacleCount = 0,
+            Obstacles = new List<ObstacleDto>(),
+            Landmarks = new List<LandmarkDto>(),
+
+            Metrics = metrics,
+            Fields = fields,
+            Freshness = BuildFreshness(timestampUtc, "runtime-telemetry")
         };
     }
 
@@ -205,7 +292,6 @@ public sealed partial class RuntimeToGatewayMapper
         {
             TimestampUtc = timestampUtc,
 
-            // GatewayStatus burada runtime'Ä±n overall health bilgisini taÅŸÄ±r.
             GatewayStatus = overallHealth,
             RuntimeConnected = true,
 

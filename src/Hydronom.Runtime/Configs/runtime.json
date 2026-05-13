@@ -1,7 +1,17 @@
 {
   "Runtime": {
-    "TickMs": 100,
-    "DevMode": false,
+    "TickMs": 20,
+    "DevMode": true,
+    "ActuatorKeepAliveMs": 20,
+
+    "Scheduler": {
+      "AnalysisHz": 10.0,
+      "DecisionHz": 10.0,
+      "ControlHz": 50.0,
+      "ActuatorCommandHz": 100.0,
+      "HeartbeatHz": 1.0
+    },
+
     "TelemetrySummary": {
       "Enabled": true,
       "RuntimeId": "hydronom_runtime",

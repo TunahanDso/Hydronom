@@ -6,7 +6,8 @@ namespace Hydronom.Core.Modules
     /// AdvancedAnalysisReport içinden operasyonel risk ve decision advice üretir.
     ///
     /// Bu sınıf Analysis → Decision köprüsünün ilk adımıdır.
-    /// Şimdilik obstacle/clearance/sector analizinden karar önerisi çıkarır.
+    /// Obstacle/clearance/sector analizinden karar önerisi çıkarır.
+    /// Ayrıca geçilebilir koridor tespit edildiğinde panik kaçınma yerine kontrollü geçiş tavsiyesi üretir.
     /// </summary>
     public static class OperationalRiskAnalyzer
     {
@@ -26,6 +27,34 @@ namespace Hydronom.Core.Modules
             AdvancedAnalysisReport report,
             double obstacleRisk)
         {
+            if (report.HasPassableCorridor && report.CorridorConfidence >= 0.30)
+            {
+                double confidence = Math.Clamp(report.CorridorConfidence, 0.0, 1.0);
+
+                return new DecisionAdviceProfile(
+                    MaxSpeedScale: Math.Clamp(0.55 + confidence * 0.20, 0.45, 0.75),
+                    ThrottleScale: Math.Clamp(0.45 + confidence * 0.25, 0.40, 0.70),
+                    YawAggressionScale: Math.Clamp(0.90 + confidence * 0.35, 0.90, 1.25),
+                    ArrivalCautionScale: Math.Clamp(1.10 + (1.0 - confidence) * 0.50, 1.10, 1.60),
+                    ObstacleAvoidanceUrgency: Math.Clamp(0.15 + (1.0 - confidence) * 0.20, 0.15, 0.35),
+                    HoldPreference: 0.0,
+                    ForceCoast: false,
+                    PreferSafeHeading: true,
+                    RequireSlowMode: true,
+                    RecommendHold: false,
+                    RecommendReturnHome: false,
+                    RecommendMissionAbort: false,
+                    PrimaryReason: "PASSABLE_CORRIDOR",
+                    HasPassableCorridor: true,
+                    CorridorCenterOffsetDeg: report.CorridorCenterOffsetDeg,
+                    CorridorWidthMeters: report.CorridorWidthMeters,
+                    CorridorClearanceMeters: report.CorridorClearanceMeters,
+                    CorridorConfidence: report.CorridorConfidence,
+                    SuppressObstaclePanic: true,
+                    PreferCorridorHeading: true
+                ).Sanitized();
+            }
+
             if (report.ClosestSurfaceDistanceM <= 0.75)
             {
                 return new DecisionAdviceProfile(
@@ -41,7 +70,14 @@ namespace Hydronom.Core.Modules
                     RecommendHold: true,
                     RecommendReturnHome: false,
                     RecommendMissionAbort: false,
-                    PrimaryReason: "CRITICAL_CLOSE_OBSTACLE"
+                    PrimaryReason: "CRITICAL_CLOSE_OBSTACLE",
+                    HasPassableCorridor: false,
+                    CorridorCenterOffsetDeg: 0.0,
+                    CorridorWidthMeters: 0.0,
+                    CorridorClearanceMeters: 0.0,
+                    CorridorConfidence: 0.0,
+                    SuppressObstaclePanic: false,
+                    PreferCorridorHeading: false
                 );
             }
 
@@ -62,7 +98,14 @@ namespace Hydronom.Core.Modules
                     RecommendHold: urgency >= 0.90,
                     RecommendReturnHome: false,
                     RecommendMissionAbort: false,
-                    PrimaryReason: "OBSTACLE_AHEAD"
+                    PrimaryReason: "OBSTACLE_AHEAD",
+                    HasPassableCorridor: false,
+                    CorridorCenterOffsetDeg: 0.0,
+                    CorridorWidthMeters: 0.0,
+                    CorridorClearanceMeters: 0.0,
+                    CorridorConfidence: 0.0,
+                    SuppressObstaclePanic: false,
+                    PreferCorridorHeading: false
                 );
             }
 
@@ -83,7 +126,14 @@ namespace Hydronom.Core.Modules
                     RecommendHold: false,
                     RecommendReturnHome: false,
                     RecommendMissionAbort: false,
-                    PrimaryReason: "ELEVATED_OBSTACLE_RISK"
+                    PrimaryReason: "ELEVATED_OBSTACLE_RISK",
+                    HasPassableCorridor: false,
+                    CorridorCenterOffsetDeg: 0.0,
+                    CorridorWidthMeters: 0.0,
+                    CorridorClearanceMeters: 0.0,
+                    CorridorConfidence: 0.0,
+                    SuppressObstaclePanic: false,
+                    PreferCorridorHeading: false
                 );
             }
 
@@ -123,6 +173,12 @@ namespace Hydronom.Core.Modules
 
             if (report.HasObstacleAhead)
                 risk = Math.Max(risk, 0.45);
+
+            if (report.HasPassableCorridor)
+            {
+                double corridorRelief = Math.Clamp(report.CorridorConfidence * 0.45, 0.0, 0.45);
+                risk = Math.Max(0.10, risk - corridorRelief);
+            }
 
             return Math.Clamp(risk, 0.0, 1.0);
         }

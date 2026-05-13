@@ -3,6 +3,7 @@ using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Mission;
 using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Contracts.Vehicle;
+using HydronomOps.Gateway.Contracts.World;
 using HydronomOps.Gateway.Domain;
 
 namespace HydronomOps.Gateway.Services.State;
@@ -18,6 +19,12 @@ public interface IGatewayStateStore
 
     void SetVehicleTelemetry(VehicleTelemetryDto telemetry);
     void SetMissionState(MissionStateDto missionState);
+
+    /// <summary>
+    /// Runtime/Gateway üzerinden gelen dünya/senaryo katmanını yazar.
+    /// Checkpoint, finish, duba, rota ve aktif hedef gibi Ops 3D mission view verileri bu state içinde tutulur.
+    /// </summary>
+    void SetWorldState(WorldStateDto worldState);
 
     /// <summary>
     /// Geriye dönük uyumluluk için genel sensör durumunu yazar.

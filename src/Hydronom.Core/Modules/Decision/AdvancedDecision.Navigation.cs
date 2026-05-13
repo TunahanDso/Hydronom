@@ -14,6 +14,19 @@ namespace Hydronom.Core.Modules
         {
             var advice = _currentAdvice.Sanitized();
 
+            if (advice.HasPassableCorridor &&
+                advice.SuppressObstaclePanic &&
+                advice.PreferCorridorHeading)
+            {
+                return FollowPassableCorridor(
+                    ins,
+                    task,
+                    state,
+                    dt,
+                    nav,
+                    advice);
+            }
+
             double left = SafeNonNegative(ins.ClearanceLeft, 0.0);
             double right = SafeNonNegative(ins.ClearanceRight, 0.0);
 
@@ -72,6 +85,78 @@ namespace Hydronom.Core.Modules
             );
         }
 
+        private DecisionResult FollowPassableCorridor(
+            Insights ins,
+            TaskDefinition task,
+            VehicleState state,
+            double dt,
+            NavigationGeometry nav,
+            DecisionAdviceProfile advice)
+        {
+            double corridorOffsetDeg = Math.Clamp(
+                advice.CorridorCenterOffsetDeg,
+                -75.0,
+                75.0);
+
+            double confidence = Math.Clamp(advice.CorridorConfidence, 0.0, 1.0);
+            double absOffset = Math.Abs(corridorOffsetDeg);
+            double absYawRate = Math.Abs(nav.YawRateDeg);
+
+            double p = corridorOffsetDeg * NavYawKp * 1.25;
+            double d = -nav.YawRateDeg * NavYawKd * 0.85;
+
+            double rudderNorm = p + d;
+
+            if (Math.Abs(rudderNorm) < 0.08 && absOffset > 2.0)
+                rudderNorm = corridorOffsetDeg >= 0.0 ? 0.08 : -0.08;
+
+            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.75, 1.35);
+            rudderNorm = Math.Clamp(rudderNorm, -0.75, 0.75);
+
+            double throttleNorm = 0.12 + confidence * 0.18;
+
+            if (absOffset > 20.0)
+                throttleNorm *= 0.65;
+
+            if (absOffset > 35.0)
+                throttleNorm *= 0.45;
+
+            if (absYawRate > 35.0)
+                throttleNorm *= 0.70;
+
+            throttleNorm *= advice.ThrottleScale;
+
+            if (advice.RequireSlowMode)
+                throttleNorm *= 0.85;
+
+            throttleNorm = Math.Clamp(throttleNorm, 0.04, 0.32);
+
+            /*
+             * Geçilebilir koridor modunda ForceCoast normalde kullanılmaz.
+             * Ancak üst seviye analiz çok kritik bir durum üretmişse yine de güvenlik baskın gelir.
+             */
+            if (advice.ForceCoast)
+                throttleNorm = 0.0;
+
+            var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
+            var output = ScaleCommand(raw);
+
+            string reason =
+                $"PASSABLE_CORRIDOR offset={corridorOffsetDeg:F1}deg " +
+                $"width={advice.CorridorWidthMeters:F2}m " +
+                $"clear={advice.CorridorClearanceMeters:F2}m " +
+                $"conf={confidence:F2} " +
+                $"obsAhead={ins.HasObstacleAhead}";
+
+            return new DecisionResult(
+                RawCommand: raw,
+                OutputCommand: output,
+                Reason: AppendAdviceReason(reason, advice),
+                ThrottleNorm: throttleNorm,
+                RudderNorm: rudderNorm
+            );
+        }
+
         private DecisionResult NavigateToTarget(
             TaskDefinition task,
             VehicleState state,
@@ -105,12 +190,6 @@ namespace Hydronom.Core.Modules
             if (absDelta >= NearTurnInPlaceDeg)
                 throttleNorm = Math.Min(throttleNorm, 0.03);
 
-            /*
-             * Analysis tavsiyesi:
-             * - ThrottleScale genel gazı azaltır.
-             * - RequireSlowMode agresifliği düşürür.
-             * - ForceCoast ileri itmeyi keser.
-             */
             throttleNorm *= advice.ThrottleScale;
 
             if (advice.RequireSlowMode)
@@ -130,7 +209,15 @@ namespace Hydronom.Core.Modules
 
             if (arrival.Phase is ArrivalPhase.Capture or ArrivalPhase.CaptureCoast)
             {
-                rudderNorm *= scenarioOwnedTask ? 0.75 : 0.85;
+                /*
+                 * Türkçe yorum:
+                 * Fly-through davranışı için capture fazında dümeni fazla öldürmek istemiyoruz.
+                 * Ancak final/precision yaklaşmada hâlâ daha sakin dümen iyi olur.
+                 */
+                if (scenarioOwnedTask && arrival.Reason.Contains("FlyThrough", StringComparison.OrdinalIgnoreCase))
+                    rudderNorm *= 0.92;
+                else
+                    rudderNorm *= scenarioOwnedTask ? 0.75 : 0.85;
             }
 
             if (arrival.Phase == ArrivalPhase.OvershootRecovery)
@@ -158,10 +245,10 @@ namespace Hydronom.Core.Modules
 
             if (scenarioOwnedTask)
             {
-                throttleNorm = Math.Clamp(
+                throttleNorm = ClampScenarioThrottle(
                     throttleNorm,
-                    ScenarioMinThrottleNorm,
-                    ScenarioMaxApproachThrottleNorm);
+                    arrival,
+                    reason);
             }
             else
             {
@@ -189,6 +276,59 @@ namespace Hydronom.Core.Modules
             );
 
             return ConstrainExternalScenarioCommandIfNeeded(task, result, reasonOverride: result.Reason);
+        }
+
+        private static double ClampScenarioThrottle(
+            double throttleNorm,
+            ArrivalPlan arrival,
+            string reason)
+        {
+            /*
+             * Türkçe yorum:
+             * Eski davranış:
+             * - Scenario task her zaman ScenarioMinThrottleNorm..ScenarioMaxApproachThrottleNorm aralığına kırpılıyordu.
+             * - Bu yüzden AdaptiveArrivalPlanner negatif reverse braking üretse bile burada kayboluyordu.
+             * - Ayrıca fly-through checkpointlerde gereksiz minimum throttle baskısı oluşabiliyordu.
+             *
+             * Yeni davranış:
+             * - FlyThrough: negatif fren yok; minimum throttle baskısı hafifletilir.
+             * - TurnCritical: küçük negatif reverse braking'e izin verilir.
+             * - PrecisionStop/final: daha güçlü negatif fren izni vardır.
+             * - Capability/tek yönlü ESC kesmesi actuator allocation tarafında yapılır.
+             */
+            bool isFlyThrough = reason.Contains("FlyThrough", StringComparison.OrdinalIgnoreCase);
+            bool isTurnCritical = reason.Contains("TurnCritical", StringComparison.OrdinalIgnoreCase);
+            bool isPrecisionStop = reason.Contains("PrecisionStop", StringComparison.OrdinalIgnoreCase);
+
+            double minThrottle;
+
+            if (isFlyThrough)
+            {
+                /*
+                 * Ara checkpointlerde aracı zorla süründürmeye gerek yok.
+                 * Planlayıcı zaten akıcı geçiş için pozitif throttle üretir.
+                 */
+                minThrottle = 0.0;
+            }
+            else if (isTurnCritical)
+            {
+                minThrottle = arrival.AllowReverseSurge ? -MaxReverseThrottleNorm * 0.55 : 0.0;
+            }
+            else if (isPrecisionStop)
+            {
+                minThrottle = arrival.AllowReverseSurge ? -MaxReverseThrottleNorm : 0.0;
+            }
+            else
+            {
+                minThrottle = arrival.AllowReverseSurge ? -MaxReverseThrottleNorm * 0.50 : ScenarioMinThrottleNorm;
+            }
+
+            double maxThrottle = ScenarioMaxApproachThrottleNorm;
+
+            return Math.Clamp(
+                throttleNorm,
+                minThrottle,
+                maxThrottle);
         }
 
         private static double ComputeNavigationRudder(
@@ -225,13 +365,6 @@ namespace Hydronom.Core.Modules
             NavigationGeometry nav,
             DecisionAdviceProfile advice)
         {
-            /*
-             * İlk v1 safe-heading bias:
-             * Analysis "safe heading tercih et" diyorsa yaw tepkisi biraz daha kararlı hale gelir.
-             *
-             * İleride AdvancedAnalysis.LastReport.BestHeadingOffsetDeg doğrudan
-             * DecisionContext ile buraya taşınacak ve gerçek güvenli koridor yönü kullanılacak.
-             */
             double urgency = Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0);
 
             if (urgency <= 0.0)

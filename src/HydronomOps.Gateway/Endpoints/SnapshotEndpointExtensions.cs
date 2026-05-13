@@ -3,7 +3,7 @@
 namespace HydronomOps.Gateway.Endpoints;
 
 /// <summary>
-/// AnlÄ±k gateway snapshot endpoint'ini map eder.
+/// Anlık gateway snapshot endpoint'ini map eder.
 /// </summary>
 public static class SnapshotEndpointExtensions
 {
@@ -19,18 +19,31 @@ public static class SnapshotEndpointExtensions
                 startedUtc = state.StartedUtc,
                 lastUpdatedUtc = state.LastUpdatedUtc,
                 lastRuntimeIngressUtc = state.LastRuntimeIngressUtc,
+                lastVehicleTelemetryUtc = state.LastVehicleTelemetryUtc,
+                lastMissionStateUtc = state.LastMissionStateUtc,
+                lastWorldStateUtc = state.LastWorldStateUtc,
+                lastSensorStateUtc = state.LastSensorStateUtc,
+                lastDebugSensorStateUtc = state.LastDebugSensorStateUtc,
+                lastActuatorStateUtc = state.LastActuatorStateUtc,
+                lastDiagnosticsStateUtc = state.LastDiagnosticsStateUtc,
                 lastGatewayBroadcastUtc = state.LastGatewayBroadcastUtc,
                 lastError = state.LastError,
+
                 runtimeConnected = state.RuntimeConnected,
                 pythonConnected = state.PythonConnected,
                 webSocketClientCount = state.WebSocketClientCount,
                 totalMessagesReceived = state.TotalMessagesReceived,
                 totalMessagesBroadcast = state.TotalMessagesBroadcast,
+
                 vehicleTelemetry = state.VehicleTelemetry,
                 missionState = state.MissionState,
+                worldState = state.WorldState,
                 sensorState = state.SensorState,
+                runtimeSensorState = state.RuntimeSensorState,
+                debugSensorState = state.DebugSensorState,
                 actuatorState = state.ActuatorState,
                 diagnosticsState = state.DiagnosticsState,
+
                 logs = state.Logs
             };
 

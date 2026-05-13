@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { DiagnosticsState } from "../../../entities/diagnostics/model/diagnostics.types";
-import type { VehicleId } from "../../../shared/types/common.types";
+import type { SourceKind, VehicleId } from "../../../shared/types/common.types";
 
 interface GatewayDiagnosticsStateDto {
   timestampUtc: string;
@@ -112,6 +112,24 @@ function isGatewayDiagnosticsStateDto(
   return "timestampUtc" in diagnosticsState;
 }
 
+// Gateway tarafındaki serbest metin source değerlerini frontend'in güvenli SourceKind tipine indirger.
+function normalizeSourceKind(value?: string | null): SourceKind {
+  switch ((value ?? "").toLowerCase()) {
+    case "runtime":
+      return "runtime";
+    case "external":
+      return "external";
+    case "python":
+      return "python";
+    case "twin":
+      return "twin";
+    case "sim":
+      return "sim";
+    default:
+      return "unknown";
+  }
+}
+
 function mapGatewayDiagnosticsStateToDiagnosticsState(
   dto: GatewayDiagnosticsStateDto,
   previous?: DiagnosticsState
@@ -144,7 +162,7 @@ function mapGatewayDiagnosticsStateToDiagnosticsState(
         label: "WebSocket Clients",
         rateHz: 0,
         ageMs: 0,
-        state: wsCount > 0 ? "connected" : "idle"
+        state: wsCount > 0 ? "connected" : "disconnected"
       }
     ],
     sourceInspector: [
@@ -166,13 +184,13 @@ function mapGatewayDiagnosticsStateToDiagnosticsState(
             (dto.runtimeFreshness.isFresh !== undefined
               ? !dto.runtimeFreshness.isFresh
               : false),
-          source: dto.runtimeFreshness.source ?? "runtime"
+          source: normalizeSourceKind(dto.runtimeFreshness.source ?? "runtime")
         }
       : {
           timestamp: dto.timestampUtc,
           ageMs: 0,
           isStale: false,
-          source: "gateway"
+          source: "runtime"
         }
   };
 }

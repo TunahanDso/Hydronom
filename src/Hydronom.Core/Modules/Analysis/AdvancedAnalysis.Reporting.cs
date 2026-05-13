@@ -13,7 +13,8 @@ namespace Hydronom.Core.Modules
             int consideredObstacleCount,
             double[] sectorRisk,
             double[] sectorClearance,
-            AnalysisParameters parameters)
+            AnalysisParameters parameters,
+            PassableCorridorCandidate corridor)
         {
             double[] sectorScore = BuildSectorScores(
                 sectorRisk,
@@ -52,6 +53,14 @@ namespace Hydronom.Core.Modules
             if (bestHeadingOffsetDeg < -8.0) suggestedSide = "left";
             else if (bestHeadingOffsetDeg > 8.0) suggestedSide = "right";
 
+            bool hasPassableCorridor = corridor.IsValid;
+
+            if (hasPassableCorridor)
+            {
+                bestHeadingOffsetDeg = corridor.CenterOffsetDeg;
+                suggestedSide = "corridor";
+            }
+
             if (Math.Min(leftClear, rightClear) < parameters.DangerDistanceM ||
                 closestSurfaceDistance < parameters.DangerDistanceM ||
                 frontRiskScore > parameters.FrontCriticalRiskThreshold)
@@ -73,7 +82,12 @@ namespace Hydronom.Core.Modules
                 ConsideredObstacleCount: consideredObstacleCount,
                 SectorCount: parameters.SectorCount,
                 AheadDistanceM: parameters.AheadDistanceM,
-                HalfFovDeg: parameters.HalfFovDeg
+                HalfFovDeg: parameters.HalfFovDeg,
+                HasPassableCorridor: hasPassableCorridor,
+                CorridorCenterOffsetDeg: corridor.CenterOffsetDeg,
+                CorridorWidthMeters: corridor.WidthMeters,
+                CorridorClearanceMeters: corridor.ClearanceMeters,
+                CorridorConfidence: corridor.Confidence
             );
         }
     }

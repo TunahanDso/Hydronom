@@ -5,6 +5,7 @@ using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Mission;
 using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Contracts.Vehicle;
+using HydronomOps.Gateway.Contracts.World;
 
 namespace HydronomOps.Gateway.Domain;
 
@@ -42,6 +43,11 @@ public sealed class VehicleAggregateState
     /// Son görev durumu zamanı.
     /// </summary>
     public DateTime? LastMissionStateUtc { get; set; }
+
+    /// <summary>
+    /// Son dünya/senaryo durumu zamanı.
+    /// </summary>
+    public DateTime? LastWorldStateUtc { get; set; }
 
     /// <summary>
     /// Son sensör durumu zamanı.
@@ -114,6 +120,12 @@ public sealed class VehicleAggregateState
     /// Son görev durumu.
     /// </summary>
     public MissionStateDto? MissionState { get; set; }
+
+    /// <summary>
+    /// Son dünya/senaryo durumu.
+    /// Checkpoint, finish, duba, rota ve aktif hedef gibi Ops 3D mission view verilerini taşır.
+    /// </summary>
+    public WorldStateDto? WorldState { get; set; }
 
     /// <summary>
     /// Geriye dönük uyumluluk için ana sensör durumu.

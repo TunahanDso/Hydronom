@@ -3,6 +3,7 @@ using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Mission;
 using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Contracts.Vehicle;
+using HydronomOps.Gateway.Contracts.World;
 using HydronomOps.Gateway.Domain;
 
 namespace HydronomOps.Gateway.Services.State;
@@ -61,6 +62,18 @@ public sealed class GatewayStateStore : IGatewayStateStore
         {
             _current.MissionState = CloneMissionState(missionState);
             _current.LastMissionStateUtc = DateTime.UtcNow;
+            _current.LastUpdatedUtc = DateTime.UtcNow;
+        }
+    }
+
+    public void SetWorldState(WorldStateDto worldState)
+    {
+        ArgumentNullException.ThrowIfNull(worldState);
+
+        lock (_lock)
+        {
+            _current.WorldState = CloneWorldState(worldState);
+            _current.LastWorldStateUtc = DateTime.UtcNow;
             _current.LastUpdatedUtc = DateTime.UtcNow;
         }
     }
@@ -233,6 +246,7 @@ public sealed class GatewayStateStore : IGatewayStateStore
             LastRuntimeIngressUtc = source.LastRuntimeIngressUtc,
             LastVehicleTelemetryUtc = source.LastVehicleTelemetryUtc,
             LastMissionStateUtc = source.LastMissionStateUtc,
+            LastWorldStateUtc = source.LastWorldStateUtc,
             LastSensorStateUtc = source.LastSensorStateUtc,
             LastDebugSensorStateUtc = source.LastDebugSensorStateUtc,
             LastActuatorStateUtc = source.LastActuatorStateUtc,
@@ -247,6 +261,7 @@ public sealed class GatewayStateStore : IGatewayStateStore
             TotalMessagesBroadcast = source.TotalMessagesBroadcast,
             VehicleTelemetry = source.VehicleTelemetry is null ? null : CloneVehicleTelemetry(source.VehicleTelemetry),
             MissionState = source.MissionState is null ? null : CloneMissionState(source.MissionState),
+            WorldState = source.WorldState is null ? null : CloneWorldState(source.WorldState),
             SensorState = source.SensorState is null ? null : CloneSensorState(source.SensorState),
             RuntimeSensorState = source.RuntimeSensorState is null ? null : CloneSensorState(source.RuntimeSensorState),
             DebugSensorState = source.DebugSensorState is null ? null : CloneSensorState(source.DebugSensorState),
@@ -359,7 +374,94 @@ public sealed class GatewayStateStore : IGatewayStateStore
             RemainingDistanceMeters = source.RemainingDistanceMeters,
             StartedAtUtc = source.StartedAtUtc,
             FinishedAtUtc = source.FinishedAtUtc,
+            Warnings = source.Warnings is null
+                ? new List<string>()
+                : source.Warnings.ToList(),
             Freshness = source.Freshness
+        };
+    }
+
+    private static WorldStateDto CloneWorldState(WorldStateDto source)
+    {
+        return new WorldStateDto
+        {
+            TimestampUtc = source.TimestampUtc,
+            VehicleId = source.VehicleId,
+            Source = source.Source,
+            ScenarioId = source.ScenarioId,
+            ScenarioName = source.ScenarioName,
+            RunId = source.RunId,
+            CurrentObjectiveId = source.CurrentObjectiveId,
+            ActiveObjectiveTarget = source.ActiveObjectiveTarget is null
+                ? null
+                : CloneWorldTarget(source.ActiveObjectiveTarget),
+            Route = source.Route is null
+                ? new List<WorldRoutePointDto>()
+                : source.Route.Select(CloneWorldRoutePoint).ToList(),
+            Objects = source.Objects is null
+                ? new List<WorldObjectDto>()
+                : source.Objects.Select(CloneWorldObject).ToList(),
+            Metrics = source.Metrics is null
+                ? new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, double>(source.Metrics, StringComparer.OrdinalIgnoreCase),
+            Fields = source.Fields is null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(source.Fields, StringComparer.OrdinalIgnoreCase),
+            Freshness = source.Freshness
+        };
+    }
+
+    private static WorldTargetDto CloneWorldTarget(WorldTargetDto source)
+    {
+        return new WorldTargetDto
+        {
+            X = source.X,
+            Y = source.Y,
+            Z = source.Z,
+            ToleranceMeters = source.ToleranceMeters
+        };
+    }
+
+    private static WorldRoutePointDto CloneWorldRoutePoint(WorldRoutePointDto source)
+    {
+        return new WorldRoutePointDto
+        {
+            Id = source.Id,
+            Label = source.Label,
+            ObjectiveId = source.ObjectiveId,
+            Index = source.Index,
+            Type = source.Type,
+            X = source.X,
+            Y = source.Y,
+            Z = source.Z,
+            ToleranceMeters = source.ToleranceMeters,
+            Active = source.Active,
+            Completed = source.Completed
+        };
+    }
+
+    private static WorldObjectDto CloneWorldObject(WorldObjectDto source)
+    {
+        return new WorldObjectDto
+        {
+            Id = source.Id,
+            Type = source.Type,
+            Label = source.Label,
+            ObjectiveId = source.ObjectiveId,
+            Side = source.Side,
+            X = source.X,
+            Y = source.Y,
+            Z = source.Z,
+            Radius = source.Radius,
+            Color = source.Color,
+            Active = source.Active,
+            Completed = source.Completed,
+            Metrics = source.Metrics is null
+                ? new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, double>(source.Metrics, StringComparer.OrdinalIgnoreCase),
+            Fields = source.Fields is null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(source.Fields, StringComparer.OrdinalIgnoreCase)
         };
     }
 
@@ -396,6 +498,23 @@ public sealed class GatewayStateStore : IGatewayStateStore
         {
             TimestampUtc = source.TimestampUtc,
             VehicleId = source.VehicleId,
+            ActuatorName = source.ActuatorName,
+            ActuatorType = source.ActuatorType,
+            IsEnabled = source.IsEnabled,
+            IsHealthy = source.IsHealthy,
+            Command = source.Command,
+            RawCommand = source.RawCommand,
+            Rpm = source.Rpm,
+            CurrentMa = source.CurrentMa,
+            Voltage = source.Voltage,
+            TemperatureC = source.TemperatureC,
+            LastError = source.LastError,
+            Metrics = source.Metrics is null
+                ? new Dictionary<string, double>()
+                : new Dictionary<string, double>(source.Metrics),
+            Fields = source.Fields is null
+                ? new Dictionary<string, string>()
+                : new Dictionary<string, string>(source.Fields),
             Freshness = source.Freshness
         };
     }

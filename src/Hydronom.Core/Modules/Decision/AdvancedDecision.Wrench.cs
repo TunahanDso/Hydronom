@@ -47,20 +47,33 @@ namespace Hydronom.Core.Modules
             if (!task.IsExternallyCompleted)
                 return result;
 
-            var raw = ClampNegativeSurge(result.RawCommand);
-            var output = ClampNegativeSurge(result.OutputCommand);
-
-            double throttle = Math.Max(0.0, result.ThrottleNorm);
+            /*
+             * Türkçe yorum:
+             * Eski davranış:
+             * - Scenario görevlerinde negatif Fx burada zorla 0'a çekiliyordu.
+             * - ThrottleNorm negatifse Math.Max(0.0, throttle) ile pozitif/0'a kırpılıyordu.
+             * - Bu yüzden AdaptiveArrivalPlanner reverse braking üretse bile
+             *   karar çıktısı actuator katmanına ulaşmadan siliniyordu.
+             *
+             * Yeni davranış:
+             * - Scenario görevlerinde karar katmanı negatif surge üretebilir.
+             * - Bu, özellikle çift yönlü ESC / bidirectional thruster testlerinde
+             *   aktif frenleme ve overshoot recovery için gereklidir.
+             * - Tek yönlü thruster/ESC durumunda negatif komutu kesme sorumluluğu
+             *   actuator allocation / thruster capability katmanındadır.
+             * - Böylece aynı karar mantığı hem tek yönlü hem çift yönlü donanımda
+             *   capability tabanlı çalışabilir.
+             */
             string reason = reasonOverride ?? result.Reason;
 
-            if (result.RawCommand.Fx < -1e-6 || result.OutputCommand.Fx < -1e-6)
-                reason = $"{reason}_NO_REVERSE_SURGE";
+            if (result.RawCommand.Fx < -1e-6 || result.OutputCommand.Fx < -1e-6 || result.ThrottleNorm < -1e-6)
+                reason = $"{reason}_REVERSE_SURGE_ALLOWED";
 
             return new DecisionResult(
-                RawCommand: raw,
-                OutputCommand: output,
+                RawCommand: result.RawCommand,
+                OutputCommand: result.OutputCommand,
                 Reason: reason,
-                ThrottleNorm: throttle,
+                ThrottleNorm: Math.Clamp(result.ThrottleNorm, -1.0, 1.0),
                 RudderNorm: result.RudderNorm
             );
         }

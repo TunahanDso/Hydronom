@@ -12,9 +12,32 @@ export function startMockGatewayStream() {
 
     const x = 42 + Math.cos(t * 0.18) * 6;
     const y = Math.sin(t * 0.22) * 4;
+    const z = 0;
+
     const headingDeg = ((t * 18) % 360 + 360) % 360;
     const speed = 1.2 + Math.abs(Math.sin(t * 0.7)) * 0.9;
     const obsAhead = Math.sin(t * 0.9) > 0.35;
+
+    const rollDeg = Math.sin(t * 0.7) * 2;
+    const pitchDeg = Math.cos(t * 0.5) * 1.5;
+    const yawDeg = headingDeg;
+
+    const vx = speed * 0.92;
+    const vy = Math.sin(t * 0.5) * 0.18;
+    const vz = 0;
+
+    const rollRateDeg = 0;
+    const pitchRateDeg = 0;
+    const yawRateDeg = Math.cos(t * 0.35) * 0.12;
+
+    const targetX = 56;
+    const targetY = 0.8;
+    const dxToGoal = targetX - x;
+    const dyToGoal = targetY - y;
+    const distanceToGoalM = Math.sqrt(dxToGoal * dxToGoal + dyToGoal * dyToGoal);
+    const targetHeadingDeg =
+      ((Math.atan2(dyToGoal, dxToGoal) * 180) / Math.PI + 360) % 360;
+    const headingErrorDeg = normalizeAngleDeg(targetHeadingDeg - headingDeg);
 
     const connection: ConnectionState =
       Math.sin(t * 0.35) > -0.75 ? "connected" : "degraded";
@@ -35,7 +58,7 @@ export function startMockGatewayStream() {
       { x: 44, y: -0.5 },
       { x: 48, y: 1.4 },
       { x: 52, y: 2.2 },
-      { x: 56, y: 0.8 }
+      { x: targetX, y: targetY }
     ];
 
     const waypoints = [
@@ -66,7 +89,7 @@ export function startMockGatewayStream() {
       {
         id: "wp-5",
         label: "WP-5",
-        position: { x: 56, y: 0.8 },
+        position: { x: targetX, y: targetY },
         reached: false
       }
     ];
@@ -97,6 +120,12 @@ export function startMockGatewayStream() {
       }
     ];
 
+    const telemetryObstacles = obstacles.map((obstacle) => ({
+      x: obstacle.position.x,
+      y: obstacle.position.y,
+      r: obstacle.radius
+    }));
+
     const baseMessage = {
       vehicleId,
       timestampUtc: now
@@ -111,29 +140,31 @@ export function startMockGatewayStream() {
           displayName: "Hydronom-01",
           mode: "mission",
           armState: "armed",
+
           pose: {
             position: {
               x,
               y,
-              z: 0
+              z
             },
             orientation: {
-              roll: Math.sin(t * 0.7) * 2,
-              pitch: Math.cos(t * 0.5) * 1.5,
-              yaw: headingDeg
+              roll: rollDeg,
+              pitch: pitchDeg,
+              yaw: yawDeg
             }
           },
+
           motion: {
             speed,
             linearVelocity: {
-              x: speed * 0.92,
-              y: Math.sin(t * 0.5) * 0.18,
-              z: 0
+              x: vx,
+              y: vy,
+              z: vz
             },
             angularVelocity: {
-              x: 0,
-              y: 0,
-              z: Math.cos(t * 0.35) * 0.12
+              x: rollRateDeg,
+              y: pitchRateDeg,
+              z: yawRateDeg
             },
             linearAcceleration: {
               x: Math.sin(t * 0.7) * 0.25,
@@ -141,17 +172,43 @@ export function startMockGatewayStream() {
               z: 0
             }
           },
+
           map: {
             worldPosition: { x, y },
             headingDeg,
             trail
           },
+
+          // VehicleTelemetry tipi gateway düz alanlarını da bekliyor.
+          x,
+          y,
+          z,
+          rollDeg,
+          pitchDeg,
+          yawDeg,
+          headingDeg,
+          vx,
+          vy,
+          vz,
+          rollRateDeg,
+          pitchRateDeg,
+          yawRateDeg,
+          targetX,
+          targetY,
+          distanceToGoalM,
+          headingErrorDeg,
+          obstacleAhead: obsAhead,
+          obstacleCount: telemetryObstacles.length,
+          obstacles: telemetryObstacles,
+          landmarks: [],
+
           freshness: {
             timestamp: now,
             ageMs: 0,
             isStale: false,
             source: "runtime"
           },
+
           health: {
             overall: heartbeatHealth,
             sensors: "ok",
@@ -159,17 +216,34 @@ export function startMockGatewayStream() {
             navigation: obsAhead ? "warn" : "ok",
             autonomy: "ok"
           },
+
           connections: {
             runtimeConnected: true,
             gatewayConnected: true,
             pythonConnected: true,
             twinActive: true
           },
+
           flags: [
             {
               key: "obsAhead",
               label: "Obstacle Ahead",
               value: obsAhead
+            },
+            {
+              key: "distanceToGoalM",
+              label: "Distance To Goal",
+              value: distanceToGoalM
+            },
+            {
+              key: "headingErrorDeg",
+              label: "Heading Error",
+              value: headingErrorDeg
+            },
+            {
+              key: "target",
+              label: "Target",
+              value: `(${targetX}, ${targetY})`
             }
           ]
         }
@@ -439,4 +513,13 @@ export function startMockGatewayStream() {
   return () => {
     window.clearInterval(intervalId);
   };
+}
+
+function normalizeAngleDeg(angleDeg: number) {
+  let normalized = angleDeg;
+
+  while (normalized > 180) normalized -= 360;
+  while (normalized < -180) normalized += 360;
+
+  return normalized;
 }

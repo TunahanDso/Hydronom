@@ -21,7 +21,14 @@ namespace Hydronom.Core.Modules
         bool RecommendHold,
         bool RecommendReturnHome,
         bool RecommendMissionAbort,
-        string PrimaryReason
+        string PrimaryReason,
+        bool HasPassableCorridor,
+        double CorridorCenterOffsetDeg,
+        double CorridorWidthMeters,
+        double CorridorClearanceMeters,
+        double CorridorConfidence,
+        bool SuppressObstaclePanic,
+        bool PreferCorridorHeading
     )
     {
         public static DecisionAdviceProfile Neutral { get; } = new(
@@ -37,11 +44,25 @@ namespace Hydronom.Core.Modules
             RecommendHold: false,
             RecommendReturnHome: false,
             RecommendMissionAbort: false,
-            PrimaryReason: "NEUTRAL"
+            PrimaryReason: "NEUTRAL",
+            HasPassableCorridor: false,
+            CorridorCenterOffsetDeg: 0.0,
+            CorridorWidthMeters: 0.0,
+            CorridorClearanceMeters: 0.0,
+            CorridorConfidence: 0.0,
+            SuppressObstaclePanic: false,
+            PreferCorridorHeading: false
         );
 
         public DecisionAdviceProfile Sanitized()
         {
+            bool hasCorridor =
+                HasPassableCorridor &&
+                double.IsFinite(CorridorWidthMeters) &&
+                CorridorWidthMeters > 0.0 &&
+                double.IsFinite(CorridorConfidence) &&
+                CorridorConfidence > 0.0;
+
             return this with
             {
                 MaxSpeedScale = Clamp01OrDefault(MaxSpeedScale, 1.0),
@@ -52,7 +73,14 @@ namespace Hydronom.Core.Modules
                 HoldPreference = Clamp01OrDefault(HoldPreference, 0.0),
                 PrimaryReason = string.IsNullOrWhiteSpace(PrimaryReason)
                     ? "NEUTRAL"
-                    : PrimaryReason.Trim()
+                    : PrimaryReason.Trim(),
+                HasPassableCorridor = hasCorridor,
+                CorridorCenterOffsetDeg = ClampRange(CorridorCenterOffsetDeg, -120.0, 120.0, 0.0),
+                CorridorWidthMeters = ClampRange(CorridorWidthMeters, 0.0, 100.0, 0.0),
+                CorridorClearanceMeters = ClampRange(CorridorClearanceMeters, 0.0, 100.0, 0.0),
+                CorridorConfidence = Clamp01OrDefault(CorridorConfidence, 0.0),
+                SuppressObstaclePanic = hasCorridor && SuppressObstaclePanic,
+                PreferCorridorHeading = hasCorridor && PreferCorridorHeading
             };
         }
 
@@ -69,6 +97,8 @@ namespace Hydronom.Core.Modules
             else
                 reason = $"{a.PrimaryReason}+{b.PrimaryReason}";
 
+            var corridor = PickBetterCorridor(a, b);
+
             return new DecisionAdviceProfile(
                 MaxSpeedScale: Math.Min(a.MaxSpeedScale, b.MaxSpeedScale),
                 ThrottleScale: Math.Min(a.ThrottleScale, b.ThrottleScale),
@@ -77,12 +107,19 @@ namespace Hydronom.Core.Modules
                 ObstacleAvoidanceUrgency: Math.Max(a.ObstacleAvoidanceUrgency, b.ObstacleAvoidanceUrgency),
                 HoldPreference: Math.Max(a.HoldPreference, b.HoldPreference),
                 ForceCoast: a.ForceCoast || b.ForceCoast,
-                PreferSafeHeading: a.PreferSafeHeading || b.PreferSafeHeading,
+                PreferSafeHeading: a.PreferSafeHeading || b.PreferSafeHeading || corridor.HasPassableCorridor,
                 RequireSlowMode: a.RequireSlowMode || b.RequireSlowMode,
                 RecommendHold: a.RecommendHold || b.RecommendHold,
                 RecommendReturnHome: a.RecommendReturnHome || b.RecommendReturnHome,
                 RecommendMissionAbort: a.RecommendMissionAbort || b.RecommendMissionAbort,
-                PrimaryReason: reason
+                PrimaryReason: reason,
+                HasPassableCorridor: corridor.HasPassableCorridor,
+                CorridorCenterOffsetDeg: corridor.CorridorCenterOffsetDeg,
+                CorridorWidthMeters: corridor.CorridorWidthMeters,
+                CorridorClearanceMeters: corridor.CorridorClearanceMeters,
+                CorridorConfidence: corridor.CorridorConfidence,
+                SuppressObstaclePanic: a.SuppressObstaclePanic || b.SuppressObstaclePanic,
+                PreferCorridorHeading: a.PreferCorridorHeading || b.PreferCorridorHeading
             ).Sanitized();
         }
 
@@ -94,7 +131,27 @@ namespace Hydronom.Core.Modules
                 $"yawScale={YawAggressionScale:F2} arrivalCaution={ArrivalCautionScale:F2} " +
                 $"avoidUrgency={ObstacleAvoidanceUrgency:F2} holdPref={HoldPreference:F2} " +
                 $"coast={ForceCoast} safeHeading={PreferSafeHeading} slow={RequireSlowMode} " +
-                $"hold={RecommendHold} rth={RecommendReturnHome} abort={RecommendMissionAbort}";
+                $"hold={RecommendHold} rth={RecommendReturnHome} abort={RecommendMissionAbort} " +
+                $"corridor={HasPassableCorridor} corridorOffset={CorridorCenterOffsetDeg:F1} " +
+                $"corridorWidth={CorridorWidthMeters:F2} corridorClear={CorridorClearanceMeters:F2} " +
+                $"corridorConf={CorridorConfidence:F2} suppressPanic={SuppressObstaclePanic} " +
+                $"preferCorridor={PreferCorridorHeading}";
+        }
+
+        private static DecisionAdviceProfile PickBetterCorridor(
+            DecisionAdviceProfile a,
+            DecisionAdviceProfile b)
+        {
+            if (a.HasPassableCorridor && b.HasPassableCorridor)
+                return b.CorridorConfidence > a.CorridorConfidence ? b : a;
+
+            if (a.HasPassableCorridor)
+                return a;
+
+            if (b.HasPassableCorridor)
+                return b;
+
+            return Neutral;
         }
 
         private static double Clamp01OrDefault(double value, double fallback)

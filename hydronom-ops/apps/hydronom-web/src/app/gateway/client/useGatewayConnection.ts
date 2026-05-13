@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { dispatchGatewayMessage } from "../dispatchGatewayMessage";
-import { startMockGatewayStream } from "../startMockGatewayStream";
 import {
   GatewayClient,
   type GatewayConnectionStatus
@@ -12,6 +11,7 @@ interface UseGatewayConnectionOptions {
   url?: string;
   reconnectIntervalMs?: number;
   maxReconnectAttempts?: number;
+  pollingIntervalMs?: number;
 }
 
 interface UseGatewayConnectionResult {
@@ -20,24 +20,24 @@ interface UseGatewayConnectionResult {
   lastError: string | null;
 }
 
-// Uygulama açıldığında mock stream veya gerçek websocket bağlantısını yönetir
+// Uygulama açıldığında mock stream, websocket ve snapshot polling hattını yönetir.
 export function useGatewayConnection(
   options: UseGatewayConnectionOptions = {}
 ): UseGatewayConnectionResult {
   const {
     enabled = true,
-    useMock = true,
+    useMock = false,
     url = "ws://localhost:5186/ws",
     reconnectIntervalMs = 3000,
-    maxReconnectAttempts = Infinity
+    maxReconnectAttempts = Infinity,
+    pollingIntervalMs = 1000
   } = options;
 
-  const [status, setStatus] = useState<GatewayConnectionStatus>(
-    useMock ? "connected" : "idle"
-  );
+  const [status, setStatus] = useState<GatewayConnectionStatus>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
 
   const clientRef = useRef<GatewayClient | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!enabled) {
@@ -46,31 +46,81 @@ export function useGatewayConnection(
       return;
     }
 
-    // Mock mod açıksa websocket yerine sahte veri akışı başlatılır
     if (useMock) {
       setStatus("connected");
       setLastError(null);
-
-      const stopMockStream = startMockGatewayStream();
-
-      return () => {
-        stopMockStream();
-      };
+      return;
     }
 
-    // Gerçek gateway bağlantısı
+    const pollSnapshot = async () => {
+      try {
+        const resp = await fetch("http://localhost:5186/snapshot");
+
+        if (!resp.ok) {
+          throw new Error(`Snapshot HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        dispatchGatewayMessage({
+          type: "runtime.telemetry-summary",
+          vehicleId: data.vehicleId ?? "hydronom-main",
+          timestampUtc:
+            data.lastUpdatedUtc ??
+            data.vehicleTelemetry?.timestampUtc ??
+            data.missionState?.timestampUtc ??
+            data.worldState?.timestampUtc ??
+            data.actuatorState?.timestampUtc ??
+            new Date().toISOString(),
+          payload: data
+        });
+      } catch {
+        // Snapshot polling geçici hata verdiğinde websocket bağlantısını düşürmeyelim.
+      }
+    };
+
+    const startPolling = () => {
+      if (pollingRef.current) {
+        return;
+      }
+
+      void pollSnapshot();
+
+      pollingRef.current = setInterval(() => {
+        void pollSnapshot();
+      }, pollingIntervalMs);
+    };
+
+    const stopPolling = () => {
+      if (!pollingRef.current) {
+        return;
+      }
+
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    };
+
     const client = new GatewayClient({
       url,
       reconnectIntervalMs,
       maxReconnectAttempts,
       onOpen: () => {
+        setStatus("connected");
         setLastError(null);
+
+        // WebSocket bağlı olsa bile snapshot polling açık kalıyor.
+        // Çünkü şu an tam mission/world/actuator state snapshot endpointinden geliyor.
+        startPolling();
       },
       onClose: () => {
-        // Status zaten GatewayClient içinden güncelleniyor
+        setStatus("idle");
+
+        // WebSocket kapanırsa da snapshot polling devam eder.
+        startPolling();
       },
       onError: () => {
         setLastError("Gateway bağlantısında bir hata oluştu.");
+        startPolling();
       },
       onStatusChange: (nextStatus) => {
         setStatus(nextStatus);
@@ -82,13 +132,17 @@ export function useGatewayConnection(
 
     clientRef.current = client;
     setLastError(null);
+
+    // İlk veri için websocket beklemeyelim.
+    startPolling();
     client.connect();
 
     return () => {
       client.disconnect();
       clientRef.current = null;
+      stopPolling();
     };
-  }, [enabled, useMock, url, reconnectIntervalMs, maxReconnectAttempts]);
+  }, [enabled, useMock, url, reconnectIntervalMs, maxReconnectAttempts, pollingIntervalMs]);
 
   return {
     status,

@@ -48,7 +48,12 @@ namespace Hydronom.Core.Modules
         int ConsideredObstacleCount,
         int SectorCount,
         double AheadDistanceM,
-        double HalfFovDeg
+        double HalfFovDeg,
+        bool HasPassableCorridor,
+        double CorridorCenterOffsetDeg,
+        double CorridorWidthMeters,
+        double CorridorClearanceMeters,
+        double CorridorConfidence
     )
     {
         public static AdvancedAnalysisReport Empty { get; } =
@@ -66,7 +71,12 @@ namespace Hydronom.Core.Modules
                 ConsideredObstacleCount: 0,
                 SectorCount: 0,
                 AheadDistanceM: 0.0,
-                HalfFovDeg: 0.0
+                HalfFovDeg: 0.0,
+                HasPassableCorridor: false,
+                CorridorCenterOffsetDeg: 0.0,
+                CorridorWidthMeters: 0.0,
+                CorridorClearanceMeters: 0.0,
+                CorridorConfidence: 0.0
             );
 
         public override string ToString()
@@ -78,7 +88,12 @@ namespace Hydronom.Core.Modules
                 $"score(L/R)=({LeftScore:F3}/{RightScore:F3}) " +
                 $"bestOffset={BestHeadingOffsetDeg:F1}° " +
                 $"side={SuggestedSide} " +
-                $"obs={ConsideredObstacleCount}/{TotalObstacleCount}";
+                $"obs={ConsideredObstacleCount}/{TotalObstacleCount} " +
+                $"corridor={HasPassableCorridor} " +
+                $"corridorOffset={CorridorCenterOffsetDeg:F1}° " +
+                $"corridorWidth={CorridorWidthMeters:F2}m " +
+                $"corridorClear={CorridorClearanceMeters:F2}m " +
+                $"corridorConf={CorridorConfidence:F2}";
         }
     }
 
@@ -91,5 +106,23 @@ namespace Hydronom.Core.Modules
             double AngularRadiusDeg,
             double RadiusM
         );
+
+        private readonly record struct PassableCorridorCandidate(
+            bool IsValid,
+            double CenterOffsetDeg,
+            double WidthMeters,
+            double ClearanceMeters,
+            double Confidence
+        )
+        {
+            public static PassableCorridorCandidate None { get; } =
+                new(
+                    IsValid: false,
+                    CenterOffsetDeg: 0.0,
+                    WidthMeters: 0.0,
+                    ClearanceMeters: 0.0,
+                    Confidence: 0.0
+                );
+        }
     }
 }
