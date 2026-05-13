@@ -12,7 +12,7 @@
   },
 
   "ActuatorPolicy": {
-    "DefaultCanReverse": false,
+    "DefaultCanReverse": true,
     "NegativeCommandPolicy": "PerThrusterCapability"
   },
 
@@ -23,7 +23,7 @@
       "Position": { "X": 0.40, "Y": 0.25, "Z": 0.00 },
       "ForceDir": { "X": 0.0, "Y": 1.0, "Z": 0.0 },
       "Reversed": false,
-      "CanReverse": false
+      "CanReverse": true
     },
     {
       "Id": "H_FR",
@@ -31,7 +31,7 @@
       "Position": { "X": 0.40, "Y": -0.25, "Z": 0.00 },
       "ForceDir": { "X": 0.0, "Y": -1.0, "Z": 0.0 },
       "Reversed": false,
-      "CanReverse": false
+      "CanReverse": true
     },
     {
       "Id": "H_RL",
@@ -39,7 +39,7 @@
       "Position": { "X": -0.40, "Y": 0.25, "Z": 0.00 },
       "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
       "Reversed": false,
-      "CanReverse": false
+      "CanReverse": true
     },
     {
       "Id": "H_RR",
@@ -47,7 +47,7 @@
       "Position": { "X": -0.40, "Y": -0.25, "Z": 0.00 },
       "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
       "Reversed": false,
-      "CanReverse": false
+      "CanReverse": true
     }
   ]
 }

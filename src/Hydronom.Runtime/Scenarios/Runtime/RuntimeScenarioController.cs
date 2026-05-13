@@ -1,29 +1,23 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
+using Hydronom.Core.World.Models;
 using Hydronom.Runtime.Scenarios.Mission;
+using Hydronom.Runtime.World.Runtime;
 using Microsoft.Extensions.Configuration;
 
 namespace Hydronom.Runtime.Scenarios.Runtime;
 
-/// <summary>
-/// Runtime senaryo yaşam döngüsünü yöneten controller.
-///
-/// Amaç:
-/// - CommandServer / ControlApp / Ops gibi dış komut kaynaklarından senaryo başlatmak.
-/// - RuntimeScenarioExecutionHost'u Program.cs içinde dağınık local değişken olmaktan çıkarmak.
-/// - Aktif scenario durumunu sorgulanabilir hale getirmek.
-/// - Runtime loop içinde VehicleState ile objective geçişlerini takip etmek.
-/// - Scenario hâlâ aktifken TaskManager görevi erken temizlerse aktif hedefi tekrar basmak.
-/// </summary>
 public sealed class RuntimeScenarioController
 {
     private readonly IConfiguration _config;
     private readonly ITaskManager _taskManager;
+    private readonly RuntimeWorldModel? _runtimeWorld;
     private readonly object _gate = new();
 
     private RuntimeScenarioExecutionHost? _host;
@@ -38,10 +32,12 @@ public sealed class RuntimeScenarioController
 
     public RuntimeScenarioController(
         IConfiguration config,
-        ITaskManager taskManager)
+        ITaskManager taskManager,
+        RuntimeWorldModel? runtimeWorld = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
+        _runtimeWorld = runtimeWorld;
     }
 
     public bool IsRunning
@@ -63,9 +59,7 @@ public sealed class RuntimeScenarioController
         _lastState = initialState;
 
         if (!ReadBool("ScenarioRuntime:Enabled", false))
-        {
             return GetSnapshot("Scenario runtime auto-start disabled.");
-        }
 
         var scenarioPath = ResolveScenarioPath(null);
 
@@ -83,9 +77,7 @@ public sealed class RuntimeScenarioController
         var resolvedPath = ResolveScenarioPath(scenarioPath);
 
         if (!File.Exists(resolvedPath))
-        {
             return GetSnapshot($"Scenario file not found: {resolvedPath}");
-        }
 
         var loader = new ScenarioLoader();
         var scenario = await loader.LoadAsync(resolvedPath).ConfigureAwait(false);
@@ -96,9 +88,7 @@ public sealed class RuntimeScenarioController
         var plan = adapter.BuildPlan(scenario);
 
         if (!plan.HasTargets)
-        {
             return GetSnapshot($"Scenario has no mission targets: {scenario.Id}");
-        }
 
         var options = ReadOptions();
         var session = new RuntimeScenarioSession(plan);
@@ -114,9 +104,7 @@ public sealed class RuntimeScenarioController
         lock (_gate)
         {
             if (_session?.State == RuntimeScenarioSessionState.Running)
-            {
                 return GetSnapshotUnsafe("Scenario already running.");
-            }
 
             _plan = plan;
             _adapter = adapter;
@@ -127,6 +115,8 @@ public sealed class RuntimeScenarioController
 
             startResult = _host.Start(_lastState);
             _lastTick = startResult;
+
+            UpdateRuntimeWorldModelUnsafe();
         }
 
         Console.WriteLine(
@@ -139,8 +129,7 @@ public sealed class RuntimeScenarioController
         return GetSnapshot("Scenario started.");
     }
 
-    public RuntimeScenarioSnapshot StopScenario(
-        string reason = "Stopped by command.")
+    public RuntimeScenarioSnapshot StopScenario(string reason = "Stopped by command.")
     {
         RuntimeScenarioExecutionHost? host;
         RuntimeScenarioSession? session;
@@ -153,6 +142,7 @@ public sealed class RuntimeScenarioController
             if (host is null || session is null)
             {
                 _taskManager.ClearTask();
+                ClearRuntimeWorldUnsafe();
                 return GetSnapshotUnsafe("No active scenario.");
             }
 
@@ -170,15 +160,14 @@ public sealed class RuntimeScenarioController
             _taskManager.ClearTask();
             _lastReassertedObjectiveId = null;
             _lastReassertedTickIndex = -1;
+            ClearRuntimeWorldUnsafe();
         }
 
         Console.WriteLine($"[SCN-RUNTIME] Stopped. reason={reason}");
         return GetSnapshot(reason);
     }
 
-    public RuntimeScenarioTickResult? Tick(
-        VehicleState state,
-        long tickIndex)
+    public RuntimeScenarioTickResult? Tick(VehicleState state, long tickIndex)
     {
         RuntimeScenarioExecutionHost? host;
 
@@ -209,6 +198,7 @@ public sealed class RuntimeScenarioController
             else
             {
                 EnsureActiveObjectiveTaskUnsafe(tickIndex);
+                UpdateRuntimeWorldModelUnsafe();
             }
         }
 
@@ -249,6 +239,8 @@ public sealed class RuntimeScenarioController
 
     private RuntimeScenarioSnapshot GetSnapshotUnsafe(string? message)
     {
+        var currentTarget = ResolveCurrentTargetUnsafe();
+
         return new RuntimeScenarioSnapshot
         {
             Message = message,
@@ -266,18 +258,317 @@ public sealed class RuntimeScenarioController
             LastDistanceToTargetMeters = _lastTick?.DistanceToCurrentTargetMeters,
             LastDistance3DToTargetMeters = _lastTick?.Distance3DToCurrentTargetMeters,
             LastTickSummary = _lastTick?.Summary,
-            SessionSummary = _session?.Summary
+            SessionSummary = _session?.Summary,
+
+            ActiveObjectiveTargetX = currentTarget?.Target.X,
+            ActiveObjectiveTargetY = currentTarget?.Target.Y,
+            ActiveObjectiveTargetZ = currentTarget?.Target.Z,
+            ActiveObjectiveToleranceMeters = currentTarget?.ToleranceMeters,
+
+            RoutePoints = BuildRoutePointsUnsafe(),
+            WorldObjects = BuildWorldObjectsUnsafe()
         };
     }
 
-    /// <summary>
-    /// Scenario hâlâ Running durumundayken TaskManager görevi kaybetmişse
-    /// aktif objective hedefini tekrar TaskManager'a basar.
-    ///
-    /// Bu özellikle AdvancedTaskManager'ın kendi varış kabul mantığı ile
-    /// RuntimeScenarioObjectiveTracker'ın hız/settle/tolerance mantığı ayrıştığında önemlidir.
-    /// Scenario tamamlanmadan task=null kalırsa karar modülü NO_TASK/Idle'a düşer.
-    /// </summary>
+    private ScenarioMissionTarget? ResolveCurrentTargetUnsafe()
+    {
+        if (_session is null || _plan is null)
+            return null;
+
+        var objectiveId = _session.CurrentObjectiveId;
+
+        if (string.IsNullOrWhiteSpace(objectiveId))
+            return _session.CurrentTarget ?? _session.NextTarget;
+
+        return _plan.Targets.FirstOrDefault(x =>
+            string.Equals(x.ObjectiveId, objectiveId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private IReadOnlyList<RuntimeScenarioRoutePoint> BuildRoutePointsUnsafe()
+    {
+        if (_plan is null || _plan.Targets.Count == 0)
+            return Array.Empty<RuntimeScenarioRoutePoint>();
+
+        return _plan.Targets
+            .Select((target, index) => new RuntimeScenarioRoutePoint
+            {
+                Id = target.ObjectiveId,
+                Label = BuildObjectiveLabel(target.ObjectiveId, index),
+                ObjectiveId = target.ObjectiveId,
+                Index = index,
+                X = target.Target.X,
+                Y = target.Target.Y,
+                Z = target.Target.Z,
+                ToleranceMeters = target.ToleranceMeters,
+                IsActive = _session is not null &&
+                           string.Equals(_session.CurrentObjectiveId, target.ObjectiveId, StringComparison.OrdinalIgnoreCase),
+                IsCompleted = _session is not null &&
+                              _session.CompletedObjectiveIds.Contains(target.ObjectiveId)
+            })
+            .ToArray();
+    }
+
+    private IReadOnlyList<RuntimeScenarioWorldObject> BuildWorldObjectsUnsafe()
+    {
+        var objects = new List<RuntimeScenarioWorldObject>();
+
+        if (_plan is not null)
+        {
+            objects.Add(new RuntimeScenarioWorldObject
+            {
+                Id = "start",
+                Type = "start",
+                Label = "START",
+                X = 0.0,
+                Y = 0.0,
+                Z = 0.0,
+                Radius = 0.8,
+                Color = "#38bdf8",
+                IsActive = true
+            });
+
+            foreach (var target in _plan.Targets.Select((value, index) => new { value, index }))
+            {
+                var isLast = target.index == _plan.Targets.Count - 1;
+                var objectiveId = target.value.ObjectiveId;
+
+                objects.Add(new RuntimeScenarioWorldObject
+                {
+                    Id = objectiveId,
+                    Type = isLast ? "finish" : "checkpoint",
+                    Label = isLast ? "FINISH" : BuildObjectiveLabel(objectiveId, target.index),
+                    ObjectiveId = objectiveId,
+                    X = target.value.Target.X,
+                    Y = target.value.Target.Y,
+                    Z = target.value.Target.Z,
+                    Radius = target.value.ToleranceMeters,
+                    Color = isLast ? "#f97316" : "#facc15",
+                    IsActive = true,
+                    IsCompleted = _session is not null &&
+                                  _session.CompletedObjectiveIds.Contains(objectiveId),
+                    IsBlocking = false,
+                    IsDetectable = false
+                });
+            }
+        }
+
+        if (IsTeknofestParkur1Unsafe())
+            AddTeknofestParkur1Buoys(objects);
+
+        if (IsTeknofestParkur2Unsafe())
+            AddTeknofestParkur2Objects(objects);
+
+        return objects;
+    }
+
+    private bool IsTeknofestParkur1Unsafe()
+    {
+        var scenarioId = _plan?.ScenarioId ?? string.Empty;
+
+        return scenarioId.Contains("teknofest_2026_parkur_1", StringComparison.OrdinalIgnoreCase) ||
+               scenarioId.Contains("parkur_1", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsTeknofestParkur2Unsafe()
+    {
+        var scenarioId = _plan?.ScenarioId ?? string.Empty;
+
+        return scenarioId.Contains("teknofest_2026_parkur_2", StringComparison.OrdinalIgnoreCase) ||
+               scenarioId.Contains("parkur_2", StringComparison.OrdinalIgnoreCase) ||
+               scenarioId.Contains("obstacle_point_tracking", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AddTeknofestParkur1Buoys(List<RuntimeScenarioWorldObject> objects)
+    {
+        var leftXs = new[] { 8.0, 20.0, 32.0, 44.0 };
+        var rightXs = new[] { 8.0, 20.0, 32.0, 44.0 };
+
+        for (var i = 0; i < leftXs.Length; i++)
+        {
+            objects.Add(new RuntimeScenarioWorldObject
+            {
+                Id = $"parkur1-left-buoy-{i + 1}",
+                Type = "buoy",
+                Label = $"L-{i + 1}",
+                X = leftXs[i],
+                Y = 8.0,
+                Z = 0.0,
+                Radius = 0.45,
+                Color = "#22c55e",
+                Side = "left",
+                IsActive = true,
+                IsBlocking = true,
+                IsDetectable = true
+            });
+        }
+
+        for (var i = 0; i < rightXs.Length; i++)
+        {
+            objects.Add(new RuntimeScenarioWorldObject
+            {
+                Id = $"parkur1-right-buoy-{i + 1}",
+                Type = "buoy",
+                Label = $"R-{i + 1}",
+                X = rightXs[i],
+                Y = -8.0,
+                Z = 0.0,
+                Radius = 0.45,
+                Color = "#ef4444",
+                Side = "right",
+                IsActive = true,
+                IsBlocking = true,
+                IsDetectable = true
+            });
+        }
+    }
+
+    private static void AddTeknofestParkur2Objects(List<RuntimeScenarioWorldObject> objects)
+    {
+        AddGate(objects, 1, 10.0, 0.0);
+        AddGate(objects, 2, 22.0, 0.0);
+        AddGate(objects, 3, 34.0, 0.0);
+
+        AddObstacle(objects, "parkur2-obstacle-1", "OBS-1", 15.0, 1.2, 0.8);
+        AddObstacle(objects, "parkur2-obstacle-2", "OBS-2", 28.0, -1.4, 0.9);
+        AddObstacle(objects, "parkur2-obstacle-3", "OBS-3", 40.0, 1.8, 0.9);
+    }
+
+    private static void AddGate(
+        List<RuntimeScenarioWorldObject> objects,
+        int index,
+        double x,
+        double centerY)
+    {
+        objects.Add(new RuntimeScenarioWorldObject
+        {
+            Id = $"parkur2-gate-{index}-left",
+            Type = "buoy",
+            Label = $"G{index}-L",
+            X = x,
+            Y = centerY + 3.0,
+            Z = 0.0,
+            Radius = 0.45,
+            Color = "#22c55e",
+            Side = "left",
+            IsActive = true,
+            IsBlocking = true,
+            IsDetectable = true
+        });
+
+        objects.Add(new RuntimeScenarioWorldObject
+        {
+            Id = $"parkur2-gate-{index}-right",
+            Type = "buoy",
+            Label = $"G{index}-R",
+            X = x,
+            Y = centerY - 3.0,
+            Z = 0.0,
+            Radius = 0.45,
+            Color = "#ef4444",
+            Side = "right",
+            IsActive = true,
+            IsBlocking = true,
+            IsDetectable = true
+        });
+    }
+
+    private static void AddObstacle(
+        List<RuntimeScenarioWorldObject> objects,
+        string id,
+        string label,
+        double x,
+        double y,
+        double radius)
+    {
+        objects.Add(new RuntimeScenarioWorldObject
+        {
+            Id = id,
+            Type = "obstacle",
+            Label = label,
+            X = x,
+            Y = y,
+            Z = 0.0,
+            Radius = radius,
+            Color = "#f43f5e",
+            IsActive = true,
+            IsBlocking = true,
+            IsDetectable = true
+        });
+    }
+
+    private void UpdateRuntimeWorldModelUnsafe()
+    {
+        if (_runtimeWorld is null)
+            return;
+
+        var scenarioObjects = BuildWorldObjectsUnsafe();
+
+        var worldObjects = scenarioObjects
+            .Where(x => x.IsActive)
+            .Select(ToHydronomWorldObject)
+            .ToArray();
+
+        _runtimeWorld.UpsertMany(worldObjects);
+    }
+
+    private void ClearRuntimeWorldUnsafe()
+    {
+        _runtimeWorld?.Clear();
+    }
+
+private static HydronomWorldObject ToHydronomWorldObject(RuntimeScenarioWorldObject obj)
+{
+    return new HydronomWorldObject
+    {
+        Id = obj.Id,
+        Kind = NormalizeWorldObjectKind(obj),
+        Layer = obj.IsBlocking ? "scenario_obstacles" : "scenario_mission",
+        X = obj.X,
+        Y = obj.Y,
+        Z = obj.Z,
+        Radius = obj.Radius,
+        Width = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
+        Height = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
+        IsActive = obj.IsActive,
+        IsBlocking = obj.IsBlocking
+    };
+}
+
+    private static string NormalizeWorldObjectKind(RuntimeScenarioWorldObject obj)
+    {
+        if (obj.IsBlocking || obj.IsDetectable)
+        {
+            if (obj.Type.Equals("obstacle", StringComparison.OrdinalIgnoreCase))
+                return "obstacle";
+
+            if (obj.Type.Equals("buoy", StringComparison.OrdinalIgnoreCase))
+                return "buoy";
+
+            return "obstacle";
+        }
+
+        if (string.IsNullOrWhiteSpace(obj.Type))
+            return "object";
+
+        return obj.Type;
+}
+
+    private static string BuildObjectiveLabel(string objectiveId, int index)
+    {
+        if (string.IsNullOrWhiteSpace(objectiveId))
+            return $"WP-{index + 1}";
+
+        if (objectiveId.Contains("finish", StringComparison.OrdinalIgnoreCase))
+            return "FINISH";
+
+        if (objectiveId.Contains("wp_", StringComparison.OrdinalIgnoreCase) ||
+            objectiveId.Contains("wp-", StringComparison.OrdinalIgnoreCase) ||
+            objectiveId.Contains("reach_wp", StringComparison.OrdinalIgnoreCase))
+            return $"WP-{index + 1}";
+
+        return objectiveId;
+    }
+
     private void EnsureActiveObjectiveTaskUnsafe(long tickIndex)
     {
         if (_session is null || _plan is null || _adapter is null)
@@ -319,9 +610,7 @@ public sealed class RuntimeScenarioController
         }
     }
 
-    private static bool IsTaskAlreadyPointingToTarget(
-        TaskDefinition? task,
-        ScenarioMissionTarget target)
+    private static bool IsTaskAlreadyPointingToTarget(TaskDefinition? task, ScenarioMissionTarget target)
     {
         if (task is null)
             return false;
@@ -345,12 +634,50 @@ public sealed class RuntimeScenarioController
         if (!string.IsNullOrWhiteSpace(configuredPath))
             return Path.GetFullPath(configuredPath.Trim());
 
+        var configuredScenarioId = _config["ScenarioRuntime:ScenarioId"];
+
+        if (!string.IsNullOrWhiteSpace(configuredScenarioId))
+        {
+            var configuredScenarioPath = ResolveSampleScenarioPath(configuredScenarioId.Trim());
+            if (File.Exists(configuredScenarioPath))
+                return configuredScenarioPath;
+        }
+
+        var parkur2Path = ResolveSampleScenarioPath("teknofest_2026_parkur_2_obstacle_point_tracking.json");
+        if (ReadBool("ScenarioRuntime:UseParkur2", false) && File.Exists(parkur2Path))
+            return parkur2Path;
+
+        var parkur1Path = ResolveSampleScenarioPath("teknofest_2026_parkur_1_point_tracking.json");
+        if (File.Exists(parkur1Path))
+            return parkur1Path;
+
+        return Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                "..",
+                "src",
+                "Hydronom.Runtime",
+                "Scenarios",
+                "Samples",
+                "teknofest_2026_parkur_1_point_tracking.json"));
+    }
+
+    private static string ResolveSampleScenarioPath(string fileNameOrId)
+    {
+        var fileName = fileNameOrId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+            ? fileNameOrId
+            : $"{fileNameOrId}.json";
+
         var outputPath = Path.GetFullPath(
             Path.Combine(
                 AppContext.BaseDirectory,
                 "Scenarios",
                 "Samples",
-                "teknofest_2026_parkur_1_point_tracking.json"));
+                fileName));
 
         if (File.Exists(outputPath))
             return outputPath;
@@ -367,7 +694,7 @@ public sealed class RuntimeScenarioController
                 "Hydronom.Runtime",
                 "Scenarios",
                 "Samples",
-                "teknofest_2026_parkur_1_point_tracking.json"));
+                fileName));
     }
 
     private RuntimeScenarioExecutionOptions ReadOptions()
@@ -414,9 +741,6 @@ public sealed class RuntimeScenarioController
     }
 }
 
-/// <summary>
-/// CommandServer / Ops / ControlApp tarafına dönebilecek sade scenario durum modeli.
-/// </summary>
 public sealed class RuntimeScenarioSnapshot
 {
     public string? Message { get; set; }
@@ -435,4 +759,47 @@ public sealed class RuntimeScenarioSnapshot
     public double? LastDistance3DToTargetMeters { get; set; }
     public string? LastTickSummary { get; set; }
     public string? SessionSummary { get; set; }
+
+    public double? ActiveObjectiveTargetX { get; set; }
+    public double? ActiveObjectiveTargetY { get; set; }
+    public double? ActiveObjectiveTargetZ { get; set; }
+    public double? ActiveObjectiveToleranceMeters { get; set; }
+
+    public IReadOnlyList<RuntimeScenarioRoutePoint> RoutePoints { get; set; } =
+        Array.Empty<RuntimeScenarioRoutePoint>();
+
+    public IReadOnlyList<RuntimeScenarioWorldObject> WorldObjects { get; set; } =
+        Array.Empty<RuntimeScenarioWorldObject>();
+}
+
+public sealed class RuntimeScenarioRoutePoint
+{
+    public string Id { get; set; } = string.Empty;
+    public string? Label { get; set; }
+    public string? ObjectiveId { get; set; }
+    public int Index { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+    public double ToleranceMeters { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsCompleted { get; set; }
+}
+
+public sealed class RuntimeScenarioWorldObject
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = "object";
+    public string? Label { get; set; }
+    public string? ObjectiveId { get; set; }
+    public string? Side { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+    public double Radius { get; set; } = 0.5;
+    public string? Color { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsCompleted { get; set; }
+    public bool IsBlocking { get; set; }
+    public bool IsDetectable { get; set; }
 }

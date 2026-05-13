@@ -35,11 +35,6 @@ partial class Program
             cts.Cancel();
         };
 
-        /*
-         * Senaryo dünyası, sim LiDAR ve Ops/Gateway dünya yayını aynı runtime dünya modelini kullanmalıdır.
-         * Böylece Parkur-2 JSON içindeki duba/engel nesneleri sadece 3D haritada görünmez;
-         * aynı zamanda SimLidarBackend tarafından raycast edilebilir hale gelir.
-         */
         var runtimeWorldModel = new RuntimeWorldModel();
 
         Process? pythonProc = null;
@@ -187,7 +182,33 @@ partial class Program
         int manualCommandTimeoutMs = ReadInt(config, "Control:ManualCommandTimeoutMs", 1000);
         var manualLimits = ReadManualControlLimits(config);
 
+        var analysisCache = new RuntimeAnalysisCache();
+        FusedFrame? latestFrameForAnalysis = null;
+
         var runtimeScheduler = CreateRuntimeScheduler(config);
+
+        runtimeScheduler.RegisterSync(
+            RuntimeModuleKind.Analysis,
+            "AdvancedAnalysis",
+            RuntimeFrequencyProfile.FromHz(
+                ReadSchedulerHz(config, "Runtime:Scheduler:AnalysisHz", 10.0),
+                deadlineRatio: 0.80,
+                maxCatchUpTicks: 0.0),
+            _ =>
+            {
+                if (latestFrameForAnalysis is null)
+                    return RuntimeModuleTickResult.Warn("NO_FRAME");
+
+                var scheduledInsights = analysis.Analyze(latestFrameForAnalysis);
+                var scheduledReport = analysisImpl.LastReport;
+
+                analysisCache.Update(
+                    scheduledInsights,
+                    scheduledReport,
+                    DateTime.UtcNow);
+
+                return RuntimeModuleTickResult.Ok("ANALYSIS_UPDATED", producedOutput: true);
+            });
 
         runtimeScheduler.RegisterSync(
             RuntimeModuleKind.Heartbeat,
@@ -212,8 +233,6 @@ partial class Program
             while (!cts.IsCancellationRequested)
             {
                 long loopStartTicks = Stopwatch.GetTimestamp();
-
-                await runtimeScheduler.TickDueAsync(cts.Token);
 
                 if (loopState.NextLoopTicks == 0)
                     loopState.NextLoopTicks = loopStartTicks + loopState.PeriodTicks;
@@ -250,21 +269,28 @@ partial class Program
                     out _
                 );
 
-                var insights = analysis.Analyze(frameToUse);
-                var analysisReport = analysisImpl.LastReport;
+                latestFrameForAnalysis = frameToUse;
+
+                await runtimeScheduler.TickDueAsync(cts.Token);
+
+                var analysisSnapshot = analysisCache.Snapshot();
+
+                var insights = analysisSnapshot.HasValue
+                    ? analysisSnapshot.Insights
+                    : new Insights(
+                        HasObstacleAhead: false,
+                        ClearanceLeft: double.PositiveInfinity,
+                        ClearanceRight: double.PositiveInfinity);
+
+                var analysisReport = analysisSnapshot.HasValue
+                    ? analysisSnapshot.Report
+                    : AdvancedAnalysisReport.Empty;
 
                 /*
                  * Analysis → Decision Advice Bridge
                  *
-                 * AdvancedAnalysis, IAnalysisModule sözleşmesini bozmadan dışarıya hâlâ Insights döndürür.
-                 * Ancak içeride LastOperationalContext üzerinden daha zengin bir operasyonel karar tavsiyesi üretir.
-                 *
-                 * Bu köprü:
-                 * - obstacle/sector riskinden türetilen throttle/yaw/slow-mode/coast/safe-heading tavsiyesini
-                 * - AdvancedDecision içine aktarır.
-                 *
-                 * Böylece karar modülü sadece hedef geometrisine göre değil,
-                 * analiz katmanının operasyonel risk değerlendirmesine göre de davranabilir.
+                 * Analysis artık scheduler slot'u üzerinden kendi frekansında çalışır.
+                 * Decision ise son sağlıklı cached analysis/advice sonucunu kullanır.
                  */
                 if (decision is AdvancedDecision advancedDecision)
                 {

@@ -72,6 +72,7 @@ public class CommandServer
     {
         if (string.IsNullOrWhiteSpace(host))
             throw new ArgumentException("Host boş olamaz.", nameof(host));
+
         if (port <= 0 || port > 65535)
             throw new ArgumentOutOfRangeException(nameof(port), "Port 1-65535 aralığında olmalıdır.");
 
@@ -139,7 +140,7 @@ public class CommandServer
                 var hello = new HelloDto
                 {
                     hello = "Hydronom CommandServer",
-                    version = 7,
+                    version = 8,
                     features = new[]
                     {
                         "6DoF",
@@ -149,7 +150,9 @@ public class CommandServer
                         "Heartbeat",
                         "ManualDrive",
                         "Status",
-                        "RuntimeScenario"
+                        "RuntimeScenario",
+                        "ScenarioId",
+                        "ScenarioPath"
                     }
                 };
 
@@ -161,6 +164,7 @@ public class CommandServer
                         break;
 
                     string? line;
+
                     try
                     {
                         line = await reader.ReadLineAsync().ConfigureAwait(false);
@@ -174,12 +178,14 @@ public class CommandServer
                         break;
 
                     line = line.Trim();
+
                     if (line.Length == 0)
                         continue;
 
                     Console.WriteLine($"[CMD] Client#{clientId} → {line}");
 
                     CommandDto? cmd;
+
                     try
                     {
                         cmd = JsonSerializer.Deserialize<CommandDto>(line, JsonOpts);
@@ -318,6 +324,7 @@ public class CommandServer
                             _taskManager.SetTask(new TaskDefinition("GoToPoint", target3d));
 
                             Console.WriteLine($"[CMD] Task set → GoToPoint {target3d.X:F1},{target3d.Y:F1},{target3d.Z:F1}");
+
                             await SendAckAsync(
                                 writer,
                                 ok: true,
@@ -342,7 +349,13 @@ public class CommandServer
                             _manualMode = false;
                             _manualDrive = ManualDriveState.Zero;
 
-                            var scenarioPath = cmd.Scenario?.Path ?? cmd.ScenarioPath;
+                            var scenarioPath = ResolveScenarioPathFromCommand(cmd);
+
+                            Console.WriteLine(
+                                string.IsNullOrWhiteSpace(scenarioPath)
+                                    ? "[CMD] StartScenario requested. Scenario source=config/default."
+                                    : $"[CMD] StartScenario requested. scenarioPath={scenarioPath}"
+                            );
 
                             var snapshot = await _scenarioController.StartScenarioAsync(
                                 scenarioPath,
@@ -662,7 +675,8 @@ public class CommandServer
             try
             {
                 var prop = obj.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
-                if (prop is null) continue;
+                if (prop is null)
+                    continue;
 
                 var value = prop.GetValue(obj);
                 var text = value?.ToString()?.Trim();
@@ -718,7 +732,9 @@ public class CommandServer
 
     private static DateTime TicksToUtc(long ticks)
     {
-        if (ticks <= 0) return DateTime.MinValue;
+        if (ticks <= 0)
+            return DateTime.MinValue;
+
         return new DateTime(ticks, DateTimeKind.Utc);
     }
 
@@ -742,9 +758,89 @@ public class CommandServer
 
     private static double ClampNormalized(double value)
     {
-        if (value < -1.0) return -1.0;
-        if (value > 1.0) return 1.0;
+        if (value < -1.0)
+            return -1.0;
+
+        if (value > 1.0)
+            return 1.0;
+
         return value;
+    }
+
+    private static string? ResolveScenarioPathFromCommand(CommandDto cmd)
+    {
+        var explicitPath = cmd.Scenario?.Path ?? cmd.ScenarioPath;
+
+        if (!string.IsNullOrWhiteSpace(explicitPath))
+            return explicitPath.Trim();
+
+        var scenarioId =
+            cmd.Scenario?.Id ??
+            cmd.ScenarioId ??
+            cmd.Scenario?.Name ??
+            cmd.ScenarioName;
+
+        if (string.IsNullOrWhiteSpace(scenarioId))
+            return null;
+
+        return ResolveScenarioSamplePath(scenarioId.Trim());
+    }
+
+    private static string ResolveScenarioSamplePath(string scenarioIdOrFileName)
+    {
+        var fileName = NormalizeScenarioFileName(scenarioIdOrFileName);
+
+        var outputPath = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "Scenarios",
+                "Samples",
+                fileName));
+
+        if (File.Exists(outputPath))
+            return outputPath;
+
+        return Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                "..",
+                "src",
+                "Hydronom.Runtime",
+                "Scenarios",
+                "Samples",
+                fileName));
+    }
+
+    private static string NormalizeScenarioFileName(string scenarioIdOrFileName)
+    {
+        var value = scenarioIdOrFileName.Trim();
+
+        if (value.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return value;
+
+        var normalized = value
+            .Replace("-", "_", StringComparison.OrdinalIgnoreCase)
+            .Replace(" ", "_", StringComparison.OrdinalIgnoreCase)
+            .ToLowerInvariant();
+
+        if (normalized is "parkur2" or "parkur_2" or "teknofest_parkur2" or "teknofest_parkur_2")
+            return "teknofest_2026_parkur_2_obstacle_point_tracking.json";
+
+        if (normalized.Contains("parkur_2", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("obstacle_point_tracking", StringComparison.OrdinalIgnoreCase))
+            return "teknofest_2026_parkur_2_obstacle_point_tracking.json";
+
+        if (normalized is "parkur1" or "parkur_1" or "teknofest_parkur1" or "teknofest_parkur_1")
+            return "teknofest_2026_parkur_1_point_tracking.json";
+
+        if (normalized.Contains("parkur_1", StringComparison.OrdinalIgnoreCase))
+            return "teknofest_2026_parkur_1_point_tracking.json";
+
+        return $"{value}.json";
     }
 
     private static IPAddress ParseIpAddress(string host)
@@ -761,6 +857,7 @@ public class CommandServer
         try
         {
             var entry = Dns.GetHostEntry(host);
+
             foreach (var a in entry.AddressList)
             {
                 if (a.AddressFamily == AddressFamily.InterNetwork)
@@ -788,12 +885,16 @@ public class CommandServer
         public int? Baud { get; set; }
         public string? Goal { get; set; }
         public string? ScenarioPath { get; set; }
+        public string? ScenarioId { get; set; }
+        public string? ScenarioName { get; set; }
         public ScenarioCommandDto? Scenario { get; set; }
     }
 
     private sealed class ScenarioCommandDto
     {
         public string? Path { get; set; }
+        public string? Id { get; set; }
+        public string? Name { get; set; }
     }
 
     private sealed class ScenarioStatusResultDto

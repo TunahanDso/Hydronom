@@ -7,8 +7,8 @@ using Hydronom.Runtime.Actuators;
 partial class Program
 {
     /// <summary>
-    /// Runtime mod / logging / simÃ¼lasyon seÃ§enekleri.
-    /// Program.cs iÃ§inde daÄŸÄ±nÄ±k duran bool/int/string ayarlarÄ±nÄ± tek paket halinde taÅŸÄ±r.
+    /// Runtime mod / logging / simülasyon seçenekleri.
+    /// Program.cs içinde dağınık duran bool/int/string ayarlarını tek paket halinde taşır.
     /// </summary>
     private readonly record struct RuntimeOptions(
         bool DevMode,
@@ -23,7 +23,7 @@ partial class Program
     );
 
     /// <summary>
-    /// 6-DoF synthetic physics entegrasyonu iÃ§in kullanÄ±lan fizik parametreleri.
+    /// 6-DoF synthetic physics entegrasyonu için kullanılan fizik parametreleri.
     /// </summary>
     private readonly record struct PhysicsOptions(
         double MassKg,
@@ -37,7 +37,7 @@ partial class Program
     );
 
     /// <summary>
-    /// External pose reconciliation ayarlarÄ±.
+    /// External pose reconciliation ayarları.
     /// </summary>
     private readonly record struct ExternalPoseOptions(
         bool PreferExternalConfig,
@@ -50,8 +50,8 @@ partial class Program
     );
 
     /// <summary>
-    /// External pose geÃ§miÅŸi.
-    /// Runtime frame'lerinden gelen pose bilgisinden velocity/yaw-rate tÃ¼retmek iÃ§in kullanÄ±lÄ±r.
+    /// External pose geçmişi.
+    /// Runtime frame'lerinden gelen pose bilgisinden velocity/yaw-rate türetmek için kullanılır.
     /// </summary>
     private struct ExternalPoseState
     {
@@ -64,8 +64,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime ana dÃ¶ngÃ¼sÃ¼nde taÅŸÄ±nan mutable durum.
-    /// BÃ¼yÃ¼k Program.cs iÃ§inde daÄŸÄ±nÄ±k duran flag/counter/state deÄŸerlerini gruplar.
+    /// Runtime ana döngüsünde taşınan mutable durum.
+    /// Büyük Program.cs içinde dağınık duran flag/counter/state değerlerini gruplar.
     /// </summary>
     private struct LoopRuntimeState
     {
@@ -91,8 +91,8 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime'Ä±n bir dÃ¶ngÃ¼de Ã¼rettiÄŸi karar/komut baÄŸlamÄ±.
-    /// Log, limiter, actuator ve feedback aÅŸamalarÄ± bu paketi kullanabilir.
+    /// Runtime'ın bir döngüde ürettiği karar/komut bağlamı.
+    /// Log, limiter, actuator ve feedback aşamaları bu paketi kullanabilir.
     /// </summary>
     private readonly record struct ControlSelectionResult(
         DecisionCommand DesiredCommand,
@@ -102,7 +102,7 @@ partial class Program
     );
 
     /// <summary>
-    /// Bir dÃ¶ngÃ¼de loglanacak hedef/telemetry yardÄ±mcÄ± deÄŸerleri.
+    /// Bir döngüde loglanacak hedef/telemetry yardımcı değerleri.
     /// </summary>
     private readonly record struct TargetTelemetrySnapshot(
         double DistanceToTargetM,
@@ -112,7 +112,7 @@ partial class Program
     );
 
     /// <summary>
-    /// Loop log / heartbeat iÃ§in ortak telemetry paketi.
+    /// Loop log / heartbeat için ortak telemetry paketi.
     /// </summary>
     private readonly record struct RuntimeDiagnosticsSnapshot(
         string ControlMode,
@@ -123,4 +123,73 @@ partial class Program
         ActuatorAllocationReport AllocationReport,
         LimitFlags LimitFlags
     );
+
+    /// <summary>
+    /// Analysis scheduler slot'unun son ürettiği sonucu taşır.
+    ///
+    /// Amaç:
+    /// - Analysis kendi frekansında çalışır.
+    /// - Ana loop / decision katmanı son sağlıklı analysis sonucunu kullanır.
+    /// - Böylece analysis cadence'i decision/control cadence'inden ayrılır.
+    /// </summary>
+    private sealed class RuntimeAnalysisCache
+    {
+        private readonly object _lock = new();
+
+        private Insights _insights = new(
+            HasObstacleAhead: false,
+            ClearanceLeft: double.PositiveInfinity,
+            ClearanceRight: double.PositiveInfinity);
+        private AdvancedAnalysisReport _report = AdvancedAnalysisReport.Empty;
+        private DateTime _timestampUtc = DateTime.MinValue;
+        private long _version;
+
+        public void Update(
+            Insights insights,
+            AdvancedAnalysisReport report,
+            DateTime timestampUtc)
+        {
+            lock (_lock)
+            {
+                _insights = insights;
+                _report = report;
+                _timestampUtc = timestampUtc == default
+                    ? DateTime.UtcNow
+                    : timestampUtc;
+
+                _version++;
+            }
+        }
+
+        public RuntimeAnalysisSnapshot Snapshot()
+        {
+            lock (_lock)
+            {
+                return new RuntimeAnalysisSnapshot(
+                    _insights,
+                    _report,
+                    _timestampUtc,
+                    _version
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Analysis cache immutable snapshot modeli.
+    /// </summary>
+    private readonly record struct RuntimeAnalysisSnapshot(
+        Insights Insights,
+        AdvancedAnalysisReport Report,
+        DateTime TimestampUtc,
+        long Version
+    )
+    {
+        public bool HasValue => Version > 0;
+
+        public double AgeMs =>
+            HasValue
+                ? (DateTime.UtcNow - TimestampUtc).TotalMilliseconds
+                : double.PositiveInfinity;
+    }
 }

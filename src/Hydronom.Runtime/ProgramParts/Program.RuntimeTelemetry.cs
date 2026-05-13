@@ -6,10 +6,13 @@ using Hydronom.Core.State.Authority;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Operations.Snapshots;
 using Hydronom.Runtime.Sensors.Backends.Common;
+using Hydronom.Runtime.Sensors.Backends.Lidar;
+using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
 using Hydronom.Runtime.StateRuntime;
 using Hydronom.Runtime.Telemetry;
+using Hydronom.Runtime.World.Runtime;
 using Microsoft.Extensions.Configuration;
 using Hydronom.Core.Sensors.Common.Models;
 
@@ -92,11 +95,13 @@ partial class Program
     /// - Bu pipeline runtime içindeki C# sensör/fusion/state hattını kullanır.
     /// - TcpJsonServer yalnızca RuntimeTelemetrySummary yayınlamak için kullanılır.
     /// - Python/TcpJsonFrameSource fallback hattı bundan bağımsız kalır.
+    /// - Sim LiDAR aynı RuntimeWorldModel instance'ını okuyarak senaryo dubalarını/engellerini raycast eder.
     /// </summary>
     private static RuntimeTelemetryRuntime CreateRuntimeTelemetryRuntime(
         IConfiguration config,
         TcpJsonServer tcpJsonServer,
-        VehicleState initialState)
+        VehicleState initialState,
+        RuntimeWorldModel? runtimeWorldModel = null)
     {
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(tcpJsonServer);
@@ -130,17 +135,45 @@ partial class Program
         sensorOptions.EnableDefaultSimSensors = ReadBool(config, "Runtime:TelemetrySummary:EnableDefaultSimSensors", true);
         sensorOptions.EnableImu = ReadBool(config, "Runtime:TelemetrySummary:EnableImu", true);
         sensorOptions.EnableGps = ReadBool(config, "Runtime:TelemetrySummary:EnableGps", true);
-        sensorOptions.EnableLidar = ReadBool(config, "Runtime:TelemetrySummary:EnableLidar", false);
+
+        /*
+         * Parkur-2 engel algılama için LiDAR varsayılan olarak açık olmalı.
+         * Konfigürasyonda Runtime:TelemetrySummary:EnableLidar=false verilirse kapatılabilir.
+         */
+        sensorOptions.EnableLidar = ReadBool(config, "Runtime:TelemetrySummary:EnableLidar", true);
         sensorOptions.EnableCamera = ReadBool(config, "Runtime:TelemetrySummary:EnableCamera", false);
+
+        var lidarOptions = LidarBackendOptions.Default();
+        lidarOptions.SensorId = ReadString(config, "Runtime:TelemetrySummary:Lidar:SensorId", "lidar0");
+        lidarOptions.Source = ReadString(config, "Runtime:TelemetrySummary:Lidar:Source", "sim_lidar");
+        lidarOptions.FrameId = ReadString(config, "Runtime:TelemetrySummary:Lidar:FrameId", "lidar_link");
+        lidarOptions.RateHz = ReadDouble(config, "Runtime:TelemetrySummary:Lidar:RateHz", 10.0);
+        lidarOptions.BeamCount = ReadInt(config, "Runtime:TelemetrySummary:Lidar:BeamCount", 181);
+        lidarOptions.FovDeg = ReadDouble(config, "Runtime:TelemetrySummary:Lidar:FovDeg", 120.0);
+        lidarOptions.RangeMinMeters = ReadDouble(config, "Runtime:TelemetrySummary:Lidar:RangeMinMeters", 0.05);
+        lidarOptions.RangeMaxMeters = ReadDouble(config, "Runtime:TelemetrySummary:Lidar:RangeMaxMeters", 30.0);
+        lidarOptions.NoiseMeters = ReadDouble(config, "Runtime:TelemetrySummary:Lidar:NoiseMeters", 0.01);
+        lidarOptions.CalibrationId = ReadString(config, "Runtime:TelemetrySummary:Lidar:CalibrationId", "sim-lidar-default");
+
+        lidarOptions = lidarOptions.Sanitized();
 
         var registry = new SensorBackendRegistry()
             .Register(
                 key: "sim_imu",
-                factory: _ => new Hydronom.Runtime.Sensors.Imu.SimImuSensor(truthProvider: truthProvider)
+                factory: _ => new Hydronom.Runtime.Sensors.Imu.SimImuSensor(
+                    truthProvider: truthProvider)
             )
             .Register(
                 key: "sim_gps",
-                factory: _ => new Hydronom.Runtime.Sensors.Gps.SimGpsSensor(truthProvider: truthProvider)
+                factory: _ => new Hydronom.Runtime.Sensors.Gps.SimGpsSensor(
+                    truthProvider: truthProvider)
+            )
+            .Register(
+                key: "sim_lidar",
+                factory: _ => new SimLidarBackend(
+                    options: lidarOptions,
+                    truthProvider: truthProvider,
+                    worldModel: runtimeWorldModel)
             );
 
         var sensorRuntime = new SensorRuntimeBuilder(registry).Build(sensorOptions);
@@ -199,7 +232,8 @@ partial class Program
         Console.WriteLine(
             "[RT-TEL] Enabled → " +
             $"runtimeId={runtimeId} vehicleId={vehicleId} every={everyTicks} ticks " +
-            $"sensors=imu:{sensorOptions.EnableImu},gps:{sensorOptions.EnableGps},lidar:{sensorOptions.EnableLidar},camera:{sensorOptions.EnableCamera}"
+            $"sensors=imu:{sensorOptions.EnableImu},gps:{sensorOptions.EnableGps},lidar:{sensorOptions.EnableLidar},camera:{sensorOptions.EnableCamera} " +
+            $"worldModel={(runtimeWorldModel is null ? "none" : "shared")}"
         );
 
         return runtime;
