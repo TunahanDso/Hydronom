@@ -505,7 +505,7 @@ public sealed class RuntimeScenarioController
 
         var worldObjects = scenarioObjects
             .Where(x => x.IsActive)
-            .Select(ToHydronomWorldObject)
+            .Select(obj => ToHydronomWorldObject(obj, _plan, _session))
             .ToArray();
 
         _runtimeWorld.UpsertMany(worldObjects);
@@ -516,23 +516,98 @@ public sealed class RuntimeScenarioController
         _runtimeWorld?.Clear();
     }
 
-private static HydronomWorldObject ToHydronomWorldObject(RuntimeScenarioWorldObject obj)
-{
-    return new HydronomWorldObject
+    private static HydronomWorldObject ToHydronomWorldObject(
+        RuntimeScenarioWorldObject obj,
+        ScenarioMissionPlan? plan,
+        RuntimeScenarioSession? session)
     {
-        Id = obj.Id,
-        Kind = NormalizeWorldObjectKind(obj),
-        Layer = obj.IsBlocking ? "scenario_obstacles" : "scenario_mission",
-        X = obj.X,
-        Y = obj.Y,
-        Z = obj.Z,
-        Radius = obj.Radius,
-        Width = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
-        Height = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
-        IsActive = obj.IsActive,
-        IsBlocking = obj.IsBlocking
-    };
-}
+        var kind = NormalizeWorldObjectKind(obj);
+        var layer = ResolveWorldLayer(obj, kind);
+
+        var tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["source"] = "scenario",
+            ["scenarioObject"] = "true",
+            ["type"] = NormalizeTagValue(obj.Type, "object"),
+            ["kind"] = kind,
+            ["layer"] = layer,
+            ["isBlocking"] = obj.IsBlocking ? "true" : "false",
+            ["isDetectable"] = obj.IsDetectable ? "true" : "false",
+            ["isCompleted"] = obj.IsCompleted ? "true" : "false",
+            ["isActive"] = obj.IsActive ? "true" : "false"
+        };
+
+        AddTagIfPresent(tags, "label", obj.Label);
+        AddTagIfPresent(tags, "objectiveId", obj.ObjectiveId);
+        AddTagIfPresent(tags, "side", obj.Side);
+        AddTagIfPresent(tags, "color", obj.Color);
+
+        if (plan is not null)
+        {
+            AddTagIfPresent(tags, "scenarioId", plan.ScenarioId);
+            AddTagIfPresent(tags, "scenarioName", plan.ScenarioName);
+            AddTagIfPresent(tags, "vehicleId", plan.VehicleId);
+        }
+
+        if (session is not null)
+        {
+            AddTagIfPresent(tags, "currentObjectiveId", session.CurrentObjectiveId);
+            tags["scenarioState"] = session.State.ToString();
+        }
+
+        var gateIndex = TryExtractGateIndex(obj);
+        if (gateIndex is not null)
+        {
+            tags["gateIndex"] = gateIndex.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            tags["gateSide"] = NormalizeTagValue(obj.Side, "unknown");
+            tags["corridorMarker"] = "true";
+        }
+
+        var parkur1Index = TryExtractParkur1BuoyIndex(obj);
+        if (parkur1Index is not null)
+        {
+            tags["gateIndex"] = parkur1Index.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            tags["gateSide"] = NormalizeTagValue(obj.Side, "unknown");
+            tags["corridorMarker"] = "true";
+            tags["parkur"] = "1";
+        }
+
+        if (obj.Type.Equals("checkpoint", StringComparison.OrdinalIgnoreCase) ||
+            obj.Type.Equals("finish", StringComparison.OrdinalIgnoreCase) ||
+            obj.Type.Equals("start", StringComparison.OrdinalIgnoreCase))
+        {
+            tags["missionMarker"] = "true";
+        }
+
+        return new HydronomWorldObject
+        {
+            Id = obj.Id,
+            Kind = kind,
+            Name = NormalizeTagValue(obj.Label, obj.Id),
+            Layer = layer,
+            X = obj.X,
+            Y = obj.Y,
+            Z = obj.Z,
+            Radius = obj.Radius,
+            Width = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
+            Height = obj.Radius > 0.0 ? obj.Radius * 2.0 : 1.0,
+            YawDeg = 0.0,
+            IsActive = obj.IsActive,
+            IsBlocking = obj.IsBlocking,
+            Tags = tags
+        };
+    }
+
+    private static string ResolveWorldLayer(RuntimeScenarioWorldObject obj, string kind)
+    {
+        if (obj.IsBlocking || kind.Equals("obstacle", StringComparison.OrdinalIgnoreCase))
+            return "scenario_obstacles";
+
+        if (kind.Equals("buoy", StringComparison.OrdinalIgnoreCase))
+            return "scenario_corridor";
+
+        return "scenario_mission";
+    }
 
     private static string NormalizeWorldObjectKind(RuntimeScenarioWorldObject obj)
     {
@@ -550,8 +625,50 @@ private static HydronomWorldObject ToHydronomWorldObject(RuntimeScenarioWorldObj
         if (string.IsNullOrWhiteSpace(obj.Type))
             return "object";
 
-        return obj.Type;
-}
+        return obj.Type.Trim();
+    }
+
+    private static void AddTagIfPresent(
+        Dictionary<string, string> tags,
+        string key,
+        string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            tags[key] = value.Trim();
+    }
+
+    private static string NormalizeTagValue(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private static int? TryExtractGateIndex(RuntimeScenarioWorldObject obj)
+    {
+        if (!obj.Id.StartsWith("parkur2-gate-", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var parts = obj.Id.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3)
+            return null;
+
+        return int.TryParse(parts[2], out var index)
+            ? index
+            : null;
+    }
+
+    private static int? TryExtractParkur1BuoyIndex(RuntimeScenarioWorldObject obj)
+    {
+        if (!obj.Id.StartsWith("parkur1-", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var parts = obj.Id.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 4)
+            return null;
+
+        return int.TryParse(parts[^1], out var index)
+            ? index
+            : null;
+    }
 
     private static string BuildObjectiveLabel(string objectiveId, int index)
     {
