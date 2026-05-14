@@ -4,16 +4,17 @@ using Hydronom.Core.Domain;
 partial class Program
 {
     /// <summary>
-    /// External pose uygulanmadÄ±ÄŸÄ±nda runtime iÃ§ fizik simÃ¼lasyonunu yÃ¼rÃ¼tÃ¼r.
+    /// External pose uygulanmadığında runtime iç fizik simülasyonunu yürütür.
     ///
-    /// AmaÃ§:
-    /// - SensÃ¶r/pose gelmediÄŸi durumda karar/rota testlerini sÃ¼rdÃ¼rebilmek
-    /// - ActuatorManager'Ä±n Ã¼rettiÄŸi body-frame force/torque deÄŸerleriyle VehicleState'i ilerletmek
+    /// Amaç:
+    /// - Sensör/pose gelmediği durumda karar/rota testlerini sürdürebilmek.
+    /// - ActuatorManager'ın ürettiği body-frame force/torque değerleriyle VehicleState'i ilerletmek.
+    /// - V1 environment-aware post process ile su yüzeyi/taban sınırlarını korumak.
     ///
     /// Not:
-    /// - forceBody gÃ¶vde frame'indedir.
-    /// - VehicleState lineer tarafta dÃ¼nya frame kuvvet beklediÄŸi iÃ§in forceBody dÃ¼nya frame'e Ã§evrilir.
-    /// - torqueBody gÃ¶vde frame olarak korunur.
+    /// - forceBody gövde frame'indedir.
+    /// - VehicleState lineer tarafta dünya frame kuvvet beklediği için forceBody dünya frame'e çevrilir.
+    /// - torqueBody gövde frame olarak korunur.
     /// </summary>
     private static VehicleState IntegrateSyntheticStateIfNeeded(
         VehicleState state,
@@ -34,7 +35,8 @@ partial class Program
 
         if (!loopState.LoggedSyntheticStateNotice)
         {
-            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi iÃ§in iÃ§ fizik yÃ¼rÃ¼tÃ¼lÃ¼yor).");
+            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi için iç fizik yürütülüyor).");
+            Console.WriteLine("[ENV-PHYS] Environment-aware synthetic physics v1 aktif (surface/floor clamp).");
             loopState.LoggedSyntheticStateNotice = true;
         }
 
@@ -45,7 +47,7 @@ partial class Program
             AngularTorque = torqueBody
         };
 
-        return withForces.IntegrateMarine(
+        var integrated = withForces.IntegrateMarine(
             dt: dtMeasured,
             mass: physics.MassKg,
             inertia: physics.Inertia,
@@ -56,5 +58,11 @@ partial class Program
             maxLinearSpeed: physics.MaxSyntheticLinearSpeed,
             maxAngularSpeedDeg: physics.MaxSyntheticAngularSpeedDeg
         );
+
+        return ApplyEnvironmentAwareSyntheticPhysicsPostStep(
+            integrated,
+            physics,
+            runtime.LogVerbose,
+            loopState.TickIndex);
     }
 }

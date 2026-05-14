@@ -15,6 +15,8 @@ namespace Hydronom.Runtime.Scenarios.Runtime;
 
 public sealed class RuntimeScenarioController
 {
+    private const string DefaultRuntimeVehicleId = "hydronom-main";
+
     private readonly IConfiguration _config;
     private readonly ITaskManager _taskManager;
     private readonly RuntimeWorldModel? _runtimeWorld;
@@ -121,6 +123,8 @@ public sealed class RuntimeScenarioController
 
         Console.WriteLine(
             $"[SCN-RUNTIME] Started by={requestedBy} scenario={plan.ScenarioId}, " +
+            $"scenarioVehicle={NormalizeText(plan.VehicleId, "none")}, " +
+            $"runtimeVehicle={ResolveRuntimeVehicleId()}, " +
             $"targets={plan.Targets.Count}, state={startResult.SessionState}, " +
             $"objective={startResult.CurrentObjectiveId ?? "none"}, " +
             $"appliedTask={startResult.AppliedNewTask}"
@@ -240,6 +244,7 @@ public sealed class RuntimeScenarioController
     private RuntimeScenarioSnapshot GetSnapshotUnsafe(string? message)
     {
         var currentTarget = ResolveCurrentTargetUnsafe();
+        var runtimeVehicleId = ResolveRuntimeVehicleId();
 
         return new RuntimeScenarioSnapshot
         {
@@ -248,7 +253,14 @@ public sealed class RuntimeScenarioController
             IsRunning = _session?.State == RuntimeScenarioSessionState.Running,
             ScenarioId = _plan?.ScenarioId,
             ScenarioName = _plan?.ScenarioName,
-            VehicleId = _plan?.VehicleId,
+
+            // Kalıcı karar:
+            // Ops/Gateway tarafına giden operational vehicle id tek kaynaktan gelir.
+            // Scenario plan içindeki VehicleId metadata/default araç bilgisi olabilir,
+            // fakat runtime telemetry/world/mission identity olarak kullanılmaz.
+            VehicleId = runtimeVehicleId,
+            ScenarioVehicleId = _plan?.VehicleId,
+
             State = _session?.State.ToString() ?? "None",
             RunId = _session?.RunId,
             CurrentObjectiveId = _session?.CurrentObjectiveId,
@@ -321,7 +333,7 @@ public sealed class RuntimeScenarioController
                 Label = "START",
                 X = 0.0,
                 Y = 0.0,
-                Z = 0.0,
+                Z = ResolveDefaultStartZUnsafe(),
                 Radius = 0.8,
                 Color = "#38bdf8",
                 IsActive = true
@@ -352,25 +364,62 @@ public sealed class RuntimeScenarioController
             }
         }
 
-        if (IsTeknofestParkur1Unsafe())
+        if (IsSurfaceTeknofestParkur1Unsafe())
             AddTeknofestParkur1Buoys(objects);
 
-        if (IsTeknofestParkur2Unsafe())
+        if (IsSurfaceTeknofestParkur2Unsafe())
             AddTeknofestParkur2Objects(objects);
 
         return objects;
     }
 
-    private bool IsTeknofestParkur1Unsafe()
+    private double ResolveDefaultStartZUnsafe()
     {
+        if (_plan is null || _plan.Targets.Count == 0)
+            return 0.0;
+
+        var firstTargetZ = _plan.Targets[0].Target.Z;
+
+        return double.IsFinite(firstTargetZ)
+            ? firstTargetZ
+            : 0.0;
+    }
+
+    private bool IsUnderwaterScenarioUnsafe()
+    {
+        var scenarioId = _plan?.ScenarioId ?? string.Empty;
+        var scenarioName = _plan?.ScenarioName ?? string.Empty;
+        var vehicleId = _plan?.VehicleId ?? string.Empty;
+
+        return
+            scenarioId.Contains("uuv", StringComparison.OrdinalIgnoreCase) ||
+            scenarioId.Contains("underwater", StringComparison.OrdinalIgnoreCase) ||
+            scenarioId.Contains("sualti", StringComparison.OrdinalIgnoreCase) ||
+            scenarioId.Contains("su_alti", StringComparison.OrdinalIgnoreCase) ||
+            scenarioId.Contains("submarine", StringComparison.OrdinalIgnoreCase) ||
+            scenarioName.Contains("sualtı", StringComparison.OrdinalIgnoreCase) ||
+            scenarioName.Contains("su altı", StringComparison.OrdinalIgnoreCase) ||
+            scenarioName.Contains("underwater", StringComparison.OrdinalIgnoreCase) ||
+            vehicleId.Contains("uuv", StringComparison.OrdinalIgnoreCase) ||
+            vehicleId.Contains("underwater", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsSurfaceTeknofestParkur1Unsafe()
+    {
+        if (IsUnderwaterScenarioUnsafe())
+            return false;
+
         var scenarioId = _plan?.ScenarioId ?? string.Empty;
 
         return scenarioId.Contains("teknofest_2026_parkur_1", StringComparison.OrdinalIgnoreCase) ||
-               scenarioId.Contains("parkur_1", StringComparison.OrdinalIgnoreCase);
+               scenarioId.Contains("parkur_1_point_tracking", StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool IsTeknofestParkur2Unsafe()
+    private bool IsSurfaceTeknofestParkur2Unsafe()
     {
+        if (IsUnderwaterScenarioUnsafe())
+            return false;
+
         var scenarioId = _plan?.ScenarioId ?? string.Empty;
 
         return scenarioId.Contains("teknofest_2026_parkur_2", StringComparison.OrdinalIgnoreCase) ||
@@ -505,7 +554,7 @@ public sealed class RuntimeScenarioController
 
         var worldObjects = scenarioObjects
             .Where(x => x.IsActive)
-            .Select(obj => ToHydronomWorldObject(obj, _plan, _session))
+            .Select(obj => ToHydronomWorldObject(obj, _plan, _session, ResolveRuntimeVehicleId()))
             .ToArray();
 
         _runtimeWorld.UpsertMany(worldObjects);
@@ -519,7 +568,8 @@ public sealed class RuntimeScenarioController
     private static HydronomWorldObject ToHydronomWorldObject(
         RuntimeScenarioWorldObject obj,
         ScenarioMissionPlan? plan,
-        RuntimeScenarioSession? session)
+        RuntimeScenarioSession? session,
+        string runtimeVehicleId)
     {
         var kind = NormalizeWorldObjectKind(obj);
         var layer = ResolveWorldLayer(obj, kind);
@@ -531,6 +581,7 @@ public sealed class RuntimeScenarioController
             ["type"] = NormalizeTagValue(obj.Type, "object"),
             ["kind"] = kind,
             ["layer"] = layer,
+            ["runtimeVehicleId"] = NormalizeTagValue(runtimeVehicleId, DefaultRuntimeVehicleId),
             ["isBlocking"] = obj.IsBlocking ? "true" : "false",
             ["isDetectable"] = obj.IsDetectable ? "true" : "false",
             ["isCompleted"] = obj.IsCompleted ? "true" : "false",
@@ -546,7 +597,7 @@ public sealed class RuntimeScenarioController
         {
             AddTagIfPresent(tags, "scenarioId", plan.ScenarioId);
             AddTagIfPresent(tags, "scenarioName", plan.ScenarioName);
-            AddTagIfPresent(tags, "vehicleId", plan.VehicleId);
+            AddTagIfPresent(tags, "scenarioVehicleId", plan.VehicleId);
         }
 
         if (session is not null)
@@ -833,6 +884,21 @@ public sealed class RuntimeScenarioController
         }.Sanitized();
     }
 
+    private string ResolveRuntimeVehicleId()
+    {
+        var runtimeVehicleId = _config["Runtime:TelemetrySummary:VehicleId"];
+
+        if (!string.IsNullOrWhiteSpace(runtimeVehicleId))
+            return runtimeVehicleId.Trim();
+
+        var scenarioRuntimeVehicleId = _config["ScenarioRuntime:VehicleId"];
+
+        if (!string.IsNullOrWhiteSpace(scenarioRuntimeVehicleId))
+            return scenarioRuntimeVehicleId.Trim();
+
+        return DefaultRuntimeVehicleId;
+    }
+
     private bool ReadBool(string key, bool fallback)
     {
         var raw = _config[key];
@@ -856,6 +922,13 @@ public sealed class RuntimeScenarioController
             ? value
             : fallback;
     }
+
+    private static string NormalizeText(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? fallback
+            : value.Trim();
+    }
 }
 
 public sealed class RuntimeScenarioSnapshot
@@ -865,7 +938,19 @@ public sealed class RuntimeScenarioSnapshot
     public bool IsRunning { get; set; }
     public string? ScenarioId { get; set; }
     public string? ScenarioName { get; set; }
+
+    /// <summary>
+    /// Runtime tarafından kullanılan operasyonel vehicle id.
+    /// Ops/Gateway tarafında telemetry, mission, world ve actuator frame'leri bu kimlikle birleşir.
+    /// </summary>
     public string? VehicleId { get; set; }
+
+    /// <summary>
+    /// Scenario dosyasından gelen metadata/default araç kimliği.
+    /// Bu değer runtime identity yerine kullanılmaz; debug/izleme için tutulur.
+    /// </summary>
+    public string? ScenarioVehicleId { get; set; }
+
     public string State { get; set; } = "None";
     public string? RunId { get; set; }
     public string? CurrentObjectiveId { get; set; }

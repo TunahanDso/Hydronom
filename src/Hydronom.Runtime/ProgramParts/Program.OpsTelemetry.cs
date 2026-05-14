@@ -5,6 +5,7 @@ using Hydronom.Runtime.Scenarios.Runtime;
 partial class Program
 {
     private const int OpsTelemetryEveryTicks = 5;
+    private const string DefaultOpsVehicleId = "hydronom-main";
 
     private static bool ShouldPublishOpsTelemetry(long tickIndex)
     {
@@ -34,8 +35,21 @@ partial class Program
 
             var scenarioSnapshot = runtimeScenarioController.GetSnapshot();
 
-            // 🔥 YENİ: TELEMETRY FRAME (EN KRİTİK PARÇA)
-            var telemetryFrame = BuildRuntimeTelemetryFrame(state, now);
+            /*
+            * Authoritative vehicle id:
+            * RuntimeScenarioController artık snapshot.VehicleId alanını runtime'ın operasyonel
+            * vehicle identity değeri olarak üretir.
+            *
+            * Bu yüzden OpsTelemetry burada ayrıca config okumaz.
+            * Telemetry, mission, actuator ve world frame'leri aynı snapshot vehicle id ile yayınlanır.
+            */
+            var runtimeVehicleId = NormalizeVehicleId(scenarioSnapshot.VehicleId);
+
+            var telemetryFrame = BuildRuntimeTelemetryFrame(
+                state,
+                now,
+                runtimeVehicleId);
+
             await tcpFrameSource.Server
                 .BroadcastAsync(telemetryFrame)
                 .ConfigureAwait(false);
@@ -43,7 +57,8 @@ partial class Program
             var missionFrame = BuildRuntimeMissionStateFrame(
                 scenarioSnapshot,
                 state,
-                now);
+                now,
+                runtimeVehicleId);
 
             await tcpFrameSource.Server
                 .BroadcastAsync(missionFrame)
@@ -51,7 +66,8 @@ partial class Program
 
             var actuatorFrame = BuildRuntimeActuatorStateFrame(
                 actuatorManager,
-                now);
+                now,
+                runtimeVehicleId);
 
             await tcpFrameSource.Server
                 .BroadcastAsync(actuatorFrame)
@@ -59,7 +75,8 @@ partial class Program
 
             var worldFrame = BuildRuntimeWorldObjectsFrame(
                 scenarioSnapshot,
-                now);
+                now,
+                runtimeVehicleId);
 
             await tcpFrameSource.Server
                 .BroadcastAsync(worldFrame)
@@ -75,11 +92,14 @@ partial class Program
         }
     }
 
-    // 🔥 YENİ EKLENEN TELEMETRY BUILDER
+
     private static object BuildRuntimeTelemetryFrame(
         VehicleState state,
-        DateTime now)
+        DateTime now,
+        string vehicleId)
     {
+        var safeVehicleId = NormalizeVehicleId(vehicleId);
+
         var vx = state.LinearVelocity.X;
         var vy = state.LinearVelocity.Y;
         var vz = state.LinearVelocity.Z;
@@ -90,7 +110,7 @@ partial class Program
         {
             type = "RuntimeTelemetry",
             timestampUtc = now,
-            vehicleId = "hydronom-main",
+            vehicleId = safeVehicleId,
 
             x = state.Position.X,
             y = state.Position.Y,
@@ -99,23 +119,26 @@ partial class Program
             yawDeg = state.Orientation.YawDeg,
             headingDeg = state.Orientation.YawDeg,
 
-            vx = vx,
-            vy = vy,
-            vz = vz,
+            vx,
+            vy,
+            vz,
 
             yawRateDeg = state.AngularVelocity.Z,
             rollRateDeg = state.AngularVelocity.X,
             pitchRateDeg = state.AngularVelocity.Y,
 
-            speed = speed
+            speed
         };
     }
 
     private static object BuildRuntimeMissionStateFrame(
         RuntimeScenarioSnapshot snapshot,
         VehicleState state,
-        DateTime now)
+        DateTime now,
+        string vehicleId)
     {
+        var safeVehicleId = NormalizeVehicleId(vehicleId);
+
         var status = ResolveMissionStatus(snapshot);
         var currentStepIndex = snapshot.TotalObjectiveCount <= 0
             ? 0
@@ -125,9 +148,9 @@ partial class Program
         {
             type = "RuntimeMissionState",
             timestampUtc = now,
-            vehicleId = string.IsNullOrWhiteSpace(snapshot.VehicleId)
-                ? "hydronom-main"
-                : snapshot.VehicleId,
+            vehicleId = safeVehicleId,
+
+            scenarioVehicleId = snapshot.VehicleId,
 
             missionId = snapshot.ScenarioId,
             missionName = snapshot.ScenarioName,
@@ -171,8 +194,11 @@ partial class Program
 
     private static object BuildRuntimeActuatorStateFrame(
         ActuatorManager actuatorManager,
-        DateTime now)
+        DateTime now,
+        string vehicleId)
     {
+        var safeVehicleId = NormalizeVehicleId(vehicleId);
+
         var report = actuatorManager.LastAllocationReport;
         var force = actuatorManager.LastForceBody;
         var torque = actuatorManager.LastTorqueBody;
@@ -214,7 +240,7 @@ partial class Program
         {
             type = "RuntimeActuatorState",
             timestampUtc = now,
-            vehicleId = "hydronom-main",
+            vehicleId = safeVehicleId,
 
             actuatorName = "thruster-array",
             actuatorType = "thruster-group",
@@ -280,8 +306,11 @@ partial class Program
 
     private static object BuildRuntimeWorldObjectsFrame(
         RuntimeScenarioSnapshot snapshot,
-        DateTime now)
+        DateTime now,
+        string vehicleId)
     {
+        var safeVehicleId = NormalizeVehicleId(vehicleId);
+
         var route = (snapshot.RoutePoints ?? Array.Empty<RuntimeScenarioRoutePoint>())
             .OrderBy(x => x.Index)
             .Select(x => new
@@ -305,6 +334,7 @@ partial class Program
             {
                 id = x.Id,
                 type = x.Type,
+                kind = x.Type,
                 label = x.Label,
                 objectiveId = x.ObjectiveId,
                 side = x.Side,
@@ -314,7 +344,9 @@ partial class Program
                 radius = x.Radius,
                 color = x.Color,
                 active = x.IsActive,
-                completed = x.IsCompleted
+                completed = x.IsCompleted,
+                isBlocking = x.IsBlocking,
+                isDetectable = x.IsDetectable
             })
             .ToArray();
 
@@ -322,9 +354,9 @@ partial class Program
         {
             type = "RuntimeWorldObjects",
             timestampUtc = now,
-            vehicleId = string.IsNullOrWhiteSpace(snapshot.VehicleId)
-                ? "hydronom-main"
-                : snapshot.VehicleId,
+            vehicleId = safeVehicleId,
+
+            scenarioVehicleId = snapshot.VehicleId,
 
             scenarioId = snapshot.ScenarioId,
             scenarioName = snapshot.ScenarioName,
@@ -362,5 +394,12 @@ partial class Program
             return "idle";
 
         return state.ToLowerInvariant();
+    }
+
+    private static string NormalizeVehicleId(string? vehicleId)
+    {
+        return string.IsNullOrWhiteSpace(vehicleId)
+            ? DefaultOpsVehicleId
+            : vehicleId.Trim();
     }
 }

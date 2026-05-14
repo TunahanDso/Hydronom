@@ -20,32 +20,65 @@
     {
       "Id": "H_FL",
       "Channel": 0,
-      "Position": { "X": 0.40, "Y": 0.25, "Z": 0.00 },
-      "ForceDir": { "X": 0.0, "Y": 1.0, "Z": 0.0 },
+      "Position": { "X": 0.35, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.92388, "Y": -0.38268, "Z": 0.0 },
       "Reversed": false,
       "CanReverse": true
     },
     {
       "Id": "H_FR",
       "Channel": 1,
-      "Position": { "X": 0.40, "Y": -0.25, "Z": 0.00 },
-      "ForceDir": { "X": 0.0, "Y": -1.0, "Z": 0.0 },
+      "Position": { "X": 0.35, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.92388, "Y": 0.38268, "Z": 0.0 },
       "Reversed": false,
       "CanReverse": true
     },
     {
       "Id": "H_RL",
       "Channel": 2,
-      "Position": { "X": -0.40, "Y": 0.25, "Z": 0.00 },
-      "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
+      "Position": { "X": -0.35, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.92388, "Y": 0.38268, "Z": 0.0 },
       "Reversed": false,
       "CanReverse": true
     },
     {
       "Id": "H_RR",
       "Channel": 3,
-      "Position": { "X": -0.40, "Y": -0.25, "Z": 0.00 },
-      "ForceDir": { "X": 1.0, "Y": 0.0, "Z": 0.0 },
+      "Position": { "X": -0.35, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.92388, "Y": -0.38268, "Z": 0.0 },
+      "Reversed": false,
+      "CanReverse": true
+    },
+
+    {
+      "Id": "V_FL",
+      "Channel": 4,
+      "Position": { "X": 0.35, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": 0.0, "Z": -1.0 },
+      "Reversed": false,
+      "CanReverse": true
+    },
+    {
+      "Id": "V_FR",
+      "Channel": 5,
+      "Position": { "X": 0.35, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": 0.0, "Z": -1.0 },
+      "Reversed": false,
+      "CanReverse": true
+    },
+    {
+      "Id": "V_RL",
+      "Channel": 6,
+      "Position": { "X": -0.35, "Y": 0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": 0.0, "Z": -1.0 },
+      "Reversed": false,
+      "CanReverse": true
+    },
+    {
+      "Id": "V_RR",
+      "Channel": 7,
+      "Position": { "X": -0.35, "Y": -0.25, "Z": 0.00 },
+      "ForceDir": { "X": 0.0, "Y": 0.0, "Z": -1.0 },
       "Reversed": false,
       "CanReverse": true
     }

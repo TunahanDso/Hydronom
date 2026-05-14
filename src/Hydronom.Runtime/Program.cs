@@ -422,10 +422,14 @@ partial class Program
 
                 if (decision is AdvancedDecision advancedDecision)
                 {
-                    advancedDecision.UpdateAdvice(analysisImpl.LastOperationalContext.Advice);
-
                     var taskForDecision = tasks.CurrentTask;
                     var planningSnapshot = planningCache.Snapshot();
+
+                    var worldAwareAdvice = BuildWorldAwareDecisionAdvice(
+                        analysisImpl.LastOperationalContext.Advice,
+                        planningSnapshot);
+
+                    advancedDecision.UpdateAdvice(worldAwareAdvice);
 
                     if (taskForDecision is not null &&
                         planningSnapshot.HasPlan &&
@@ -786,6 +790,135 @@ partial class Program
 
             await ShutdownRuntimeAsync(frameSource, pythonProc, actuatorManager);
         }
+    }
+
+    private static DecisionAdviceProfile BuildWorldAwareDecisionAdvice(
+        DecisionAdviceProfile analysisAdvice,
+        RuntimePlanningSnapshot? planningSnapshot)
+    {
+        var safeAnalysisAdvice = analysisAdvice.Sanitized();
+        var planningAdvice = BuildPlanningDecisionAdvice(planningSnapshot);
+
+        return safeAnalysisAdvice
+            .MergeConservative(planningAdvice)
+            .Sanitized();
+    }
+
+    private static DecisionAdviceProfile BuildPlanningDecisionAdvice(
+        RuntimePlanningSnapshot? planningSnapshot)
+    {
+        var snapshot = (planningSnapshot ?? RuntimePlanningSnapshot.Empty).Sanitized();
+
+        if (!snapshot.HasPlan ||
+            !snapshot.IsValid ||
+            snapshot.AgeMs > 500.0 ||
+            snapshot.RequiresReplan)
+        {
+            return DecisionAdviceProfile.Neutral;
+        }
+
+        var localRisk = snapshot.LocalPath.Risk.Sanitized();
+        var trajectoryRisk = snapshot.Trajectory.Risk.Sanitized();
+
+        var riskScore = Math.Max(
+            Math.Max(localRisk.RiskScore, trajectoryRisk.RiskScore),
+            snapshot.Trajectory.LookAheadPoint?.RiskScore ?? 0.0);
+
+        var clearance = ResolvePlanningClearanceMeters(
+            localRisk.MinimumClearanceMeters,
+            trajectoryRisk.MinimumClearanceMeters);
+
+        var isWorldCorridor =
+            ContainsToken(snapshot.Summary, "WORLD_CORRIDOR") ||
+            ContainsToken(snapshot.LocalPath.Summary, "WORLD_CORRIDOR") ||
+            snapshot.LocalPath.Mode.ToString().Equals("Corridor", StringComparison.OrdinalIgnoreCase);
+
+        var hasSafeCorridor =
+            isWorldCorridor &&
+            riskScore <= 0.45 &&
+            clearance >= 1.0;
+
+        if (!hasSafeCorridor)
+            return DecisionAdviceProfile.Neutral;
+
+        var confidence = ComputeCorridorConfidence(
+            riskScore,
+            clearance,
+            snapshot.AgeMs);
+
+        return (DecisionAdviceProfile.Neutral with
+        {
+            MaxSpeedScale = riskScore <= 0.20 ? 0.90 : 0.75,
+            ThrottleScale = riskScore <= 0.20 ? 0.85 : 0.65,
+            YawAggressionScale = 0.85,
+            ArrivalCautionScale = riskScore <= 0.20 ? 1.10 : 1.35,
+            ObstacleAvoidanceUrgency = Math.Clamp(riskScore, 0.05, 0.35),
+            RequireSlowMode = snapshot.RequiresSlowMode || riskScore >= 0.30,
+            PreferSafeHeading = true,
+            PrimaryReason = "WORLD_SAFE_CORRIDOR",
+            HasPassableCorridor = true,
+            CorridorCenterOffsetDeg = 0.0,
+            CorridorWidthMeters = Math.Max(0.0, clearance),
+            CorridorClearanceMeters = Math.Max(0.0, clearance),
+            CorridorConfidence = confidence,
+            SuppressObstaclePanic = true,
+            PreferCorridorHeading = false
+        }).Sanitized();
+    }
+
+    private static double ResolvePlanningClearanceMeters(
+        double localClearance,
+        double trajectoryClearance)
+    {
+        var hasLocal = double.IsFinite(localClearance) && localClearance >= 0.0;
+        var hasTrajectory = double.IsFinite(trajectoryClearance) && trajectoryClearance >= 0.0;
+
+        if (hasLocal && hasTrajectory)
+            return Math.Min(localClearance, trajectoryClearance);
+
+        if (hasLocal)
+            return localClearance;
+
+        if (hasTrajectory)
+            return trajectoryClearance;
+
+        /*
+         * Bazı ilk planlarda clearance sonsuz/boş gelebilir.
+         * WORLD_CORRIDOR + düşük risk varsa yine geçilebilir corridor kabul edebilmek için
+         * makul bir varsayılan güvenli açıklık veriyoruz.
+         */
+        return 3.0;
+    }
+
+    private static double ComputeCorridorConfidence(
+        double riskScore,
+        double clearanceMeters,
+        double ageMs)
+    {
+        var riskConfidence = 1.0 - Math.Clamp(riskScore, 0.0, 1.0);
+
+        var clearanceConfidence = Math.Clamp(
+            clearanceMeters / 4.0,
+            0.0,
+            1.0);
+
+        var ageConfidence = 1.0 - Math.Clamp(
+            ageMs / 500.0,
+            0.0,
+            1.0);
+
+        return Math.Clamp(
+            riskConfidence * 0.50 +
+            clearanceConfidence * 0.35 +
+            ageConfidence * 0.15,
+            0.0,
+            1.0);
+    }
+
+    private static bool ContainsToken(string? value, string token)
+    {
+        return !string.IsNullOrWhiteSpace(value) &&
+               value.Contains(token, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class NullFrameSource : IFrameSource

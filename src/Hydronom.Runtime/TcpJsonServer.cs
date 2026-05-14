@@ -556,8 +556,51 @@ public class TcpJsonServer
             var dto = JsonSerializer.Deserialize<FusedStateDto>(line, JsonOpts);
             if (dto is null || dto.Pose is null) return false;
 
-            var pos = new Vec2(dto.Pose.X, dto.Pose.Y);
-            var headDeg = dto.Pose.Yaw;
+            var position3D = new Vec3(
+                Sanitize(dto.Pose.X),
+                Sanitize(dto.Pose.Y),
+                Sanitize(dto.Pose.Z)
+            );
+
+            var pos2D = new Vec2(position3D.X, position3D.Y);
+
+            var rollDeg = PickFirstFinite(
+                dto.Pose.RollDeg,
+                dto.Pose.Roll,
+                dto.Pose.R
+            );
+
+            var pitchDeg = PickFirstFinite(
+                dto.Pose.PitchDeg,
+                dto.Pose.Pitch,
+                dto.Pose.P
+            );
+
+            var yawDeg = PickFirstFinite(
+                dto.Pose.YawDeg,
+                dto.Pose.Yaw,
+                dto.Pose.HeadingDeg,
+                dto.Pose.Heading,
+                dto.Pose.Y
+            );
+
+            var orientation = new Orientation(rollDeg, pitchDeg, yawDeg);
+
+            var linearVelocity = dto.Twist is null
+                ? Vec3.Zero
+                : new Vec3(
+                    Sanitize(dto.Twist.Vx),
+                    Sanitize(dto.Twist.Vy),
+                    Sanitize(dto.Twist.Vz)
+                );
+
+            var angularVelocityDegSec = dto.Twist is null
+                ? Vec3.Zero
+                : new Vec3(
+                    PickFirstFinite(dto.Twist.RollRateDegSec, dto.Twist.Roll_Rate_Deg_Sec, dto.Twist.Roll_Rate, dto.Twist.Wx),
+                    PickFirstFinite(dto.Twist.PitchRateDegSec, dto.Twist.Pitch_Rate_Deg_Sec, dto.Twist.Pitch_Rate, dto.Twist.Wy),
+                    PickFirstFinite(dto.Twist.YawRateDegSec, dto.Twist.Yaw_Rate_Deg_Sec, dto.Twist.Yaw_Rate, dto.Twist.Wz)
+                );
 
             DateTime tsUtc = DateTime.UtcNow;
             if (dto.T.HasValue && dto.T.Value > 0)
@@ -566,17 +609,19 @@ public class TcpJsonServer
             }
 
             var obstacles = new List<Obstacle>();
+            var spatialObstacles = new List<SpatialObstacle>();
 
             if (dto.Obstacles is not null)
             {
                 foreach (var o in dto.Obstacles)
                 {
-                    if (o?.Position is null) continue;
+                    if (o is null) continue;
 
-                    obstacles.Add(new Obstacle(
-                        new Vec2(o.Position.X, o.Position.Y),
-                        o.RadiusM
-                    ));
+                    if (!TryBuildSpatialObstacle(o, "fused-state", out var spatial))
+                        continue;
+
+                    spatialObstacles.Add(spatial);
+                    obstacles.Add(spatial.ToLegacy2D());
                 }
             }
 
@@ -598,42 +643,80 @@ public class TcpJsonServer
                     {
                         if (ro is null) continue;
 
-                        obstacles.Add(new Obstacle(
-                            new Vec2(ro.X, ro.Y),
-                            ro.R
-                        ));
+                        var roPosition = new Vec3(
+                            Sanitize(ro.X),
+                            Sanitize(ro.Y),
+                            Sanitize(ro.Z)
+                        );
+
+                        var spatial = new SpatialObstacle(
+                            Position: roPosition,
+                            RadiusM: SafeRadius(ro.R),
+                            SizeM: null,
+                            Orientation: null,
+                            Kind: ro.Kind ?? "RuntimeObstacle",
+                            Medium: ro.Medium,
+                            Source: sourceName
+                        );
+
+                        spatialObstacles.Add(spatial);
+                        obstacles.Add(spatial.ToLegacy2D());
                     }
                 }
             }
 
-            obstacles = DeduplicateObstacles(obstacles, 0.15);
+            spatialObstacles = DeduplicateSpatialObstacles(spatialObstacles, 0.15);
+            obstacles = new List<Obstacle>(spatialObstacles.Count);
+            foreach (var so in spatialObstacles)
+                obstacles.Add(so.ToLegacy2D());
 
-            Vec2? target = null;
+            Vec2? target2D = null;
+            Vec3? target3D = null;
+
             if (dto.Target is not null)
             {
-                target = new Vec2(dto.Target.X, dto.Target.Y);
+                target3D = ReadVec3(dto.Target);
+                target2D = new Vec2(target3D.Value.X, target3D.Value.Y);
             }
             else if (dto.Goal is not null)
             {
-                target = new Vec2(dto.Goal.X, dto.Goal.Y);
+                target3D = ReadVec3(dto.Goal);
+                target2D = new Vec2(target3D.Value.X, target3D.Value.Y);
             }
 
             if (VerboseObstacleDebug)
             {
-                Console.WriteLine($"[TCP-OBS] pos=({pos.X:0.00},{pos.Y:0.00}) head={headDeg:0.0} obs={obstacles.Count}");
-                foreach (var o in obstacles)
+                Console.WriteLine(
+                    $"[TCP-OBS] pos=({pos2D.X:0.00},{pos2D.Y:0.00},z={position3D.Z:0.00}) " +
+                    $"rpy=({orientation.RollDeg:0.0},{orientation.PitchDeg:0.0},{orientation.YawDeg:0.0}) " +
+                    $"obs2d={obstacles.Count} obs3d={spatialObstacles.Count}"
+                );
+
+                foreach (var o in spatialObstacles)
                 {
-                    Console.WriteLine($"[TCP-OBS] obstacle ({o.Position.X:0.00},{o.Position.Y:0.00}) r={o.RadiusM:0.00}");
+                    Console.WriteLine(
+                        $"[TCP-OBS] obstacle3d ({o.Position.X:0.00},{o.Position.Y:0.00},{o.Position.Z:0.00}) " +
+                        $"r={o.RadiusM:0.00} kind={o.Kind ?? "-"} medium={o.Medium ?? "-"} src={o.Source ?? "-"}"
+                    );
                 }
             }
 
             frame = new FusedFrame(
                 TimestampUtc: tsUtc,
-                Position: pos,
-                HeadingDeg: headDeg,
+                Position: pos2D,
+                HeadingDeg: orientation.YawDeg,
                 Obstacles: obstacles,
-                Target: target
-            );
+                Target: target2D
+            )
+            {
+                Position3D = position3D,
+                Orientation = orientation,
+                LinearVelocity = linearVelocity,
+                AngularVelocityDegSec = angularVelocityDegSec,
+                SpatialObstacles = spatialObstacles,
+                Target3D = target3D
+            };
+
             return true;
         }
         catch (Exception ex)
@@ -680,6 +763,55 @@ public class TcpJsonServer
         return outList;
     }
 
+    private static List<SpatialObstacle> DeduplicateSpatialObstacles(List<SpatialObstacle> src, double mergeDistance)
+    {
+        if (src.Count <= 1) return src;
+
+        var outList = new List<SpatialObstacle>();
+
+        foreach (var o in src)
+        {
+            bool merged = false;
+
+            for (int i = 0; i < outList.Count; i++)
+            {
+                var k = outList[i];
+
+                var dx = o.Position.X - k.Position.X;
+                var dy = o.Position.Y - k.Position.Y;
+                var dz = o.Position.Z - k.Position.Z;
+                var d = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+                if (d <= mergeDistance)
+                {
+                    var mergedPosition = new Vec3(
+                        (o.Position.X + k.Position.X) * 0.5,
+                        (o.Position.Y + k.Position.Y) * 0.5,
+                        (o.Position.Z + k.Position.Z) * 0.5
+                    );
+
+                    outList[i] = new SpatialObstacle(
+                        Position: mergedPosition,
+                        RadiusM: Math.Max(o.RadiusM, k.RadiusM),
+                        SizeM: o.SizeM ?? k.SizeM,
+                        Orientation: o.Orientation ?? k.Orientation,
+                        Kind: o.Kind ?? k.Kind,
+                        Medium: o.Medium ?? k.Medium,
+                        Source: o.Source ?? k.Source
+                    );
+
+                    merged = true;
+                    break;
+                }
+            }
+
+            if (!merged)
+                outList.Add(o);
+        }
+
+        return outList;
+    }
+
     private static bool TryDeserializeFrame(string line, out FusedFrame? frame)
     {
         frame = null;
@@ -688,33 +820,127 @@ public class TcpJsonServer
             var dto = JsonSerializer.Deserialize<FusedFrameDto>(line, JsonOpts);
             if (dto == null || dto.Position is null) return false;
 
-            var pos = new Vec2(dto.Position.X, dto.Position.Y);
-            Vec2? target = dto.Target is null ? null : new Vec2(dto.Target.X, dto.Target.Y);
+            var position3D = ReadVec3(dto.Position);
+            var pos2D = new Vec2(position3D.X, position3D.Y);
+
+            Vec3? target3D = dto.Target is null ? null : ReadVec3(dto.Target);
+            Vec2? target2D = target3D.HasValue
+                ? new Vec2(target3D.Value.X, target3D.Value.Y)
+                : null;
 
             var obsList = new List<Obstacle>();
+            var spatialList = new List<SpatialObstacle>();
+
             if (dto.Obstacles != null)
             {
                 foreach (var o in dto.Obstacles)
                 {
-                    if (o.Position is null) continue;
-                    var p = new Vec2(o.Position.X, o.Position.Y);
-                    obsList.Add(new Obstacle(p, o.RadiusM));
+                    if (o is null) continue;
+
+                    if (!TryBuildSpatialObstacle(o, "legacy-frame", out var spatial))
+                        continue;
+
+                    spatialList.Add(spatial);
+                    obsList.Add(spatial.ToLegacy2D());
                 }
             }
 
+            var rollDeg = PickFirstFinite(dto.RollDeg);
+            var pitchDeg = PickFirstFinite(dto.PitchDeg);
+            var yawDeg = PickFirstFinite(dto.YawDeg, dto.HeadingDeg);
+
             frame = new FusedFrame(
                 TimestampUtc: dto.TimestampUtc == default ? DateTime.UtcNow : dto.TimestampUtc,
-                Position: pos,
-                HeadingDeg: dto.HeadingDeg,
+                Position: pos2D,
+                HeadingDeg: yawDeg,
                 Obstacles: obsList,
-                Target: target
-            );
+                Target: target2D
+            )
+            {
+                Position3D = position3D,
+                Orientation = new Orientation(rollDeg, pitchDeg, yawDeg),
+                LinearVelocity = dto.LinearVelocity is null ? Vec3.Zero : ReadVec3(dto.LinearVelocity),
+                AngularVelocityDegSec = dto.AngularVelocityDegSec is null ? Vec3.Zero : ReadVec3(dto.AngularVelocityDegSec),
+                SpatialObstacles = spatialList,
+                Target3D = target3D
+            };
+
             return true;
         }
         catch
         {
             return false;
         }
+    }
+
+    private static bool TryBuildSpatialObstacle(ObstacleDto dto, string source, out SpatialObstacle spatial)
+    {
+        spatial = new SpatialObstacle(Vec3.Zero, 0.0);
+
+        Vec3 position;
+        if (dto.Position3D is not null)
+        {
+            position = ReadVec3(dto.Position3D);
+        }
+        else if (dto.Position is not null)
+        {
+            position = ReadVec3(dto.Position);
+        }
+        else
+        {
+            return false;
+        }
+
+        var orientation = dto.Orientation is null
+            ? null
+            : new Orientation(
+                PickFirstFinite(dto.Orientation.RollDeg, dto.Orientation.Roll),
+                PickFirstFinite(dto.Orientation.PitchDeg, dto.Orientation.Pitch),
+                PickFirstFinite(dto.Orientation.YawDeg, dto.Orientation.Yaw, dto.Orientation.HeadingDeg)
+            );
+
+        spatial = new SpatialObstacle(
+            Position: position,
+            RadiusM: SafeRadius(dto.RadiusM),
+            SizeM: dto.SizeM is null ? null : ReadVec3(dto.SizeM),
+            Orientation: orientation,
+            Kind: dto.Kind,
+            Medium: dto.Medium,
+            Source: dto.Source ?? source
+        );
+
+        return true;
+    }
+
+    private static Vec3 ReadVec3(Vec3Dto dto)
+    {
+        return new Vec3(
+            Sanitize(dto.X),
+            Sanitize(dto.Y),
+            Sanitize(dto.Z)
+        );
+    }
+
+    private static double Sanitize(double value, double fallback = 0.0)
+    {
+        return double.IsFinite(value) ? value : fallback;
+    }
+
+    private static double SafeRadius(double value)
+    {
+        value = Sanitize(value, 0.0);
+        return value < 0.0 ? 0.0 : value;
+    }
+
+    private static double PickFirstFinite(params double?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (value.HasValue && double.IsFinite(value.Value))
+                return value.Value;
+        }
+
+        return 0.0;
     }
 
     private static void DumpIngress(string text)
@@ -764,8 +990,8 @@ public class TcpJsonServer
         public List<object>? Landmarks { get; set; }
         public List<FusedInputDto>? Inputs { get; set; }
         public List<ObstacleDto>? Obstacles { get; set; }
-        public Vec2Dto? Target { get; set; }
-        public Vec2Dto? Goal { get; set; }
+        public Vec3Dto? Target { get; set; }
+        public Vec3Dto? Goal { get; set; }
         public double? Confidence { get; set; }
     }
 
@@ -788,7 +1014,10 @@ public class TcpJsonServer
     {
         public double X { get; set; }
         public double Y { get; set; }
+        public double Z { get; set; }
         public double R { get; set; }
+        public string? Kind { get; set; }
+        public string? Medium { get; set; }
     }
 
     private sealed class PoseDto
@@ -796,7 +1025,21 @@ public class TcpJsonServer
         public double X { get; set; }
         public double Y { get; set; }
         public double Z { get; set; }
-        public double Yaw { get; set; }
+
+        public double? Roll { get; set; }
+        public double? Pitch { get; set; }
+        public double? Yaw { get; set; }
+
+        public double? R { get; set; }
+        public double? P { get; set; }
+        public double? Y { get; set; }
+
+        public double? RollDeg { get; set; }
+        public double? PitchDeg { get; set; }
+        public double? YawDeg { get; set; }
+
+        public double? Heading { get; set; }
+        public double? HeadingDeg { get; set; }
     }
 
     private sealed class TwistDto
@@ -804,27 +1047,76 @@ public class TcpJsonServer
         public double Vx { get; set; }
         public double Vy { get; set; }
         public double Vz { get; set; }
-        public double Yaw_Rate { get; set; }
+
+        public double? Wx { get; set; }
+        public double? Wy { get; set; }
+        public double? Wz { get; set; }
+
+        public double? Roll_Rate { get; set; }
+        public double? Pitch_Rate { get; set; }
+        public double? Yaw_Rate { get; set; }
+
+        public double? RollRateDegSec { get; set; }
+        public double? PitchRateDegSec { get; set; }
+        public double? YawRateDegSec { get; set; }
+
+        public double? Roll_Rate_Deg_Sec { get; set; }
+        public double? Pitch_Rate_Deg_Sec { get; set; }
+        public double? Yaw_Rate_Deg_Sec { get; set; }
     }
 
     private sealed class FusedFrameDto
     {
         public DateTime TimestampUtc { get; set; }
-        public Vec2Dto? Position { get; set; }
+
+        public Vec3Dto? Position { get; set; }
+
         public double HeadingDeg { get; set; }
+
+        public double? RollDeg { get; set; }
+        public double? PitchDeg { get; set; }
+        public double? YawDeg { get; set; }
+
+        public Vec3Dto? LinearVelocity { get; set; }
+        public Vec3Dto? AngularVelocityDegSec { get; set; }
+
         public List<ObstacleDto>? Obstacles { get; set; }
-        public Vec2Dto? Target { get; set; }
+
+        public Vec3Dto? Target { get; set; }
     }
 
-    private sealed class Vec2Dto
+    private sealed class Vec3Dto
     {
         public double X { get; set; }
         public double Y { get; set; }
+        public double Z { get; set; }
     }
 
     private sealed class ObstacleDto
     {
-        public Vec2Dto? Position { get; set; }
+        public Vec3Dto? Position { get; set; }
+        public Vec3Dto? Position3D { get; set; }
+
         public double RadiusM { get; set; }
+
+        public Vec3Dto? SizeM { get; set; }
+        public OrientationDto? Orientation { get; set; }
+
+        public string? Kind { get; set; }
+        public string? Medium { get; set; }
+        public string? Source { get; set; }
+    }
+
+    private sealed class OrientationDto
+    {
+        public double? Roll { get; set; }
+        public double? Pitch { get; set; }
+        public double? Yaw { get; set; }
+
+        public double? RollDeg { get; set; }
+        public double? PitchDeg { get; set; }
+        public double? YawDeg { get; set; }
+
+        public double? HeadingDeg { get; set; }
     }
 }

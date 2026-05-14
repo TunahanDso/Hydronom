@@ -11,6 +11,12 @@ namespace Hydronom.Core.Modules
         ///
         /// Eski Decide(...) metodu geriye dönük uyumluluk için DecisionCommand üretmeye devam eder.
         /// Bu metot ise motor/wrench üretmez; controller'a davranış niyeti verir.
+        ///
+        /// Kritik mimari kural:
+        /// - Obstacle bilgisi tek başına panic Avoid sebebi değildir.
+        /// - Analysis/Planner geçilebilir corridor veya güvenli trajectory bildiriyorsa
+        ///   Decision, AvoidObstacle yerine Navigate/Track intent üretir.
+        /// - Böylece Planner, Analysis ve Decision aynı operasyonel gerçeklikte hizalanır.
         /// </summary>
         public ControlIntent DecideIntent(
             Insights insights,
@@ -53,7 +59,25 @@ namespace Hydronom.Core.Modules
             var nav = ComputeNavigationGeometry(target, state);
             var advice = _currentAdvice.Sanitized();
 
-            if (insights.HasObstacleAhead)
+            var scenarioOwnedTask = task.IsExternallyCompleted;
+
+            /*
+             * World-aware obstacle arbitration:
+             *
+             * Eskiden:
+             *   insights.HasObstacleAhead == true ise doğrudan AvoidObstacle.
+             *
+             * Yeni:
+             *   Eğer analysis/planner geçilebilir corridor olduğunu söylüyorsa
+             *   ve obstacle panic bastırılmışsa, obstacle sinyali "yavaşla / dikkatli takip et"
+             *   seviyesine düşürülür. Böylece world-aware planner'ın güvenli corridor kararı
+             *   decision tarafından ezilmez.
+             */
+            var suppressObstaclePanic = ShouldSuppressObstaclePanic(
+                insights,
+                advice);
+
+            if (insights.HasObstacleAhead && !suppressObstaclePanic)
             {
                 ExitHoldMode();
 
@@ -94,7 +118,6 @@ namespace Hydronom.Core.Modules
                 );
             }
 
-            var scenarioOwnedTask = task.IsExternallyCompleted;
             var canEnterHold =
                 !scenarioOwnedTask ||
                 nav.PlanarSpeedMps <= ScenarioMaxCaptureSpeedMps;
@@ -108,10 +131,12 @@ namespace Hydronom.Core.Modules
                 LastDecisionReport = AdvancedDecisionReport.Empty with
                 {
                     Mode = DecisionMode.Hold,
-                    Reason = "INTENT_HOLD_POSITION",
+                    Reason = suppressObstaclePanic
+                        ? AppendAdviceReason("INTENT_HOLD_POSITION_SUPPRESSED_OBSTACLE_PANIC", advice)
+                        : "INTENT_HOLD_POSITION",
                     HeadingErrorDeg = Normalize(holdHeading - state.Orientation.YawDeg),
                     ForwardSpeedMps = nav.ForwardSpeedMps,
-                    ObstacleAhead = false,
+                    ObstacleAhead = insights.HasObstacleAhead,
                     ThrottleNorm = 0.0,
                     RudderNorm = 0.0
                 };
@@ -126,7 +151,9 @@ namespace Hydronom.Core.Modules
                     HoldHeading: true,
                     HoldDepth: true,
                     AllowReverse: true,
-                    RiskLevel: 0.0,
+                    RiskLevel: suppressObstaclePanic
+                        ? Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 0.35)
+                        : 0.0,
                     Reason: LastDecisionReport.Reason
                 );
             }
@@ -145,11 +172,34 @@ namespace Hydronom.Core.Modules
                 advice,
                 scenarioOwnedTask);
 
+            if (suppressObstaclePanic)
+            {
+                desiredSpeed = ApplySuppressedObstacleSpeedPolicy(
+                    desiredSpeed,
+                    advice,
+                    nav);
+            }
+
             var targetHeadingDeg = Math.Atan2(
                 target.Y - state.Position.Y,
                 target.X - state.Position.X) * 180.0 / Math.PI;
 
-            if (advice.PreferSafeHeading && advice.ObstacleAvoidanceUrgency > 0.05)
+            /*
+             * Eğer geçilebilir corridor varsa ve corridor heading tercih ediliyorsa,
+             * target heading'i obstacle panik yönüne değil, mevcut trajectory/corridor hattına
+             * yakın tutuyoruz. Runtime zaten planner reference'ını daha sonra intent üzerine
+             * bind ediyor; bu kural burada eski obstacle bias'ın sistemi bozmasını engeller.
+             */
+            if (advice.HasPassableCorridor &&
+                advice.PreferCorridorHeading &&
+                Math.Abs(advice.CorridorCenterOffsetDeg) > 1.0)
+            {
+                targetHeadingDeg = Normalize(
+                    state.Orientation.YawDeg + advice.CorridorCenterOffsetDeg);
+            }
+            else if (advice.PreferSafeHeading &&
+                     advice.ObstacleAvoidanceUrgency > 0.05 &&
+                     !suppressObstaclePanic)
             {
                 targetHeadingDeg = ResolveSafeHeadingDeg(
                     targetHeadingDeg,
@@ -160,13 +210,19 @@ namespace Hydronom.Core.Modules
 
             var headingError = Normalize(targetHeadingDeg - state.Orientation.YawDeg);
 
+            var reason = AppendAdviceReason(
+                suppressObstaclePanic
+                    ? $"INTENT_{arrival.Reason}_TRACK_CORRIDOR_SUPPRESS_OBSTACLE_PANIC"
+                    : $"INTENT_{arrival.Reason}",
+                advice);
+
             LastDecisionReport = AdvancedDecisionReport.Empty with
             {
                 Mode = DecisionMode.Navigate,
-                Reason = AppendAdviceReason($"INTENT_{arrival.Reason}", advice),
+                Reason = reason,
                 HeadingErrorDeg = headingError,
                 ForwardSpeedMps = nav.ForwardSpeedMps,
-                ObstacleAhead = false,
+                ObstacleAhead = insights.HasObstacleAhead,
                 ThrottleNorm = Math.Clamp(desiredSpeed / 3.0, -1.0, 1.0),
                 RudderNorm = Math.Clamp(headingError / 45.0, -1.0, 1.0)
             };
@@ -181,9 +237,81 @@ namespace Hydronom.Core.Modules
                 HoldHeading: true,
                 HoldDepth: true,
                 AllowReverse: arrival.AllowReverseSurge,
-                RiskLevel: Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0),
+                RiskLevel: suppressObstaclePanic
+                    ? Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 0.35)
+                    : Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0),
                 Reason: LastDecisionReport.Reason
             );
+        }
+
+        private static bool ShouldSuppressObstaclePanic(
+            Insights insights,
+            DecisionAdviceProfile advice)
+        {
+            if (!insights.HasObstacleAhead)
+                return false;
+
+            advice = advice.Sanitized();
+
+            if (!advice.HasPassableCorridor)
+                return false;
+
+            if (!advice.SuppressObstaclePanic)
+                return false;
+
+            /*
+             * Corridor confidence ve clearance düşükse panic bastırma yapılmaz.
+             * Bu eşikler bilerek temkinli tutuldu.
+             */
+            if (advice.CorridorConfidence < 0.45)
+                return false;
+
+            if (advice.CorridorClearanceMeters < 1.0)
+                return false;
+
+            return true;
+        }
+
+        private static double ApplySuppressedObstacleSpeedPolicy(
+            double desiredSpeed,
+            DecisionAdviceProfile advice,
+            NavigationGeometry nav)
+        {
+            advice = advice.Sanitized();
+
+            var speed = desiredSpeed;
+
+            /*
+             * Obstacle var ama güvenli corridor da var:
+             * - Tam panik yok.
+             * - Yine de hız sınırlanır.
+             * - Corridor confidence yüksekse çok öldürülmez.
+             */
+            var corridorScale = advice.CorridorConfidence switch
+            {
+                >= 0.85 => 0.85,
+                >= 0.65 => 0.70,
+                _ => 0.55
+            };
+
+            speed *= corridorScale;
+
+            if (advice.RequireSlowMode)
+                speed *= 0.75;
+
+            if (Math.Abs(nav.HeadingErrorDeg) > 45.0)
+                speed *= 0.65;
+
+            if (Math.Abs(nav.YawRateDeg) > 65.0)
+                speed *= 0.70;
+
+            if (advice.ForceCoast)
+                speed = 0.0;
+
+            return Math.Clamp(
+                speed,
+                0.0,
+                Math.Min(1.2, Math.Max(0.25, desiredSpeed)));
         }
 
         private static double ResolveNavigateSpeedMps(
