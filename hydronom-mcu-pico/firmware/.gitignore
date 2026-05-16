@@ -1,0 +1,6 @@
+﻿/target/
+*.uf2
+*.elf
+*.bin
+*.hex
+.DS_Store
