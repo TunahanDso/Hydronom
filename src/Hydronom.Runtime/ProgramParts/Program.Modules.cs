@@ -123,9 +123,17 @@ partial class Program
         if (string.IsNullOrWhiteSpace(serialPortName))
             serialPortName = null;
 
-        bool disableSerial = runtime.DevMode || runtime.SimMode;
+        bool forceEnableSerial =
+            ReadBool(config, "Actuator:Serial:ForceEnabled", false);
+
+        bool disableSerial =
+            !forceEnableSerial &&
+            runtime.DevMode;
+
         if (disableSerial)
+        {
             serialPortName = null;
+        }
 
         var serialBaud = ReadInt(config, "Actuator:Serial:Baud", 115200);
 
