@@ -580,8 +580,7 @@ public class TcpJsonServer
                 dto.Pose.YawDeg,
                 dto.Pose.Yaw,
                 dto.Pose.HeadingDeg,
-                dto.Pose.Heading,
-                dto.Pose.Y
+                dto.Pose.Heading
             );
 
             var orientation = new Orientation(rollDeg, pitchDeg, yawDeg);
@@ -891,7 +890,7 @@ public class TcpJsonServer
             return false;
         }
 
-        var orientation = dto.Orientation is null
+        Orientation? orientation = dto.Orientation is null
             ? null
             : new Orientation(
                 PickFirstFinite(dto.Orientation.RollDeg, dto.Orientation.Roll),
@@ -1032,7 +1031,6 @@ public class TcpJsonServer
 
         public double? R { get; set; }
         public double? P { get; set; }
-        public double? Y { get; set; }
 
         public double? RollDeg { get; set; }
         public double? PitchDeg { get; set; }
