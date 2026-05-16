@@ -1,28 +1,34 @@
 {
   "Actuator": {
     "Serial": {
-      "Port": "COM7",
+      "ForceEnabled": true,
+      "Port": "/dev/ttyUSB0",
       "Baud": 115200
     },
     "Pwm": {
       "Arming": {
         "Enabled": true,
-        "NeutralUs": 1500,
-        "MinUs": 1100,
-        "MaxUs": 1900
+        "NeutralUs": 1000,
+        "MinUs": 1000,
+        "MaxUs": 2000
       },
       "Failsafe": {
         "Mode": "Neutral",
-        "TimeoutMs": 500
+        "TimeoutMs": 300
       }
     },
     "Discovery": {
-      "Enabled": true,
-      "ExpectedMotors": null,
+      "Enabled": false,
+      "ExpectedMotors": 4,
       "TimeoutMs": 3000,
-      "UsePersistedIfAvailable": true,
+      "UsePersistedIfAvailable": false,
       "PersistTo": "Configs/actuators.discovered.json"
     },
-    "Motors": []
+    "Motors": [
+      { "Id": "FL", "Channel": 0, "Direction": 1, "Neutral": 0.0 },
+      { "Id": "FR", "Channel": 1, "Direction": 1, "Neutral": 0.0 },
+      { "Id": "RL", "Channel": 2, "Direction": 1, "Neutral": 0.0 },
+      { "Id": "RR", "Channel": 3, "Direction": 1, "Neutral": 0.0 }
+    ]
   }
 }
