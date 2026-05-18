@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Hydronom.Core\Hydronom.Core.csproj" />
+    <ProjectReference Include="..\Hydronom.AI\Hydronom.AI.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

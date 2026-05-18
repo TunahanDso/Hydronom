@@ -1,15 +1,44 @@
-﻿/*
- * RuntimeContextPromptBuilder
- *
- * Amaç:
- * Runtime snapshot, sensor health, mission state ve capability bilgisinden AI context prompt'u üretmek.
- *
- * Durum:
- * Bu dosya Hydronom ürünleşme seviyesi C# Primary mimari scaffold paketinde oluşturulmuştur.
- * Şimdilik bilinçli olarak yalnızca açıklama içerir.
- * Gerçek implementasyon ilgili geliştirme paketinde eklenecektir.
- *
- * Ürün mimarisi notu:
- * Hydronom ürün halinde Core, Runtime, AI, Gateway, GroundStation ve Ops katmanları
- * tek bir izlenebilir, test edilebilir, state-authority kontrollü mimari zincir halinde çalışmalıdır.
- */
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Hydronom.Core.Domain.AI;
+
+namespace Hydronom.AI.Prompts.Runtime;
+
+public static class RuntimeContextPromptBuilder
+{
+    public static AiMessage BuildSystemContext(
+        string? runtimeSummary,
+        string? vehicleSummary,
+        string? sensorSummary,
+        string? missionSummary)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Hydronom runtime context summary:");
+        AppendSection(sb, "Runtime", runtimeSummary);
+        AppendSection(sb, "Vehicle", vehicleSummary);
+        AppendSection(sb, "Sensors", sensorSummary);
+        AppendSection(sb, "Mission", missionSummary);
+
+        return AiMessage.User(sb.ToString());
+    }
+
+    public static AiMessage BuildFromKeyValues(string title, IReadOnlyDictionary<string, object?> values)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(title);
+
+        foreach (var pair in values)
+            sb.AppendLine($"- {pair.Key}: {pair.Value}");
+
+        return AiMessage.User(sb.ToString());
+    }
+
+    private static void AppendSection(StringBuilder sb, string title, string? value)
+    {
+        sb.AppendLine($"{title}:");
+        sb.AppendLine(string.IsNullOrWhiteSpace(value) ? "- N/A" : value.Trim());
+        sb.AppendLine();
+    }
+}
