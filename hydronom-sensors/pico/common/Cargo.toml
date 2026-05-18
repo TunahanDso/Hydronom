@@ -1,0 +1,11 @@
+[package]
+name = "hydronom-sensor-pico-common"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "hydronom_sensor_pico_common"
+path = "src/lib.rs"
+
+[dependencies]
+heapless = "0.8"
