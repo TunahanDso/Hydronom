@@ -13,6 +13,7 @@
 // - Health bildirimi
 // - Ortak IMU payload modelleri
 // - Binary frame encode/decode altyapısı
+// - Gerçek sensör paketlerini Hydronom sample modeline çeviren parser katmanları
 
 pub mod protocol {
     pub mod frame_type;
@@ -44,4 +45,10 @@ pub mod health {
 pub mod imu {
     pub mod imu_sample;
     pub mod imu_payload_decoder;
+}
+
+pub mod bno085 {
+    pub mod rvc_packet;
+    pub mod rvc_stream_reader;
+    pub mod rvc_to_imu;
 }

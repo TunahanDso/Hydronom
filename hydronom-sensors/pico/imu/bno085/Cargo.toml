@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 hydronom-sensor-pico-common = { path = "../../common" }
 heapless = "0.8"
+libm = "0.2"
