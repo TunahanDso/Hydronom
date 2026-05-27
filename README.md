@@ -5052,7 +5052,7 @@ Hydronom; otonom araç runtime mimarisi, sensör ve füzyon altyapısı, güvenl
 
 ### 🔒 Kullanım İzni
 
-Bu yazılımın kullanım, geliştirme, erişim ve yaygınlaştırma hakkı **münhasıran Sadece Tunahan Delisalihoğlu na aittir.
+Bu yazılımın kullanım, geliştirme, erişim ve yaygınlaştırma hakkı **münhasıran Sadece Tunahan Delisalihoğlu na ve Yıldız Teknik Üniversitesi Stars of Hydro takımı üyelerine aittir.
 
 Bu kapsam dışındaki tüm kullanım biçimleri, geliştiricinin açık ve yazılı iznine tabidir.
 
