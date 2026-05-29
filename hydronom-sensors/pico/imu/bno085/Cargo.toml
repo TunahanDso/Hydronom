@@ -1,4 +1,4 @@
-[package]
+﻿[package]
 name = "hydronom-sensor-pico-imu-bno085"
 version = "0.1.0"
 edition = "2021"
@@ -7,3 +7,29 @@ edition = "2021"
 hydronom-sensor-pico-common = { path = "../../common" }
 heapless = "0.8"
 libm = "0.2"
+
+# Pico 2 / RP2350 gerçek firmware bağımlılıkları.
+#
+# Not:
+# Eski Pico / RP2040 desteği bilerek kaldırıldı.
+# Bu paket artık doğrudan Raspberry Pi Pico 2 / RP2350 hedeflidir.
+rp235x-hal = { version = "0.4.0", features = ["rt", "critical-section-impl"] }
+
+cortex-m = "0.7"
+panic-halt = "0.2"
+
+usb-device = "0.3.2"
+usbd-serial = "0.2.2"
+
+embedded-hal = "1.0"
+embedded-hal-nb = "1.0"
+nb = "1.1"
+fugit = "0.3"
+
+[[bin]]
+name = "hydronom-sensor-pico-imu-bno085"
+path = "src/main.rs"
+
+[[bin]]
+name = "pico-bno085-rvc"
+path = "src/bin/pico_bno085_rvc.rs"

@@ -1,0 +1,10 @@
+﻿[target.thumbv8m.main-none-eabihf]
+runner = "powershell -ExecutionPolicy Bypass -File flash-rp2350.ps1"
+rustflags = [
+  "-C", "target-cpu=cortex-m33",
+  "-C", "link-arg=--nmagic",
+  "-C", "link-arg=-Tlink.x",
+]
+
+[build]
+target = "thumbv8m.main-none-eabihf"

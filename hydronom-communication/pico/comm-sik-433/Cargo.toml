@@ -1,0 +1,21 @@
+﻿[package]
+name = "hydronom-communication-pico-sik-433"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rp235x-hal = { version = "0.4.0", features = ["rt", "critical-section-impl"] }
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+usb-device = "0.3.2"
+usbd-serial = "0.2.2"
+embedded-hal = "1.0"
+embedded-hal-nb = "1.0"
+nb = "1.1"
+fugit = "0.3"
+heapless = "0.8"
+
+[[bin]]
+name = "hydronom-communication-pico-sik-433"
+path = "src/main.rs"
