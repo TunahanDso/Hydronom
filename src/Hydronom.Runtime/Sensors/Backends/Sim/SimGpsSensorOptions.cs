@@ -1,11 +1,11 @@
-﻿namespace Hydronom.Runtime.Sensors.Gps;
+namespace Hydronom.Runtime.Sensors.Backends.Sim;
 
 /// <summary>
 /// C# GPS sensÃ¶rÃ¼ iÃ§in ayar modeli.
 /// 
 /// Bu model sim GPS ve ileride gelecek NMEA/UBX/GPSD backend'leri iÃ§in temel ayarlarÄ± taÅŸÄ±r.
 /// </summary>
-public sealed class GpsSensorOptions
+public sealed class SimGpsSensorOptions
 {
     public string Source { get; set; } = "gps0";
 
@@ -47,8 +47,8 @@ public sealed class GpsSensorOptions
     /// </summary>
     public double PositionNoiseMeters { get; set; } = 0.03;
 
-    public static GpsSensorOptions Default()
+    public static SimGpsSensorOptions Default()
     {
-        return new GpsSensorOptions();
+        return new SimGpsSensorOptions();
     }
 }

@@ -6,7 +6,6 @@ using Hydronom.Core.State.Authority;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Operations.Snapshots;
 using Hydronom.Runtime.Sensors.Backends.Common;
-using Hydronom.Runtime.Sensors.Backends.Lidar;
 using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
@@ -143,7 +142,7 @@ partial class Program
         sensorOptions.EnableLidar = ReadBool(config, "Runtime:TelemetrySummary:EnableLidar", true);
         sensorOptions.EnableCamera = ReadBool(config, "Runtime:TelemetrySummary:EnableCamera", false);
 
-        var lidarOptions = LidarBackendOptions.Default();
+        var lidarOptions = SimLidarBackendOptions.Default();
         lidarOptions.SensorId = ReadString(config, "Runtime:TelemetrySummary:Lidar:SensorId", "lidar0");
         lidarOptions.Source = ReadString(config, "Runtime:TelemetrySummary:Lidar:Source", "sim_lidar");
         lidarOptions.FrameId = ReadString(config, "Runtime:TelemetrySummary:Lidar:FrameId", "lidar_link");
@@ -160,12 +159,12 @@ partial class Program
         var registry = new SensorBackendRegistry()
             .Register(
                 key: "sim_imu",
-                factory: _ => new Hydronom.Runtime.Sensors.Imu.SimImuSensor(
+                factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimImuSensor(
                     truthProvider: truthProvider)
             )
             .Register(
                 key: "sim_gps",
-                factory: _ => new Hydronom.Runtime.Sensors.Gps.SimGpsSensor(
+                factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimGpsSensor(
                     truthProvider: truthProvider)
             )
             .Register(

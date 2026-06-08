@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Domain;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Fusion.Estimation;
 using Hydronom.Core.Fusion.Models;
 using Hydronom.Core.Sensors.Common.Models;
@@ -45,11 +45,11 @@ sensorOptions.EnableCamera = false;
 var registry = new SensorBackendRegistry()
     .Register(
         key: "sim_imu",
-        factory: _ => new Hydronom.Runtime.Sensors.Imu.SimImuSensor(truthProvider: truthProvider)
+        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimImuSensor(truthProvider: truthProvider)
     )
     .Register(
         key: "sim_gps",
-        factory: _ => new Hydronom.Runtime.Sensors.Gps.SimGpsSensor(truthProvider: truthProvider)
+        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimGpsSensor(truthProvider: truthProvider)
     );
 
 var sensorBuilder = new SensorRuntimeBuilder(registry);

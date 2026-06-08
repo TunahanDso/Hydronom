@@ -1,6 +1,4 @@
 using Hydronom.Runtime.Sensors.Backends.Sim;
-using Hydronom.Runtime.Sensors.Gps;
-using Hydronom.Runtime.Sensors.Imu;
 using Hydronom.Runtime.Sensors.Sim;
 
 namespace Hydronom.Runtime.Sensors.Backends.Common;

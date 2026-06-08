@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Runtime.Sensors.Imu;
+namespace Hydronom.Runtime.Sensors.Backends.Sim;
 
 /// <summary>
 /// C# IMU sensÃ¶rÃ¼ iÃ§in ayar modeli.
@@ -6,7 +6,7 @@
 /// Bu model hem sim IMU hem de ileride gelecek gerÃ§ek serial/I2C/SPI IMU
 /// backend'leri iÃ§in ortak temel ayarlarÄ± taÅŸÄ±r.
 /// </summary>
-public sealed class ImuSensorOptions
+public sealed class SimImuSensorOptions
 {
     public string Source { get; set; } = "imu0";
 
@@ -45,8 +45,8 @@ public sealed class ImuSensorOptions
     /// </summary>
     public double NoiseScale { get; set; } = 0.002;
 
-    public static ImuSensorOptions Default()
+    public static SimImuSensorOptions Default()
     {
-        return new ImuSensorOptions();
+        return new SimImuSensorOptions();
     }
 }

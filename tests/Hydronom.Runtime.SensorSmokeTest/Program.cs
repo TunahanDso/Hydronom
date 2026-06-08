@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Domain;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Sensors.Gps.Models;
 using Hydronom.Core.Sensors.Imu.Models;
@@ -6,7 +6,7 @@ using Hydronom.Core.Sensors.Lidar.Models;
 using Hydronom.Core.Simulation.Truth;
 using Hydronom.Core.World.Models;
 using Hydronom.Runtime.Sensors.Backends.Common;
-using Hydronom.Runtime.Sensors.Backends.Lidar;
+using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
@@ -151,11 +151,11 @@ static async Task<bool> RunTruthFedScenarioAsync()
     var registry = new SensorBackendRegistry()
         .Register(
             key: "sim_imu",
-            factory: _ => new Hydronom.Runtime.Sensors.Imu.SimImuSensor(truthProvider: truthProvider)
+            factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimImuSensor(truthProvider: truthProvider)
         )
         .Register(
             key: "sim_gps",
-            factory: _ => new Hydronom.Runtime.Sensors.Gps.SimGpsSensor(truthProvider: truthProvider)
+            factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimGpsSensor(truthProvider: truthProvider)
         );
 
     var builder = new SensorRuntimeBuilder(registry);
@@ -289,7 +289,7 @@ static async Task<bool> RunTruthFedLidarRaycastScenarioAsync()
     options.EnableLidar = true;
     options.EnableCamera = false;
 
-    var lidarOptions = new LidarBackendOptions
+    var lidarOptions = new SimLidarBackendOptions
     {
         SensorId = "lidar0",
         Source = "sim_lidar",

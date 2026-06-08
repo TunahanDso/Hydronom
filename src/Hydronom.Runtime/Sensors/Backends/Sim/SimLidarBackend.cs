@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Sensors.Common.Abstractions;
+using Hydronom.Core.Sensors.Common.Abstractions;
 using Hydronom.Core.Sensors.Common.Capabilities;
 using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Core.Sensors.Common.Models;
@@ -6,7 +6,7 @@ using Hydronom.Core.Sensors.Common.Quality;
 using Hydronom.Core.Sensors.Common.Timing;
 using Hydronom.Core.Sensors.Lidar.Models;
 using Hydronom.Core.Simulation.Truth;
-using Hydronom.Runtime.Sensors.Backends.Lidar;
+using Hydronom.Runtime.Sensors.Backends.Sim;
 using Hydronom.Runtime.Sensors.Sim;
 using Hydronom.Runtime.Simulation.Raycasting;
 using Hydronom.Runtime.World.Runtime;
@@ -19,7 +19,7 @@ namespace Hydronom.Runtime.Sensors.Backends.Sim;
 /// </summary>
 public sealed class SimLidarBackend : ISensorBackend
 {
-    private readonly LidarBackendOptions _options;
+    private readonly SimLidarBackendOptions _options;
     private readonly SimSensorClock _clock;
     private readonly IPhysicsTruthProvider? _truthProvider;
     private readonly RuntimeWorldModel? _worldModel;
@@ -36,12 +36,12 @@ public sealed class SimLidarBackend : ISensorBackend
     private string _lastError = "";
 
     public SimLidarBackend(
-        LidarBackendOptions? options = null,
+        SimLidarBackendOptions? options = null,
         SimSensorClock? clock = null,
         IPhysicsTruthProvider? truthProvider = null,
         RuntimeWorldModel? worldModel = null)
     {
-        _options = (options ?? LidarBackendOptions.Default()).Sanitized();
+        _options = (options ?? SimLidarBackendOptions.Default()).Sanitized();
         _clock = clock ?? new SimSensorClock();
         _truthProvider = truthProvider;
         _worldModel = worldModel;

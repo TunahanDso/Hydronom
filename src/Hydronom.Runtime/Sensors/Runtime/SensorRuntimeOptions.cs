@@ -1,114 +1,122 @@
-﻿using Hydronom.Core.Sensors.Gps.Models;
-using Hydronom.Core.Sensors.Imu.Models;
-using Hydronom.Core.Sensors.Common.Timing;
-using Hydronom.Core.Sensors.Common.Quality;
 using Hydronom.Core.Sensors.Common.Models;
-using Hydronom.Core.Sensors.Common.Diagnostics;
-using Hydronom.Core.Sensors.Common.Capabilities;
-using Hydronom.Core.Sensors.Common.Abstractions;
-using Hydronom.Core.Sensors;
 
 namespace Hydronom.Runtime.Sensors.Runtime;
 
 /// <summary>
-/// Hydronom sensÃ¶r runtime ayarlarÄ±.
-/// 
-/// Bu sÄ±nÄ±f, sensÃ¶r tarafÄ±nda ana Ã§alÄ±ÅŸma modunu belirler.
-/// Bundan sonra varsayÄ±lan hedef CSharpPrimary modudur.
-/// Python tarafÄ± yalnÄ±zca legacy backup / fallback olarak korunur.
+/// Hydronom sensör runtime ayarları.
+///
+/// Önemli mimari karar:
+/// CSharpPrimary, fiziksel sensörlerin tamamını C# doğrudan okuyacak demek değildir.
+/// CSharpPrimary, sensör verisinin Hydronom içinde C# authority/fusion/state hattına gireceği ana çalışma modudur.
+///
+/// Fiziksel sensörlerde varsayılan yol:
+/// Sensör → Pico/MCU → USB raw frame → C# backend → SensorSample → Fusion/StateAuthority
 /// </summary>
 public sealed class SensorRuntimeOptions
 {
     /// <summary>
-    /// Ana sensÃ¶r runtime modu.
-    /// 
+    /// Ana sensör runtime modu.
+    ///
     /// CSharpPrimary:
-    /// Normal mod. SensÃ¶r, fÃ¼zyon ve state estimation C# tarafÄ±nda Ã§alÄ±ÅŸÄ±r.
-    /// 
+    /// Hydronom'un ana sensör, füzyon ve state authority hattı C# tarafındadır.
+    ///
     /// PythonBackup:
-    /// Eski Python pipeline yedek sistem olarak kullanÄ±lÄ±r.
-    /// 
+    /// Eski Python pipeline yalnızca açıkça seçilirse fallback olarak çalışır.
+    ///
     /// CompareOnly:
-    /// C# ve Python Ã§Ä±ktÄ±larÄ± karÅŸÄ±laÅŸtÄ±rÄ±lÄ±r; Python authority sahibi olmaz.
-    /// 
+    /// C# çıktıları ile yedek/harici pipeline çıktıları karşılaştırılır; harici taraf authority sahibi olmaz.
+    ///
     /// Disabled:
-    /// SensÃ¶r runtime devre dÄ±ÅŸÄ±dÄ±r.
+    /// Sensör runtime devre dışıdır.
     /// </summary>
     public SensorRuntimeMode Mode { get; set; } = SensorRuntimeMode.CSharpPrimary;
 
     /// <summary>
-    /// Python backup sisteminin kullanÄ±lmasÄ±na izin verilip verilmediÄŸi.
-    /// Bu deÄŸer true olsa bile Python normal modda ana state'i yÃ¶netemez.
+    /// Eski Python backup sisteminin kullanılmasına izin verilip verilmediği.
+    /// Bu değer true olsa bile Python normal modda ana state'i yönetemez.
     /// </summary>
     public bool PythonBackupEnabled { get; set; } = true;
 
     /// <summary>
-    /// Normal modda Python'Ä±n authoritative state kaynaÄŸÄ± olmasÄ±na izin verilmez.
-    /// Bu deÄŸer gÃ¼venlik iÃ§in varsayÄ±lan olarak false kalmalÄ±dÄ±r.
+    /// Normal modda Python'ın authoritative state kaynağı olmasına izin verilmez.
+    /// Güvenlik için varsayılan false kalmalıdır.
     /// </summary>
     public bool AllowPythonAuthority { get; set; } = false;
 
     /// <summary>
-    /// CompareOnly modunda Python Ã§Ä±ktÄ±larÄ± C# Ã§Ä±ktÄ±larÄ± ile karÅŸÄ±laÅŸtÄ±rÄ±lÄ±r.
-    /// Bu mod test/debug amaÃ§lÄ±dÄ±r.
+    /// CompareOnly modunda yedek/harici pipeline çıktıları C# çıktıları ile karşılaştırılır.
+    /// Bu mod test/debug amaçlıdır.
     /// </summary>
-    public bool CompareWithPython { get; set; } = false;
+    public bool CompareWithExternalPipeline { get; set; } = false;
 
     /// <summary>
-    /// SensÃ¶rlerden okuma yapÄ±lÄ±rken hedef dÃ¶ngÃ¼ frekansÄ±.
-    /// Bu deÄŸer tÃ¼m sensÃ¶rlerin gerÃ§ek hÄ±zÄ± deÄŸildir; runtime host'un ana poll hedefidir.
+    /// Sensörlerden okuma yapılırken runtime host'un ana poll hedefi.
+    /// Bu değer tüm sensörlerin gerçek örnekleme frekansı değildir.
     /// </summary>
     public double RuntimeRateHz { get; set; } = 20.0;
 
     /// <summary>
-    /// SensÃ¶r Ã¶rneÄŸi bu sÃ¼reden eskiyse stale kabul edilir.
+    /// Sensör örneği bu süreden eskiyse stale kabul edilir.
     /// </summary>
     public double StaleSampleMs { get; set; } = 750.0;
 
     /// <summary>
-    /// ArdÄ±ÅŸÄ±k hata sayÄ±sÄ± bu eÅŸiÄŸi geÃ§erse sensÃ¶r failing/critical durumuna yaklaÅŸÄ±r.
+    /// Ardışık hata sayısı bu eşiği geçerse sensör degraded/failing durumuna yaklaşır.
     /// </summary>
     public int ConsecutiveFailureWarningThreshold { get; set; } = 3;
 
     /// <summary>
-    /// ArdÄ±ÅŸÄ±k hata sayÄ±sÄ± bu eÅŸiÄŸi geÃ§erse sensÃ¶r critical kabul edilebilir.
+    /// Ardışık hata sayısı bu eşiği geçerse sensör critical/failing kabul edilebilir.
     /// </summary>
     public int ConsecutiveFailureCriticalThreshold { get; set; } = 8;
 
     /// <summary>
-    /// CSharpPrimary modunda sim sensÃ¶rlerin otomatik oluÅŸturulmasÄ±na izin verir.
-    /// Ä°lk geÃ§iÅŸ aÅŸamasÄ±nda IMU/GPS sim sensÃ¶rleri iÃ§in kullanacaÄŸÄ±z.
+    /// Simülasyon backend'lerinin otomatik eklenmesine izin verir.
+    ///
+    /// Gerçek sistemde varsayılan false olmalıdır.
+    /// Aksi halde Pico/Gerçek sensör beklerken sistem sim IMU/GPS ile kendini kandırabilir.
     /// </summary>
-    public bool EnableDefaultSimSensors { get; set; } = true;
+    public bool EnableDefaultSimSensors { get; set; } = false;
 
     /// <summary>
-    /// Runtime iÃ§inde IMU sensÃ¶rÃ¼nÃ¼ etkinleÅŸtirir.
+    /// Pico/MCU üzerinden USB ile gelen gerçek ham sensör verisi hattını etkinleştirir.
+    ///
+    /// Bu seçenek firmware kodu oluşturmaz.
+    /// Sadece C# runtime tarafında Pico'dan gelen raw frame'lerin sensör sample'a dönüştürüleceğini belirtir.
+    /// </summary>
+    public bool EnablePicoUsbSensors { get; set; } = true;
+
+    /// <summary>
+    /// IMU sensör ailesini etkinleştirir.
+    /// Gerçek modda IMU verisi Pico USB hattından gelebilir.
+    /// Sim modda sim backend üzerinden üretilebilir.
     /// </summary>
     public bool EnableImu { get; set; } = true;
 
     /// <summary>
-    /// Runtime iÃ§inde GPS sensÃ¶rÃ¼nÃ¼ etkinleÅŸtirir.
+    /// GPS/GNSS sensör ailesini etkinleştirir.
+    /// Gerçek modda GPS verisi Pico USB hattından gelebilir.
+    /// Sim modda sim backend üzerinden üretilebilir.
     /// </summary>
     public bool EnableGps { get; set; } = true;
 
     /// <summary>
-    /// Runtime iÃ§inde LiDAR sensÃ¶rÃ¼nÃ¼ etkinleÅŸtirir.
-    /// Ä°lk paketlerde false kalabilir.
+    /// LiDAR sensör ailesini etkinleştirir.
+    /// Kamera hariç sensörler Pico hattına taşınacağı için gerçek LiDAR bağlantısı da ileride Pico/MCU protokolüyle gelebilir.
     /// </summary>
     public bool EnableLidar { get; set; } = false;
 
     /// <summary>
-    /// Runtime iÃ§inde kamera sensÃ¶rÃ¼nÃ¼ etkinleÅŸtirir.
-    /// Kamera C# tarafÄ±na ileriki paketlerde taÅŸÄ±nacak.
+    /// Kamera sensör ailesini etkinleştirir.
+    /// Kamera Pico hattına dahil değildir; ayrı yüksek bant genişlikli yol kullanır.
     /// </summary>
     public bool EnableCamera { get; set; } = false;
 
     /// <summary>
-    /// VarsayÄ±lan ayar nesnesi Ã¼retir.
+    /// Varsayılan ayar nesnesi üretir.
     /// </summary>
     public static SensorRuntimeOptions Default()
     {
         return new SensorRuntimeOptions();
     }
 }
-

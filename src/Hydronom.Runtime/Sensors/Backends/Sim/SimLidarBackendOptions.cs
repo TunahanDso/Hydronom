@@ -1,10 +1,10 @@
-﻿namespace Hydronom.Runtime.Sensors.Backends.Lidar;
+namespace Hydronom.Runtime.Sensors.Backends.Sim;
 
 /// <summary>
 /// Sim/real LiDAR backend ayarları.
 /// Şimdilik SimLidarBackend tarafından kullanılır.
 /// </summary>
-public sealed class LidarBackendOptions
+public sealed class SimLidarBackendOptions
 {
     public string SensorId { get; set; } = "lidar0";
 
@@ -28,12 +28,12 @@ public sealed class LidarBackendOptions
 
     public bool UseWorldModel { get; set; } = true;
 
-    public static LidarBackendOptions Default()
+    public static SimLidarBackendOptions Default()
     {
-        return new LidarBackendOptions();
+        return new SimLidarBackendOptions();
     }
 
-    public LidarBackendOptions Sanitized()
+    public SimLidarBackendOptions Sanitized()
     {
         var rangeMin = SafePositive(RangeMinMeters, 0.05);
         var rangeMax = SafePositive(RangeMaxMeters, 30.0);
@@ -43,7 +43,7 @@ public sealed class LidarBackendOptions
             (rangeMin, rangeMax) = (rangeMax, rangeMin);
         }
 
-        return new LidarBackendOptions
+        return new SimLidarBackendOptions
         {
             SensorId = Normalize(SensorId, "lidar0"),
             Source = Normalize(Source, "sim_lidar"),
