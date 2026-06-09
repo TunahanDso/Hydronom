@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Hydronom.Core.Sensors.Common.Models
 {
@@ -55,6 +55,24 @@ namespace Hydronom.Core.Sensors.Common.Models
             );
         }
 
+
+        public static SensorSourceInfo PicoUsb(
+            string backendName = "pico_usb",
+            string endpoint = "usb_serial"
+        )
+        {
+            return new SensorSourceInfo(
+                BackendKind: SensorBackendKind.PicoUsb,
+                RuntimeMode: SensorRuntimeMode.CSharpPrimary,
+                BackendName: Normalize(backendName, "pico_usb"),
+                Transport: "usb_serial",
+                Endpoint: Normalize(endpoint, "usb_serial"),
+                Simulated: false,
+                Replay: false,
+                External: true,
+                TraceSource: "PicoUsb"
+            );
+        }
         public static SensorSourceInfo ReplaySource(string backendName = "replay")
         {
             return new SensorSourceInfo(

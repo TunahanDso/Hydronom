@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Common.Models
+namespace Hydronom.Core.Sensors.Common.Models
 {
     /// <summary>
     /// SensÃ¶r verisinin hangi backend tÃ¼rÃ¼nden geldiÄŸini belirtir.
@@ -20,6 +20,8 @@
         Can = 43,
         Network = 44,
         Usb = 45,
+        PicoUsb = 46,
+        McuUsb = 47,
 
         CSharpPrimary = 60,
         PythonBackup = 70,
