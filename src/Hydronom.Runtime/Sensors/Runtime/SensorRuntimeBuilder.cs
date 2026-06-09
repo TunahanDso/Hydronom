@@ -115,6 +115,9 @@ public sealed class SensorRuntimeBuilder
         if (options.EnableGps)
             keys.Add("sim_gps");
 
+        if (options.EnableDepth)
+            keys.Add("sim_depth");
+
         if (options.EnableLidar)
             keys.Add("sim_lidar");
 

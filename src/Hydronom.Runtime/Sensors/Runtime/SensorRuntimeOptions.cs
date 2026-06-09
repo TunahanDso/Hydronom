@@ -99,6 +99,12 @@ public sealed class SensorRuntimeOptions
     /// Sim modda sim backend üzerinden üretilebilir.
     /// </summary>
     public bool EnableGps { get; set; } = true;
+    /// <summary>
+    /// Depth / basınç sensör ailesini etkinleştirir.
+    /// Sualtı araçlarında derinlik, hava/yer araçlarında dikey konum benzeri capability'lere temel olabilir.
+    /// Gerçek modda Pico USB hattından, sim modda SimDepthSensor üzerinden gelebilir.
+    /// </summary>
+    public bool EnableDepth { get; set; } = false;
 
     /// <summary>
     /// LiDAR sensör ailesini etkinleştirir.

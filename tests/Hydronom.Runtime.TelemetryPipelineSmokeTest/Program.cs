@@ -60,7 +60,15 @@ var sensorRuntime = new SensorRuntimeBuilder(registry).Build(sensorOptions);
 var policy = StateAuthorityPolicy.CSharpPrimary with
 {
     MaxStateAgeMs = 2_000.0,
-    MinConfidence = 0.50,
+
+    /*
+     * Runtime telemetry smoke test artık CDSE primary estimator ile çalışır.
+     * CDSE GPS+IMU ile yüksek güven üretir; GPS kaybı senaryolarında IMU/Depth gibi
+     * degraded kaynaklardan gelen state adaylarının da authority kapısından geçebilmesi için
+     * varsayılan eşik 0.45 tutulur.
+     */
+    MinConfidence = 0.45,
+
     MaxTeleportDistanceMeters = 50.0,
     MaxPlausibleSpeedMps = 50.0,
     MaxPlausibleYawRateDegSec = 360.0,
@@ -72,7 +80,12 @@ var stateStore = new VehicleStateStore(vehicleId, StateAuthorityMode.CSharpPrima
 var statePipeline = new StateUpdatePipeline(authority, stateStore);
 var stateTelemetryBridge = new StateTelemetryBridge();
 
-var estimator = new GpsImuStateEstimator();
+/*
+ * Runtime smoke test artık CDSE primary estimator üzerinden çalışır.
+ * Böylece test sadece GPS+IMU özel estimatorünü değil,
+ * Hydronom'un capability tabanlı state estimation zincirini doğrular.
+ */
+var estimator = new CapabilityDrivenStateEstimator();
 var runner = new StateEstimatorRunner(estimator);
 
 var fusionHost = new FusionRuntimeHost(
@@ -105,11 +118,13 @@ Console.WriteLine($"Started      : {pipeline.IsStarted}");
 Console.WriteLine($"TickIndex    : {pipeline.TickIndex}");
 Console.WriteLine($"VehicleId    : {vehicleId}");
 Console.WriteLine($"Truth ready  : {truthProvider.IsAvailable}");
+Console.WriteLine($"Estimator    : {estimator.Name}");
 Console.WriteLine();
 
 Require(!pipeline.IsStarted, "Pipeline başlangıçta started false olmalı.");
 Require(pipeline.TickIndex == 0, "Pipeline başlangıç tick index 0 olmalı.");
 Require(truthProvider.IsAvailable, "Truth provider available olmalı.");
+Require(estimator.Name == "capability_driven_state_estimator", "Estimator CDSE olmalı.");
 
 await pipeline.StartAsync();
 
@@ -180,8 +195,9 @@ Require(!summary1.HasCriticalIssue, "Summary #1 critical issue olmamalı.");
 Require(!summary1.HasWarnings, "Summary #1 warning olmamalı.");
 Require(summary1.SensorCount == 2, "Summary #1 sensor count 2 olmalı.");
 Require(summary1.HealthySensorCount == 2, "Summary #1 healthy sensor count 2 olmalı.");
+Require(summary1.FusionEngineName == "capability_driven_state_estimator", "Summary #1 fusion engine CDSE olmalı.");
 Require(summary1.FusionProducedCandidate, "Summary #1 fusion produced true olmalı.");
-Require(summary1.FusionConfidence >= 0.90, "Summary #1 fusion confidence yüksek olmalı.");
+Require(summary1.FusionConfidence >= 0.75, "Summary #1 CDSE fusion confidence yeterli olmalı.");
 Require(summary1.VehicleId == vehicleId, "Summary #1 vehicle id doğru olmalı.");
 Require(summary1.HasState, "Summary #1 has state true olmalı.");
 Require(Math.Abs(summary1.StateX - truth.Position.X) < 0.25, "Summary #1 StateX truth/GPS X'e yakın olmalı.");
@@ -243,11 +259,15 @@ Require(memoryPublisher.PublishCount == 2, "Memory publisher #2 sonrası publish
 var summary2 = memoryPublisher.LastSummary.Sanitized();
 
 Console.WriteLine("[6] Summary after tick #2");
+Console.WriteLine($"FusionEngine          : {summary2.FusionEngineName}");
+Console.WriteLine($"FusionConfidence      : {summary2.FusionConfidence:F3}");
 Console.WriteLine($"State                 : X={summary2.StateX:F3}, Y={summary2.StateY:F3}, Z={summary2.StateZ:F3}, Yaw={summary2.StateYawDeg:F3}");
 Console.WriteLine($"AcceptedUpdateCount   : {summary2.AcceptedStateUpdateCount}");
 Console.WriteLine($"RejectedUpdateCount   : {summary2.RejectedStateUpdateCount}");
 Console.WriteLine();
 
+Require(summary2.FusionEngineName == "capability_driven_state_estimator", "Summary #2 fusion engine CDSE olmalı.");
+Require(summary2.FusionConfidence >= 0.75, "Summary #2 CDSE fusion confidence yeterli olmalı.");
 Require(Math.Abs(summary2.StateX - truth2.Position.X) < 0.25, "Summary #2 StateX yeni truth/GPS X'e yakın olmalı.");
 Require(Math.Abs(summary2.StateY - truth2.Position.Y) < 0.25, "Summary #2 StateY yeni truth/GPS Y'ye yakın olmalı.");
 Require(Math.Abs(summary2.StateZ - truth2.Position.Z) < 0.001, "Summary #2 StateZ yeni truth/GPS Z olmalı.");
@@ -264,7 +284,7 @@ Console.WriteLine();
 Require(!pipeline.IsStarted, "Pipeline StopAsync sonrası started false olmalı.");
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("PASS: RuntimeTelemetryPipeline gerçek CSharpSensorRuntime + FusionRuntimeHost + RuntimeTelemetryHost zincirini doğru çalıştırdı.");
+Console.WriteLine("PASS: RuntimeTelemetryPipeline gerçek CSharpSensorRuntime + CDSE + FusionRuntimeHost + RuntimeTelemetryHost zincirini doğru çalıştırdı.");
 Console.ResetColor();
 
 return 0;

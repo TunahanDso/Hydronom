@@ -50,6 +50,12 @@ public static class SensorBackendRegistryDefaults
             factory: _ => new SimGpsSensor(clock: clock),
             replaceExisting: replaceExisting
         );
+        
+        registry.Register(
+            key: "sim_depth",
+            factory: _ => new SimDepthSensor(clock: clock),
+            replaceExisting: replaceExisting
+        );
 
         registry.Register(
             key: "sim_lidar",

@@ -1,4 +1,4 @@
-using Hydronom.Core.Domain;
+﻿using Hydronom.Core.Domain;
 using Hydronom.Core.Fusion.Estimation;
 using Hydronom.Core.Fusion.Models;
 using Hydronom.Core.Sensors.Common.Models;
@@ -10,26 +10,36 @@ using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
 using Hydronom.Runtime.StateRuntime;
 
-Console.WriteLine("=== Hydronom Runtime Pipeline Integration Smoke Test ===");
+Console.WriteLine("=== Hydronom Runtime CDSE Degraded Smoke Test ===");
 Console.WriteLine();
 
-var vehicleId = "RUNTIME-PIPELINE-SMOKE-001";
+var vehicleId = "CDSE-DEGRADED-SMOKE-001";
 
-var truthProvider = new PhysicsTruthProvider("RuntimePipelineTruthProvider");
+var truthProvider = new PhysicsTruthProvider("CdseDegradedSmokeTruthProvider");
 
 var truth = new PhysicsTruthState(
     VehicleId: vehicleId,
     TimestampUtc: DateTime.UtcNow,
-    Position: new Vec3(4.0, 1.5, 0.2),
-    Velocity: new Vec3(1.5, 0.5, 0.0),
-    Acceleration: new Vec3(0.1, 0.0, 0.0),
-    Orientation: new Orientation(2.0, -1.0, 35.0),
-    AngularVelocityDegSec: new Vec3(0.5, -0.2, 8.0),
+
+    /*
+     * GPS kapalı olduğu için X/Y doğrudan ölçülemeyecek.
+     * CDSE ilk degraded acquisition sırasında X/Y için düşük güvenli origin/placeholder kullanabilir.
+     *
+     * Z negatif veriliyor çünkü Hydronom world convention:
+     * - Z yukarı yöndür.
+     * - Depth pozitif aşağı yöndür.
+     * - depth = -Z
+     */
+    Position: new Vec3(9.0, -3.0, -1.80),
+    Velocity: new Vec3(0.0, 0.0, -0.05),
+    Acceleration: Vec3.Zero,
+    Orientation: new Orientation(1.5, -0.75, 123.0),
+    AngularVelocityDegSec: new Vec3(0.0, 0.0, 3.0),
     AngularAccelerationDegSec: Vec3.Zero,
     LastAppliedLoads: PhysicsLoads.Zero,
-    EnvironmentSummary: "RUNTIME_PIPELINE_SMOKE",
+    EnvironmentSummary: "CDSE_DEGRADED_SMOKE_GPS_DISABLED",
     FrameId: "map",
-    TraceId: "runtime-pipeline-truth"
+    TraceId: "cdse-degraded-smoke-truth"
 );
 
 truthProvider.Publish(truth);
@@ -38,22 +48,24 @@ var sensorOptions = SensorRuntimeOptions.Default();
 sensorOptions.Mode = SensorRuntimeMode.CSharpPrimary;
 sensorOptions.EnableDefaultSimSensors = true;
 sensorOptions.EnableImu = true;
-sensorOptions.EnableGps = true;
+sensorOptions.EnableGps = false;
+sensorOptions.EnableDepth = true;
 sensorOptions.EnableLidar = false;
 sensorOptions.EnableCamera = false;
 
 var registry = new SensorBackendRegistry()
     .Register(
         key: "sim_imu",
-        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimImuSensor(truthProvider: truthProvider)
+        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimImuSensor(
+            truthProvider: truthProvider)
     )
     .Register(
-        key: "sim_gps",
-        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimGpsSensor(truthProvider: truthProvider)
+        key: "sim_depth",
+        factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimDepthSensor(
+            truthProvider: truthProvider)
     );
 
-var sensorBuilder = new SensorRuntimeBuilder(registry);
-var sensorRuntime = sensorBuilder.Build(sensorOptions);
+var sensorRuntime = new SensorRuntimeBuilder(registry).Build(sensorOptions);
 
 Console.WriteLine("[1] Sensor runtime created");
 Console.WriteLine($"Runtime type : {sensorRuntime.GetType().Name}");
@@ -67,16 +79,20 @@ if (sensorRuntime is not CSharpSensorRuntime csharpSensorRuntime)
 Console.WriteLine($"Backend count : {csharpSensorRuntime.BackendCount}");
 Console.WriteLine();
 
-Require(csharpSensorRuntime.BackendCount == 2, "Runtime içinde IMU + GPS olmak üzere 2 backend olmalı.");
+Require(csharpSensorRuntime.BackendCount == 2, "Runtime içinde IMU + Depth olmak üzere 2 backend olmalı.");
 
 await sensorRuntime.StartAsync();
 
 var samples = await sensorRuntime.ReadBatchAsync();
+var sensorHealth = sensorRuntime.GetHealth();
 
 await sensorRuntime.StopAsync();
 
 Console.WriteLine("[2] Sensor batch read");
-Console.WriteLine($"Sample count : {samples.Count}");
+Console.WriteLine($"Sample count       : {samples.Count}");
+Console.WriteLine($"Sensor count       : {sensorHealth.SensorCount}");
+Console.WriteLine($"Healthy count      : {sensorHealth.HealthyCount}");
+Console.WriteLine($"Has critical issue : {sensorHealth.HasCriticalIssue}");
 
 foreach (var sample in samples)
 {
@@ -89,17 +105,20 @@ Console.WriteLine();
 
 Require(samples.Count == 2, "Sensor batch içinde 2 sample olmalı.");
 Require(samples.Any(x => x.DataKind == SensorDataKind.Imu), "Sensor batch içinde IMU sample olmalı.");
-Require(samples.Any(x => x.DataKind == SensorDataKind.Gps), "Sensor batch içinde GPS sample olmalı.");
+Require(samples.Any(x => x.DataKind == SensorDataKind.Depth), "Sensor batch içinde Depth sample olmalı.");
+Require(!samples.Any(x => x.DataKind == SensorDataKind.Gps), "Sensor batch içinde GPS sample olmamalı.");
+Require(sensorHealth.SensorCount == 2, "Sensor health sensor count 2 olmalı.");
+Require(sensorHealth.HealthyCount == 2, "Sensor health healthy count 2 olmalı.");
+Require(!sensorHealth.HasCriticalIssue, "Sensor health critical issue olmamalı.");
 
 var policy = StateAuthorityPolicy.CSharpPrimary with
 {
     MaxStateAgeMs = 2_000.0,
 
     /*
-     * Runtime pipeline smoke test artık CDSE primary estimator ile çalışır.
-     * CDSE, GPS+IMU ile yüksek güven üretir; GPS kaybı senaryolarında ise
-     * degraded state adaylarının da authority kapısından kontrollü geçebilmesi için
-     * varsayılan eşik 0.45 tutulur.
+     * Bu testin amacı GPS yokken degraded CDSE adayını kabul ettirmektir.
+     * CDSE IMU + Depth ile yaklaşık 0.48 confidence üretebilir.
+     * 0.45 bu senaryoyu kabul eder; depth-only gibi çok düşük güvenli adayları ise dışarıda bırakır.
      */
     MinConfidence = 0.45,
 
@@ -114,11 +133,6 @@ var store = new VehicleStateStore(vehicleId, StateAuthorityMode.CSharpPrimary);
 var pipeline = new StateUpdatePipeline(authority, store);
 var telemetryBridge = new StateTelemetryBridge();
 
-/*
- * Runtime smoke test artık CDSE primary estimator üzerinden çalışır.
- * Böylece test sadece GPS+IMU özel estimatorünü değil,
- * Hydronom'un capability tabanlı state estimation zincirini doğrular.
- */
 var estimator = new CapabilityDrivenStateEstimator();
 var runner = new StateEstimatorRunner(estimator);
 
@@ -133,7 +147,7 @@ var context = FusionContext.Create(
     vehicleId: vehicleId,
     frameId: "map",
     maxSampleAgeMs: 2_000.0,
-    traceId: "runtime-pipeline-smoke"
+    traceId: "cdse-degraded-smoke"
 );
 
 var tickResult = fusionHost.Tick(
@@ -144,7 +158,7 @@ var tickResult = fusionHost.Tick(
 
 var safeTick = tickResult.Sanitized();
 
-Console.WriteLine("[3] FusionRuntimeHost tick result");
+Console.WriteLine("[3] FusionRuntimeHost degraded tick result");
 Console.WriteLine($"Estimator            : {estimator.Name}");
 Console.WriteLine($"Input samples        : {safeTick.InputSampleCount}");
 Console.WriteLine($"Candidate produced   : {safeTick.CandidateProduced}");
@@ -156,19 +170,14 @@ Console.WriteLine();
 
 Require(estimator.Name == "capability_driven_state_estimator", "Estimator CDSE olmalı.");
 Require(safeTick.InputSampleCount == 2, "Fusion host 2 input sample görmeli.");
-Require(safeTick.CandidateProduced, "Fusion host candidate üretmeli.");
-Require(safeTick.StateUpdateSubmitted, "Fusion host state pipeline'a update göndermeli.");
-Require(safeTick.StateUpdateAccepted, "Fusion host valid initial acquisition candidate'ı kabul ettirmeli.");
+Require(safeTick.CandidateProduced, "Fusion host GPS yokken de candidate üretmeli.");
+Require(safeTick.StateUpdateSubmitted, "Fusion host degraded candidate'ı state pipeline'a göndermeli.");
+Require(safeTick.StateUpdateAccepted, "StateAuthority IMU + Depth degraded candidate'ı kabul etmeli.");
 Require(safeTick.Decision == StateUpdateDecision.Accepted, "State update decision Accepted olmalı.");
-Require(
-    safeTick.Reason.Contains("İlk güvenilir", StringComparison.OrdinalIgnoreCase) ||
-    safeTick.Reason.Contains("initial", StringComparison.OrdinalIgnoreCase),
-    "Accepted reason initial acquisition olduğunu belirtmeli."
-);
 
 var current = store.Current;
 
-Console.WriteLine("[4] VehicleStateStore current state");
+Console.WriteLine("[4] VehicleStateStore degraded current state");
 Console.WriteLine($"VehicleId  : {current.VehicleId}");
 Console.WriteLine($"Pose       : X={current.Pose.X:F3}, Y={current.Pose.Y:F3}, Z={current.Pose.Z:F3}, Yaw={current.Pose.YawDeg:F3}");
 Console.WriteLine($"Source     : {current.SourceKind}");
@@ -180,12 +189,19 @@ Console.WriteLine();
 Require(store.AcceptedUpdateCount == 1, "Store accepted count 1 olmalı.");
 Require(store.RejectedUpdateCount == 0, "Store rejected count 0 olmalı.");
 Require(current.SourceKind == VehicleStateSourceKind.CSharpFusion, "Store current source CSharpFusion olmalı.");
-Require(current.Confidence >= 0.75, "Store current CDSE confidence yeterli olmalı.");
+Require(current.Confidence >= 0.45, "Store current degraded confidence authority eşiğini geçmeli.");
+Require(current.Confidence <= 0.50, "Store current confidence GPS yokken sınırlı kalmalı.");
 Require(current.QualitySummary.Contains("INITIAL_ACQUISITION", StringComparison.OrdinalIgnoreCase), "Store quality initial acquisition işaretini taşımalı.");
-Require(Math.Abs(current.Pose.X - truth.Position.X) < 2.0, "Store Pose X truth pozisyonuna yakın olmalı.");
-Require(Math.Abs(current.Pose.Y - truth.Position.Y) < 2.0, "Store Pose Y truth pozisyonuna yakın olmalı.");
-Require(Math.Abs(current.Pose.Z - truth.Position.Z) < 0.001, "Store Pose Z truth/GPS Z değerinden gelmeli.");
-Require(Math.Abs(current.Pose.YawDeg - truth.Orientation.YawDeg) < 0.001, "Store yaw IMU/truth yaw değerinden gelmeli.");
+
+/*
+ * GPS yokken X/Y kesin ölçüm değildir.
+ * İlk degraded acquisition'da CDSE X/Y için origin/placeholder kullanabilir.
+ */
+Require(Math.Abs(current.Pose.X) < 0.001, "GPS yokken ilk degraded X origin/placeholder kalmalı.");
+Require(Math.Abs(current.Pose.Y) < 0.001, "GPS yokken ilk degraded Y origin/placeholder kalmalı.");
+
+Require(Math.Abs(current.Pose.Z - truth.Position.Z) < 0.05, "Depth sayesinde Z truth/depth değerine yakın olmalı.");
+Require(Math.Abs(current.Pose.YawDeg - truth.Orientation.YawDeg) < 0.001, "Yaw IMU/truth yaw değerinden gelmeli.");
 
 var telemetry = fusionHost.LastTelemetry.Sanitized();
 
@@ -222,9 +238,12 @@ Require(fusionDiagnostics.FusionEngineName == "capability_driven_state_estimator
 Require(fusionDiagnostics.InputSampleCount == 2, "Fusion diagnostics input count 2 olmalı.");
 Require(fusionDiagnostics.UsedSampleCount == 2, "Fusion diagnostics used count 2 olmalı.");
 Require(fusionDiagnostics.ProducedCandidate, "Fusion diagnostics produced candidate true olmalı.");
-Require(fusionDiagnostics.Confidence >= 0.75, "Fusion diagnostics CDSE confidence yeterli olmalı.");
-Require(fusionDiagnostics.Summary.Contains("gps=ok", StringComparison.OrdinalIgnoreCase), "Fusion diagnostics GPS kullanımını göstermeli.");
+Require(fusionDiagnostics.Confidence >= 0.45, "Fusion diagnostics degraded confidence authority eşiğini geçmeli.");
+Require(fusionDiagnostics.Confidence <= 0.50, "Fusion diagnostics confidence GPS yokken sınırlı kalmalı.");
+Require(fusionDiagnostics.Summary.Contains("gps=missing", StringComparison.OrdinalIgnoreCase), "Fusion diagnostics GPS kaybını göstermeli.");
 Require(fusionDiagnostics.Summary.Contains("imu=ok", StringComparison.OrdinalIgnoreCase), "Fusion diagnostics IMU kullanımını göstermeli.");
+Require(fusionDiagnostics.Summary.Contains("depth=ok", StringComparison.OrdinalIgnoreCase), "Fusion diagnostics Depth kullanımını göstermeli.");
+Require(fusionDiagnostics.Summary.Contains("degraded_estimated", StringComparison.OrdinalIgnoreCase), "Fusion diagnostics degraded mode göstermeli.");
 
 var debugBridge = new FusionTelemetryBridge();
 var debugSummary = debugBridge.ProjectDebugSummary(safeTick);
@@ -236,9 +255,11 @@ Console.WriteLine();
 Require(!string.IsNullOrWhiteSpace(debugSummary), "Fusion telemetry debug summary boş olmamalı.");
 Require(debugSummary.Contains("accepted=True", StringComparison.OrdinalIgnoreCase), "Debug summary accepted=True içermeli.");
 Require(debugSummary.Contains("capability_driven_state_estimator", StringComparison.OrdinalIgnoreCase), "Debug summary CDSE engine adını içermeli.");
+Require(debugSummary.Contains("gps=missing", StringComparison.OrdinalIgnoreCase), "Debug summary GPS kaybını içermeli.");
+Require(debugSummary.Contains("depth=ok", StringComparison.OrdinalIgnoreCase), "Debug summary Depth kullanımını içermeli.");
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("PASS: Runtime pipeline sensor batch'i CDSE ile initial acquisition üzerinden authoritative state'e dönüştürdü.");
+Console.WriteLine("PASS: Runtime CDSE degraded smoke test GPS yokken IMU + Depth ile authoritative degraded state üretti.");
 Console.ResetColor();
 
 return 0;

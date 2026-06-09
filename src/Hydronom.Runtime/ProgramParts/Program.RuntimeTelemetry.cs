@@ -1,6 +1,7 @@
 using Hydronom.Core.Domain;
 using Hydronom.Core.Fusion.Estimation;
 using Hydronom.Core.Sensors.Common.Abstractions;
+using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Simulation.Truth;
 using Hydronom.Core.State.Authority;
 using Hydronom.Runtime.FusionRuntime;
@@ -13,7 +14,6 @@ using Hydronom.Runtime.StateRuntime;
 using Hydronom.Runtime.Telemetry;
 using Hydronom.Runtime.World.Runtime;
 using Microsoft.Extensions.Configuration;
-using Hydronom.Core.Sensors.Common.Models;
 
 partial class Program
 {
@@ -136,6 +136,12 @@ partial class Program
         sensorOptions.EnableGps = ReadBool(config, "Runtime:TelemetrySummary:EnableGps", true);
 
         /*
+        * Depth sensörü yüzey aracı için varsayılan zorunlu değildir.
+        * Sualtı / degraded GPS kaybı testlerinde Runtime:TelemetrySummary:EnableDepth=true ile açılır.
+        */
+        sensorOptions.EnableDepth = ReadBool(config, "Runtime:TelemetrySummary:EnableDepth", false);
+
+        /*
          * Parkur-2 engel algılama için LiDAR varsayılan olarak açık olmalı.
          * Konfigürasyonda Runtime:TelemetrySummary:EnableLidar=false verilirse kapatılabilir.
          */
@@ -168,6 +174,11 @@ partial class Program
                     truthProvider: truthProvider)
             )
             .Register(
+                key: "sim_depth",
+                factory: _ => new Hydronom.Runtime.Sensors.Backends.Sim.SimDepthSensor(
+                    truthProvider: truthProvider)
+            )
+            .Register(
                 key: "sim_lidar",
                 factory: _ => new SimLidarBackend(
                     options: lidarOptions,
@@ -180,7 +191,13 @@ partial class Program
         var policy = StateAuthorityPolicy.CSharpPrimary with
         {
             MaxStateAgeMs = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MaxStateAgeMs", 2_000.0),
-            MinConfidence = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MinConfidence", 0.50),
+
+            /*
+             * CDSE degraded modda GPS yokken IMU + Depth ile yaklaşık 0.48 confidence üretebilir.
+             * 0.45 eşiği bu durumu kabul eder; depth-only gibi çok düşük güvenli çıktılar ise reddedilmeye devam eder.
+             */
+            MinConfidence = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MinConfidence", 0.45),
+
             MaxTeleportDistanceMeters = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MaxTeleportDistanceMeters", 50.0),
             MaxPlausibleSpeedMps = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MaxPlausibleSpeedMps", 50.0),
             MaxPlausibleYawRateDegSec = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MaxPlausibleYawRateDegSec", 360.0),
@@ -192,7 +209,14 @@ partial class Program
         var statePipeline = new StateUpdatePipeline(authority, stateStore);
         var stateTelemetryBridge = new StateTelemetryBridge();
 
-        var estimator = new GpsImuStateEstimator();
+        /*
+         * CDSE artık runtime telemetry hattının primary estimator'ıdır.
+         *
+         * GpsImuStateEstimator yalnızca GPS+IMU özel senaryosunda çalışırken,
+         * CapabilityDrivenStateEstimator GPS, IMU, Depth ve ileride eklenecek diğer capability'lere göre
+         * eksik sensör durumlarında da en iyi state tahminini üretmeye çalışır.
+         */
+        var estimator = new CapabilityDrivenStateEstimator();
         var runner = new StateEstimatorRunner(estimator);
 
         var fusionHost = new FusionRuntimeHost(
@@ -231,7 +255,8 @@ partial class Program
         Console.WriteLine(
             "[RT-TEL] Enabled → " +
             $"runtimeId={runtimeId} vehicleId={vehicleId} every={everyTicks} ticks " +
-            $"sensors=imu:{sensorOptions.EnableImu},gps:{sensorOptions.EnableGps},lidar:{sensorOptions.EnableLidar},camera:{sensorOptions.EnableCamera} " +
+            $"estimator={estimator.Name} " +
+            $"sensors=imu:{sensorOptions.EnableImu},gps:{sensorOptions.EnableGps},depth:{sensorOptions.EnableDepth},lidar:{sensorOptions.EnableLidar},camera:{sensorOptions.EnableCamera} " +
             $"worldModel={(runtimeWorldModel is null ? "none" : "shared")}"
         );
 

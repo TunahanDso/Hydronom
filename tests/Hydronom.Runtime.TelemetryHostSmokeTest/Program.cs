@@ -79,8 +79,9 @@ Console.WriteLine($"Has critical issue : {sensorHealth.HasCriticalIssue}");
 
 foreach (var sample in samples)
 {
-   Console.WriteLine($"- {sample.Sensor.SensorId} | source={sample.Source} | kind={sample.DataKind} | valid={sample.IsValid} | seq={sample.Sequence}");
+    Console.WriteLine($"- {sample.Sensor.SensorId} | source={sample.Source} | kind={sample.DataKind} | valid={sample.IsValid} | seq={sample.Sequence}");
 }
+
 Console.WriteLine();
 
 Require(samples.Count == 2, "Sensor runtime 2 sample üretmeli.");
@@ -93,7 +94,15 @@ Require(!sensorHealth.HasCriticalIssue, "Sensor health critical issue olmamalı.
 var policy = StateAuthorityPolicy.CSharpPrimary with
 {
     MaxStateAgeMs = 2_000.0,
-    MinConfidence = 0.50,
+
+    /*
+     * Runtime telemetry host smoke test artık CDSE primary estimator ile çalışır.
+     * CDSE GPS+IMU ile yüksek güven üretir; GPS kaybı senaryolarında IMU/Depth gibi
+     * degraded kaynaklardan gelen state adaylarının da authority kapısından geçebilmesi için
+     * varsayılan eşik 0.45 tutulur.
+     */
+    MinConfidence = 0.45,
+
     MaxTeleportDistanceMeters = 50.0,
     MaxPlausibleSpeedMps = 50.0,
     MaxPlausibleYawRateDegSec = 360.0,
@@ -105,7 +114,12 @@ var stateStore = new VehicleStateStore(vehicleId, StateAuthorityMode.CSharpPrima
 var statePipeline = new StateUpdatePipeline(authority, stateStore);
 var stateTelemetryBridge = new StateTelemetryBridge();
 
-var estimator = new GpsImuStateEstimator();
+/*
+ * Runtime smoke test artık CDSE primary estimator üzerinden çalışır.
+ * Böylece test sadece GPS+IMU özel estimatorünü değil,
+ * Hydronom'un capability tabanlı state estimation zincirini doğrular.
+ */
+var estimator = new CapabilityDrivenStateEstimator();
 var runner = new StateEstimatorRunner(estimator);
 
 var fusionHost = new FusionRuntimeHost(
@@ -125,6 +139,7 @@ var context = FusionContext.Create(
 var tick = fusionHost.Tick(samples, context, utcNow: DateTime.UtcNow).Sanitized();
 
 Console.WriteLine("[3] FusionRuntimeHost tick");
+Console.WriteLine($"Estimator          : {estimator.Name}");
 Console.WriteLine($"Candidate produced : {tick.CandidateProduced}");
 Console.WriteLine($"State submitted    : {tick.StateUpdateSubmitted}");
 Console.WriteLine($"State accepted     : {tick.StateUpdateAccepted}");
@@ -132,6 +147,7 @@ Console.WriteLine($"Decision           : {tick.Decision}");
 Console.WriteLine($"Reason             : {tick.Reason}");
 Console.WriteLine();
 
+Require(estimator.Name == "capability_driven_state_estimator", "Estimator CDSE olmalı.");
 Require(tick.CandidateProduced, "Fusion host candidate üretmeli.");
 Require(tick.StateUpdateSubmitted, "Fusion host state update submit etmeli.");
 Require(tick.StateUpdateAccepted, "Fusion host state update kabul etmeli.");
@@ -204,9 +220,9 @@ Require(!summary.HasCriticalIssue, "Summary critical issue olmamalı.");
 Require(!summary.HasWarnings, "Summary warning olmamalı.");
 Require(summary.SensorCount == 2, "Summary sensor count 2 olmalı.");
 Require(summary.HealthySensorCount == 2, "Summary healthy sensor count 2 olmalı.");
-Require(summary.FusionEngineName == "gps_imu_state_estimator", "Summary fusion engine doğru olmalı.");
+Require(summary.FusionEngineName == "capability_driven_state_estimator", "Summary fusion engine CDSE olmalı.");
 Require(summary.FusionProducedCandidate, "Summary fusion produced true olmalı.");
-Require(summary.FusionConfidence >= 0.90, "Summary fusion confidence yüksek olmalı.");
+Require(summary.FusionConfidence >= 0.75, "Summary CDSE fusion confidence yeterli olmalı.");
 Require(summary.VehicleId == vehicleId, "Summary vehicle id doğru olmalı.");
 Require(summary.HasState, "Summary has state true olmalı.");
 Require(Math.Abs(summary.StateX - truth.Position.X) < 0.20, "Summary StateX truth/GPS local X'e yakın olmalı.");
@@ -219,7 +235,7 @@ Require(summary.AcceptedStateUpdateCount == 1, "Summary accepted update count 1 
 Require(summary.RejectedStateUpdateCount == 0, "Summary rejected update count 0 olmalı.");
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("PASS: RuntimeTelemetryHost gerçek CSharpSensorRuntime sample'larıyla snapshot, telemetry bridge ve publisher zincirini doğru çalıştırdı.");
+Console.WriteLine("PASS: RuntimeTelemetryHost gerçek CSharpSensorRuntime sample'larıyla CDSE, snapshot, telemetry bridge ve publisher zincirini doğru çalıştırdı.");
 Console.ResetColor();
 
 return 0;
