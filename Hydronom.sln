@@ -63,6 +63,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Core.TcpTransportS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Core.RuntimeCommandBridgeAckSmokeTest", "tests\Hydronom.Core.RuntimeCommandBridgeAckSmokeTest\Hydronom.Core.RuntimeCommandBridgeAckSmokeTest.csproj", "{7B96B0E5-986A-4929-9A7D-4A75C3C1C726}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hydronom.Runtime.PicoUsbSensorBackendSmokeTest", "tests\Hydronom.Runtime.PicoUsbSensorBackendSmokeTest\Hydronom.Runtime.PicoUsbSensorBackendSmokeTest.csproj", "{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -409,6 +411,18 @@ Global
 		{7B96B0E5-986A-4929-9A7D-4A75C3C1C726}.Release|x64.Build.0 = Release|Any CPU
 		{7B96B0E5-986A-4929-9A7D-4A75C3C1C726}.Release|x86.ActiveCfg = Release|Any CPU
 		{7B96B0E5-986A-4929-9A7D-4A75C3C1C726}.Release|x86.Build.0 = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|x64.Build.0 = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Debug|x86.Build.0 = Debug|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|x64.ActiveCfg = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|x64.Build.0 = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|x86.ActiveCfg = Release|Any CPU
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -442,5 +456,6 @@ Global
 		{DE6DE1F9-DC2C-4A49-9B24-C4697122CABA} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{E2A6987A-5B86-41D1-84CD-24E9B9C26772} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{7B96B0E5-986A-4929-9A7D-4A75C3C1C726} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{7ABD25E3-B085-4D8F-BAC5-5196620A3B0B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
