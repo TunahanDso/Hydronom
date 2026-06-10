@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
+using Hydronom.Core.Scenarios.Models;
 using Hydronom.Runtime.Scenarios.Mission;
 using Hydronom.Runtime.World.Runtime;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public sealed partial class RuntimeScenarioController
 
     private RuntimeScenarioExecutionHost? _host;
     private RuntimeScenarioSession? _session;
+    private ScenarioDefinition? _scenario;
     private ScenarioMissionPlan? _plan;
     private ScenarioMissionAdapter? _adapter;
     private RuntimeScenarioTickResult? _lastTick;
@@ -106,6 +108,7 @@ public sealed partial class RuntimeScenarioController
             if (_session?.State == RuntimeScenarioSessionState.Running)
                 return GetSnapshotUnsafe("Scenario already running.");
 
+            _scenario = scenario;
             _plan = plan;
             _adapter = adapter;
             _session = session;
@@ -143,6 +146,7 @@ public sealed partial class RuntimeScenarioController
 
             if (host is null || session is null)
             {
+                _scenario = null;
                 _taskManager.ClearTask();
                 ClearRuntimeWorldUnsafe();
                 return GetSnapshotUnsafe("No active scenario.");
@@ -159,6 +163,7 @@ public sealed partial class RuntimeScenarioController
             }
 
             _host = null;
+            _scenario = null;
             _taskManager.ClearTask();
             _lastReassertedObjectiveId = null;
             _lastReassertedTickIndex = -1;
@@ -196,6 +201,7 @@ public sealed partial class RuntimeScenarioController
                 _host = null;
                 _lastReassertedObjectiveId = null;
                 _lastReassertedTickIndex = -1;
+                UpdateRuntimeWorldModelUnsafe();
             }
             else
             {

@@ -1,0 +1,28 @@
+﻿{
+    "enabled":  true,
+    "checkCollisions":  true,
+    "checkNoGoZones":  true,
+    "enforceObjectiveOrder":  true,
+    "failOnRequiredObjectiveFailure":  true,
+    "failOnCollision":  false,
+    "failOnNoGoZoneViolation":  true,
+    "collisionPenalty":  5.0,
+    "noGoZonePenalty":  50.0,
+    "degradedOperationPenalty":  5.0,
+    "parameters":  {
+                       "parkur":  "2",
+                       "parkurName":  "Engel Bulunan Ortamda Nokta Takip GÃ¶revi - S Slalom U DÃ¶nÃ¼ÅŸ VaryantÄ±",
+                       "completionRule":  "En az 2 adet duba ikilisi arasÄ±ndan geÃ§mek, engellerden kaÃ§Ä±nmak ve Parkur-2 varyantÄ± iÃ§in tanÄ±mlÄ± son gÃ¶rev noktasÄ±na ulaÅŸmak.",
+                       "modeledGateCount":  "4",
+                       "requiredGateCountExceptFinal":  "2",
+                       "representedObjectiveCount":  "10",
+                       "modeledObstacleCount":  "16",
+                       "modeledSlalomObstacleCount":  "5",
+                       "modeledNarrowCorridorPairs":  "3",
+                       "modeledNarrowCorridorInternalObstacleCount":  "2",
+                       "modeledUTurnObstacleCount":  "4",
+                       "modeledFinalObstacleCount":  "3",
+                       "sourceSpec":  "TEKNOFEST 2026 Ä°nsansÄ±z Deniz AracÄ± YarÄ±ÅŸma Åartnamesi",
+                       "designIntent":  "Parkur-2 obstacle/world/analysis hattÄ±nÄ± koruyarak daha farklÄ± geometride dÃ¶nÃ¼ÅŸ, hizalanma, engel kaÃ§Ä±nma, dar alan, no-go zone Ã§evresi ve overshoot davranÄ±ÅŸlarÄ±nÄ± sÄ±namak."
+                   }
+}

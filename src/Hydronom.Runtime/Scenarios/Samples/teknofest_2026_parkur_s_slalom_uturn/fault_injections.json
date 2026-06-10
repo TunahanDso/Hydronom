@@ -1,0 +1,39 @@
+﻿[
+    {
+        "id":  "imu_yaw_bias_after_45s",
+        "type":  "sensor_bias",
+        "target":  "imu0",
+        "startAtSeconds":  45.0,
+        "durationSeconds":  18.0,
+        "severity":  0.20,
+        "parameters":  {
+                           "axis":  "yaw",
+                           "expectedBehavior":  "correct_with_gps_or_reduce_speed",
+                           "note":  "S koridor ve slalom sÄ±rasÄ±nda kÃ¼Ã§Ã¼k yaw bias etkisini Ã¶lÃ§er."
+                       }
+    },
+    {
+        "id":  "gps_noise_during_uturn",
+        "type":  "sensor_noise",
+        "target":  "gps0",
+        "startAtSeconds":  120.0,
+        "durationSeconds":  25.0,
+        "severity":  0.35,
+        "parameters":  {
+                           "expectedBehavior":  "continue_with_caution",
+                           "note":  "U dÃ¶nÃ¼ÅŸ sÄ±rasÄ±nda GPS gÃ¼rÃ¼ltÃ¼sÃ¼ne raÄŸmen rota kararlÄ±lÄ±ÄŸÄ±nÄ± test eder."
+                       }
+    },
+    {
+        "id":  "lidar_partial_blind_narrow_corridor",
+        "type":  "sensor_partial_blind",
+        "target":  "lidar0",
+        "startAtSeconds":  85.0,
+        "durationSeconds":  15.0,
+        "severity":  0.30,
+        "parameters":  {
+                           "expectedBehavior":  "slow_or_hold",
+                           "note":  "Dar koridorda engel algÄ±sÄ± kÄ±smen bozulduÄŸunda gÃ¼venli davranÄ±ÅŸÄ± test eder."
+                       }
+    }
+]

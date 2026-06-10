@@ -63,17 +63,61 @@ public sealed class RuntimeScenarioRoutePoint
 public sealed class RuntimeScenarioWorldObject
 {
     public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Ops/render tarafı için normalize edilmiş görsel/operasyonel tip.
+    /// Örn: start_zone, waypoint, finish, gate_left, gate_right, obstacle, boundary, no_go_zone.
+    /// </summary>
     public string Type { get; set; } = "object";
+
+    /// <summary>
+    /// Scenario JSON içindeki fiziksel/semantik kind.
+    /// Örn: buoy, waypoint, no_go_zone.
+    /// </summary>
+    public string? Kind { get; set; }
+
+    public string? Name { get; set; }
+    public string? Layer { get; set; }
+    public string? Role { get; set; }
     public string? Label { get; set; }
     public string? ObjectiveId { get; set; }
     public string? Side { get; set; }
+
     public double X { get; set; }
     public double Y { get; set; }
     public double Z { get; set; }
+
+    public double? RollDeg { get; set; }
+    public double? PitchDeg { get; set; }
+    public double? YawDeg { get; set; }
+
     public double Radius { get; set; } = 0.5;
+    public double? Width { get; set; }
+    public double? Height { get; set; }
+    public double? Length { get; set; }
+
     public string? Color { get; set; }
+
     public bool IsActive { get; set; }
     public bool IsCompleted { get; set; }
     public bool IsBlocking { get; set; }
     public bool IsDetectable { get; set; }
+    public bool IsJudgeTracked { get; set; }
+    public bool IsNoGoZone { get; set; }
+    public bool IsTargetZone { get; set; }
+    public bool IsGate { get; set; }
+
+    public string? LeftObjectId { get; set; }
+    public string? RightObjectId { get; set; }
+
+    public double? ToleranceMeters { get; set; }
+    public bool RequiresDirectionCheck { get; set; }
+    public double? RequiredHeadingDeg { get; set; }
+    public double? HeadingToleranceDeg { get; set; }
+
+    public double? ScoreValue { get; set; }
+    public double? PenaltyValue { get; set; }
+
+    public IReadOnlyDictionary<string, string> Tags { get; set; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 }

@@ -1,0 +1,20 @@
+﻿{
+    "tags":  {
+                 "source":  "TEKNOFEST 2026 Ä°nsansÄ±z Deniz AracÄ± YarÄ±ÅŸma Åartnamesi",
+                 "sourceSection":  "5.5.2.4 Parkur-2 Engel Bulunan Ortamda Nokta Takip GÃ¶revi",
+                 "isRepresentative":  "true",
+                 "designIntent":  "Parkur-2 altyapÄ±sÄ±nÄ± kullanan fakat S eÄŸrisi, slalom, dar koridor, U dÃ¶nÃ¼ÅŸ ve final hassas yaklaÅŸma davranÄ±ÅŸlarÄ±nÄ± test eden alternatif Hydronom simÃ¼lasyon parkuru.",
+                 "note":  "Koordinatlar simÃ¼lasyon amaÃ§lÄ± temsili seÃ§ilmiÅŸtir. Bu dosya custom scenario family yerine teknofest_2026_usv ailesini kullanÄ±r; engeller Parkur-2 ile uyumlu ÅŸekilde layer=obstacle, role=obstacle olarak tutulur.",
+                 "visual.vehicle.lengthM":  "1.50",
+                 "visual.vehicle.widthM":  "0.75",
+                 "visual.vehicle.heightM":  "0.30",
+                 "visual.buoy.diameterM":  "0.30",
+                 "visual.buoy.heightM":  "0.50",
+                 "test.focus.1":  "S eÄŸrisi takibi",
+                 "test.focus.2":  "YoÄŸun slalom kaÃ§Ä±nma",
+                 "test.focus.3":  "Dar koridor stabilitesi ve iÃ§ engel kaÃ§Ä±ÅŸÄ±",
+                 "test.focus.4":  "U dÃ¶nÃ¼ÅŸ ve 180 derece heading deÄŸiÅŸimi",
+                 "test.focus.5":  "No-go zone Ã§evresinde gÃ¼venli rota",
+                 "test.focus.6":  "Final hassas yaklaÅŸma ve overshoot kontrolÃ¼"
+             }
+}

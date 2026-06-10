@@ -67,7 +67,7 @@ RunRuntimeScenarioExecutionHostSmokeTest(packageScenario);
 await RunRuntimeScenarioControllerPackagePathSmokeTest(packagePath);
 
 await RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(scenarioPath);
-
+await RunRuntimeScenarioControllerSlalomUTurnPackageSmokeTest();
 var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
@@ -299,7 +299,107 @@ static async Task RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(string 
 
     controller.StopScenario("scenario id package smoke completed");
 }
+static async Task RunRuntimeScenarioControllerSlalomUTurnPackageSmokeTest()
+{
+    const string scenarioId = "teknofest_2026_parkur_s_slalom_uturn";
 
+    var config = BuildRuntimeScenarioControllerConfig(scenarioId);
+    var taskManager = new InMemoryScenarioTaskManager();
+    var worldModel = new RuntimeWorldModel();
+
+    var controller = new RuntimeScenarioController(
+        config,
+        taskManager,
+        worldModel);
+
+    var snapshot = await controller.StartScenarioAsync(
+        null,
+        "slalom-uturn-package-smoke");
+
+    Console.WriteLine();
+    Console.WriteLine("Runtime scenario controller Slalom/U-turn package report:");
+    Console.WriteLine($"  ScenarioIdConfig  : {scenarioId}");
+    Console.WriteLine($"  Message           : {snapshot.Message}");
+    Console.WriteLine($"  ScenarioId        : {snapshot.ScenarioId}");
+    Console.WriteLine($"  HasActiveScenario : {snapshot.HasActiveScenario}");
+    Console.WriteLine($"  IsRunning         : {snapshot.IsRunning}");
+    Console.WriteLine($"  TotalObjectives   : {snapshot.TotalObjectiveCount}");
+    Console.WriteLine($"  RoutePoints       : {snapshot.RoutePoints.Count}");
+    Console.WriteLine($"  WorldObjects      : {snapshot.WorldObjects.Count}");
+    Console.WriteLine($"  CurrentTask       : {taskManager.CurrentTask?.Name ?? "null"}");
+
+    var grouped = snapshot.WorldObjects
+        .GroupBy(x => x.Type, StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+        .Select(x => $"{x.Key}={x.Count()}")
+        .ToArray();
+
+    Console.WriteLine($"  WorldObjectTypes  : {string.Join(", ", grouped)}");
+
+    RequireScenarioObjectType(snapshot, "start_zone");
+    RequireScenarioObjectType(snapshot, "waypoint");
+    RequireScenarioObjectType(snapshot, "finish");
+    RequireScenarioObjectType(snapshot, "gate_left");
+    RequireScenarioObjectType(snapshot, "gate_right");
+    RequireScenarioObjectType(snapshot, "obstacle");
+    RequireScenarioObjectType(snapshot, "boundary");
+    RequireScenarioObjectType(snapshot, "no_go_zone");
+
+    if (!snapshot.HasActiveScenario)
+    {
+        throw new InvalidOperationException("Slalom/U-turn package scenario should start from ScenarioRuntime:ScenarioId.");
+    }
+
+    if (!snapshot.IsRunning)
+    {
+        throw new InvalidOperationException("Slalom/U-turn package scenario should be running after start.");
+    }
+
+    if (!string.Equals(snapshot.ScenarioId, scenarioId, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            $"Expected Slalom/U-turn scenario id {scenarioId}, got {snapshot.ScenarioId ?? "null"}.");
+    }
+
+    if (snapshot.TotalObjectiveCount != 10)
+    {
+        throw new InvalidOperationException(
+            $"Expected Slalom/U-turn objective count 10, got {snapshot.TotalObjectiveCount}.");
+    }
+
+    if (snapshot.RoutePoints.Count != 10)
+    {
+        throw new InvalidOperationException(
+            $"Expected Slalom/U-turn route point count 10, got {snapshot.RoutePoints.Count}.");
+    }
+
+    if (snapshot.WorldObjects.Count < 38)
+    {
+        throw new InvalidOperationException(
+            $"Expected Slalom/U-turn world object count >= 38, got {snapshot.WorldObjects.Count}.");
+    }
+
+    if (taskManager.CurrentTask is null)
+    {
+        throw new InvalidOperationException("Slalom/U-turn package start should apply first task.");
+    }
+
+    controller.StopScenario("slalom u-turn package smoke completed");
+}
+
+static void RequireScenarioObjectType(RuntimeScenarioSnapshot snapshot, string type)
+{
+    var count = snapshot.WorldObjects.Count(x =>
+        string.Equals(x.Type, type, StringComparison.OrdinalIgnoreCase));
+
+    Console.WriteLine($"  RequireType[{type}] : {count}");
+
+    if (count <= 0)
+    {
+        throw new InvalidOperationException(
+            $"Expected at least one Slalom/U-turn world object with Type={type}.");
+    }
+}
 static IConfiguration BuildRuntimeScenarioControllerConfig(string? scenarioId = null)
 {
     var values = new Dictionary<string, string?>

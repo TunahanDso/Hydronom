@@ -1,0 +1,122 @@
+﻿[
+    {
+        "id":  "reach_wp_1",
+        "type":  "reach_zone",
+        "title":  "Gate 1 / S koridor giriÅŸinden geÃ§",
+        "description":  "Parkur-2 varyantÄ±nda ilk duba ikilisi ve S koridor baÅŸlangÄ±Ã§ noktasÄ±ndan geÃ§.",
+        "targetObjectId":  "wp_1",
+        "order":  1,
+        "isRequired":  true,
+        "scoreValue":  8.0,
+        "toleranceMeters":  1.7,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_2",
+        "type":  "reach_zone",
+        "title":  "S koridor ters dÃ¶nÃ¼ÅŸ noktasÄ±na ulaÅŸ",
+        "description":  "Ä°lk yanal sapmadan sonra ters yÃ¶ne dÃ¶nerek S eÄŸrisini tamamla.",
+        "targetObjectId":  "wp_2",
+        "order":  2,
+        "isRequired":  true,
+        "scoreValue":  8.0,
+        "toleranceMeters":  1.7,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_3",
+        "type":  "reach_zone",
+        "title":  "Gate 2 / Slalom giriÅŸine ulaÅŸ",
+        "description":  "S koridordan Ã§Ä±karak slalom bÃ¶lÃ¼mÃ¼ne dengeli ÅŸekilde gir.",
+        "targetObjectId":  "wp_3",
+        "order":  3,
+        "isRequired":  true,
+        "scoreValue":  8.0,
+        "toleranceMeters":  1.7,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_4",
+        "type":  "reach_zone",
+        "title":  "Slalom orta noktasÄ±na ulaÅŸ",
+        "description":  "Slalom engelleri arasÄ±nda yÃ¶n deÄŸiÅŸtirerek orta hedefe ulaÅŸ.",
+        "targetObjectId":  "wp_4",
+        "order":  4,
+        "isRequired":  true,
+        "scoreValue":  8.0,
+        "toleranceMeters":  1.6,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_5",
+        "type":  "reach_zone",
+        "title":  "Gate 3 / Dar koridor giriÅŸine ulaÅŸ",
+        "description":  "Slalomdan sonra hÄ±z ve yaw kontrolÃ¼ ile dar koridora yaklaÅŸ.",
+        "targetObjectId":  "wp_5",
+        "order":  5,
+        "isRequired":  true,
+        "scoreValue":  8.0,
+        "toleranceMeters":  1.5,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_6",
+        "type":  "reach_zone",
+        "title":  "Dar koridoru tamamla",
+        "description":  "Dar koridor boyunca sÄ±nÄ±r dubalarÄ±na ve iÃ§ engellere temas etmeden dÃ¼z ilerle.",
+        "targetObjectId":  "wp_6",
+        "order":  6,
+        "isRequired":  true,
+        "scoreValue":  10.0,
+        "toleranceMeters":  1.4,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_7",
+        "type":  "reach_zone",
+        "title":  "Gate 4 / U dÃ¶nÃ¼ÅŸ baÅŸlangÄ±cÄ±na ulaÅŸ",
+        "description":  "Dar koridor Ã§Ä±kÄ±ÅŸÄ±ndan sonra geniÅŸ dÃ¶nÃ¼ÅŸe hazÄ±rlan.",
+        "targetObjectId":  "wp_7",
+        "order":  7,
+        "isRequired":  true,
+        "scoreValue":  10.0,
+        "toleranceMeters":  1.6,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_8",
+        "type":  "reach_zone",
+        "title":  "U dÃ¶nÃ¼ÅŸ tepe noktasÄ±na ulaÅŸ",
+        "description":  "AracÄ± yaklaÅŸÄ±k 180 derece yÃ¶n deÄŸiÅŸimine sokan ana dÃ¶nÃ¼ÅŸ noktasÄ±na ulaÅŸ.",
+        "targetObjectId":  "wp_8",
+        "order":  8,
+        "isRequired":  true,
+        "scoreValue":  10.0,
+        "toleranceMeters":  1.6,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_9",
+        "type":  "reach_zone",
+        "title":  "Final yaklaÅŸma hattÄ±na hizalan",
+        "description":  "DÃ¶nÃ¼ÅŸten sonra final hattÄ±na doÄŸru yeniden hedef kilidi ve heading kararlÄ±lÄ±ÄŸÄ± saÄŸla.",
+        "targetObjectId":  "wp_9",
+        "order":  9,
+        "isRequired":  true,
+        "scoreValue":  10.0,
+        "toleranceMeters":  1.6,
+        "timeLimitSeconds":  0.0
+    },
+    {
+        "id":  "reach_wp_10",
+        "type":  "reach_zone",
+        "title":  "Final gÃ¶rev noktasÄ±na ulaÅŸ",
+        "description":  "Parkur-2 varyantÄ± final ÅŸartÄ±: Final hedefe hassas yaklaÅŸarak gÃ¶revi tamamla.",
+        "targetObjectId":  "wp_10",
+        "order":  10,
+        "isRequired":  true,
+        "scoreValue":  20.0,
+        "toleranceMeters":  1.8,
+        "timeLimitSeconds":  0.0
+    }
+]

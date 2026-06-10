@@ -1,0 +1,26 @@
+﻿[
+{
+    "id":  "no_go_zone_01",
+    "kind":  "no_go_zone",
+    "name":  "Yasak BÃ¶lge / Ä°Ã§ KÄ±sayol",
+    "layer":  "safety",
+    "role":  "no_go_zone",
+    "x":  94.0,
+    "y":  -2.0,
+    "z":  0.0,
+    "radius":  3.0,
+    "width":  6.0,
+    "height":  6.0,
+    "yawDeg":  0.0,
+    "isActive":  true,
+    "isBlocking":  true,
+    "isDetectable":  true,
+    "isJudgeTracked":  true,
+    "isTargetZone":  false,
+    "color":  "purple",
+    "label":  "NO-GO",
+    "tags":  {
+                 "test.purpose":  "U dÃ¶nÃ¼ÅŸte iÃ§ten kestirme yapmayÄ± cezalandÄ±rÄ±r"
+             }
+}
+]
