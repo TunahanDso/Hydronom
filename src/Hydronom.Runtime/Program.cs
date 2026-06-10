@@ -73,6 +73,10 @@ partial class Program
         var actuatorManager = actuatorSystem.Manager;
         var actuatorBus = actuatorSystem.Bus;
 
+        controlModule.SetCapabilityProfile(actuatorManager.CapabilityProfile);
+
+        Console.WriteLine($"[CFG] PlatformControl capability bind → {controlModule.CapabilityProfile.Summary}");
+
         var limiter = CreateSafetyLimiter(config);
 
         var state = VehicleState.Zero;
@@ -176,6 +180,12 @@ partial class Program
         await runtimeScenarioController.AutoStartFromConfigAsync(
             state,
             cts.Token);
+
+        var geometryAuthority = CreateScenarioGeometryAuthority(
+            config,
+            runtimeWorldModel);
+
+        RuntimeScenarioGeometrySnapshot lastGeometrySnapshot = RuntimeScenarioGeometrySnapshot.Empty;
 
         var cmdSrv = new CommandServer(
             cmdHost,
@@ -424,23 +434,54 @@ partial class Program
                 {
                     var taskForDecision = tasks.CurrentTask;
                     var planningSnapshot = planningCache.Snapshot();
+                    var geometrySnapshot = lastGeometrySnapshot.Sanitized();
+
+                    var planningRiskScore = ComputePlanningRiskScore(planningSnapshot);
+                    var finalRiskScore = ComputeWorldAwareRiskScore(
+                        planningSnapshot,
+                        geometrySnapshot);
+
+                    var hardBlocked = IsWorldAwareHardBlocked(
+                        planningSnapshot,
+                        geometrySnapshot,
+                        finalRiskScore);
+
+                    var softBlocked = IsWorldAwareSoftBlocked(
+                        planningSnapshot,
+                        geometrySnapshot,
+                        finalRiskScore);
+
+                    var geometryHardBlocked =
+                        geometrySnapshot.CollisionCandidate ||
+                        geometrySnapshot.HardBlocked;
 
                     var worldAwareAdvice = BuildWorldAwareDecisionAdvice(
                         analysisImpl.LastOperationalContext.Advice,
-                        planningSnapshot);
+                        planningSnapshot,
+                        geometrySnapshot);
 
                     advancedDecision.UpdateAdvice(worldAwareAdvice);
 
-                    if (taskForDecision is not null &&
-                        planningSnapshot.HasPlan &&
-                        planningSnapshot.IsValid &&
-                        planningSnapshot.AgeMs <= 500.0 &&
-                        planningSnapshot.Trajectory.LookAheadPoint is not null)
+                    /*
+                     * Hard blocked / collision candidate plan veya geometry target olarak Decision'a verilmez.
+                     *
+                     * Ek kural:
+                     * Scenario reach_wp görevlerinde local-detour, gerçek waypoint hedefini ezemez.
+                     * Gate/slalom bölgesinde planner'ın local-detour üretmesi aracı kapı koridorundan
+                     * çıkarıp duba dibine sürükleyebiliyor.
+                     */
+                    if (ShouldBindPlanLookAheadToDecision(
+                            taskForDecision,
+                            planningSnapshot,
+                            geometrySnapshot,
+                            finalRiskScore,
+                            hardBlocked,
+                            softBlocked))
                     {
-                        var lookAhead = planningSnapshot.Trajectory.LookAheadPoint;
+                        var lookAhead = planningSnapshot.Trajectory.LookAheadPoint!;
 
                         var plannedTask = new TaskDefinition(
-                            taskForDecision.Name,
+                            taskForDecision!.Name,
                             lookAhead.Position)
                         {
                             HoldOnArrive = false,
@@ -460,22 +501,133 @@ partial class Program
                         state,
                         currentDtSeconds);
 
-                    if (planningSnapshot.HasPlan &&
-                        planningSnapshot.IsValid &&
-                        planningSnapshot.AgeMs <= 500.0 &&
-                        planningSnapshot.Trajectory.LookAheadPoint is not null)
+                    if (geometryHardBlocked)
+                    {
+                        intent = BuildGeometryEscapeIntent(
+                            state,
+                            geometrySnapshot,
+                            finalRiskScore,
+                            planningRiskScore,
+                            planningSnapshot);
+                    }
+                    else if (hardBlocked)
+                    {
+                        intent = new ControlIntent(
+                            Kind: ControlIntentKind.HoldPosition,
+                            TargetPosition: state.Position,
+                            TargetHeadingDeg: state.Orientation.YawDeg,
+                            DesiredForwardSpeedMps: 0.0,
+                            DesiredDepthMeters: state.Position.Z,
+                            DesiredAltitudeMeters: 0.0,
+                            HoldHeading: true,
+                            HoldDepth: true,
+                            AllowReverse: false,
+                            RiskLevel: 1.0,
+                            Reason:
+                                $"PLAN_HARD_COLLISION_GUARD " +
+                                $"planRisk={planningRiskScore:F2} " +
+                                $"finalRisk={finalRiskScore:F2} " +
+                                $"geomRisk={geometrySnapshot.RiskScore:F2} " +
+                                $"geom={geometrySnapshot.Summary} " +
+                                $"plan={planningSnapshot.Summary} " +
+                                $"local={planningSnapshot.LocalPath.Summary} " +
+                                $"traj={planningSnapshot.Trajectory.Summary}");
+                    }
+                    else if (ShouldBindPlanReferenceToIntent(
+                                 tasks.CurrentTask,
+                                 planningSnapshot,
+                                 geometrySnapshot,
+                                 finalRiskScore,
+                                 hardBlocked,
+                                 softBlocked))
                     {
                         var reference = planningSnapshot.Trajectory.ToControlReference(intent.TargetPosition);
+
+                        var referenceRisk = Math.Max(reference.RiskScore, finalRiskScore);
+
+                        var desiredSpeed = reference.RequiresSlowMode || softBlocked
+                            ? Math.Min(intent.DesiredForwardSpeedMps, reference.DesiredSpeedMps)
+                            : reference.DesiredSpeedMps;
+
+                        if (finalRiskScore >= 0.85)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.12);
+                        else if (finalRiskScore >= 0.70)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.28);
+                        else if (finalRiskScore >= 0.50)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.45);
 
                         intent = intent with
                         {
                             TargetPosition = reference.TargetPosition,
                             TargetHeadingDeg = reference.TargetHeadingDeg,
-                            DesiredForwardSpeedMps = reference.RequiresSlowMode
-                                ? Math.Min(intent.DesiredForwardSpeedMps, reference.DesiredSpeedMps)
-                                : reference.DesiredSpeedMps,
-                            RiskLevel = Math.Max(intent.RiskLevel, reference.RiskScore),
-                            Reason = $"{intent.Reason}|PLAN:{planningSnapshot.Trajectory.Summary}|REF:{reference.Reason}"
+                            DesiredForwardSpeedMps = desiredSpeed,
+                            RiskLevel = Math.Max(intent.RiskLevel, referenceRisk),
+                            Reason =
+                                $"{intent.Reason}|PLAN:{planningSnapshot.Trajectory.Summary}" +
+                                $"|REF:{reference.Reason}" +
+                                $"|PLAN_RISK:{planningRiskScore:F2}" +
+                                $"|GEOM_RISK:{geometrySnapshot.RiskScore:F2}" +
+                                $"|FINAL_RISK:{finalRiskScore:F2}" +
+                                $"|SOFT_BLOCK:{softBlocked}" +
+                                $"|GEOM:{geometrySnapshot.Summary}"
+                        };
+                    }
+                    else if (planningSnapshot.HasPlan &&
+                             planningSnapshot.IsValid &&
+                             planningSnapshot.AgeMs <= 500.0 &&
+                             planningSnapshot.Trajectory.LookAheadPoint is not null)
+                    {
+                        /*
+                         * Plan var ama referans bind edilmedi.
+                         * Bu özellikle scenario reach_wp + local-detour durumunda bilinçli yapılır.
+                         * Planner hedefi ezemez; sadece risk/speed bilgisini intent'e işleriz.
+                         */
+                        var desiredSpeed = intent.DesiredForwardSpeedMps;
+
+                        if (finalRiskScore >= 0.85)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.12);
+                        else if (finalRiskScore >= 0.70)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.28);
+                        else if (finalRiskScore >= 0.50)
+                            desiredSpeed = Math.Min(desiredSpeed, 0.45);
+
+                        /*
+                         * Soft risk var ama hard collision yoksa aracı tamamen öldürme.
+                         */
+                        if (!hardBlocked &&
+                            finalRiskScore < 0.85 &&
+                            desiredSpeed > 0.0)
+                        {
+                            desiredSpeed = Math.Max(desiredSpeed, 0.18);
+                        }
+
+                        intent = intent with
+                        {
+                            DesiredForwardSpeedMps = desiredSpeed,
+                            RiskLevel = Math.Max(intent.RiskLevel, finalRiskScore),
+                            Reason =
+                                $"{intent.Reason}" +
+                                $"|PLAN_REFERENCE_REJECTED_KEEP_TASK_TARGET" +
+                                $"|PLAN:{planningSnapshot.Trajectory.Summary}" +
+                                $"|LOOKAHEAD:{planningSnapshot.Trajectory.LookAheadPoint.Id}" +
+                                $"|PLAN_RISK:{planningRiskScore:F2}" +
+                                $"|GEOM_RISK:{geometrySnapshot.RiskScore:F2}" +
+                                $"|FINAL_RISK:{finalRiskScore:F2}" +
+                                $"|SOFT_BLOCK:{softBlocked}" +
+                                $"|GEOM:{geometrySnapshot.Summary}"
+                        };
+                    }
+                    else
+                    {
+                        intent = intent with
+                        {
+                            RiskLevel = Math.Max(intent.RiskLevel, finalRiskScore),
+                            Reason =
+                                $"{intent.Reason}" +
+                                $"|NO_VALID_PLAN_RISK:{planningRiskScore:F2}" +
+                                $"|GEOM_RISK:{geometrySnapshot.RiskScore:F2}" +
+                                $"|FINAL_RISK:{finalRiskScore:F2}" +
+                                $"|GEOM:{geometrySnapshot.Summary}"
                         };
                     }
 
@@ -489,7 +641,11 @@ partial class Program
                     lastControlMode = "AUTO";
                     lastDecisionReport = report;
 
-                    return RuntimeModuleTickResult.Ok("INTENT_UPDATED_WITH_PLAN", producedOutput: true);
+                    return RuntimeModuleTickResult.Ok(
+                        hardBlocked
+                            ? "INTENT_WORLD_GEOMETRY_GUARD"
+                            : "INTENT_UPDATED_WITH_WORLD_GEOMETRY",
+                        producedOutput: true);
                 }
 
                 var fallbackReport = AdvancedDecisionReport.Empty with
@@ -527,6 +683,8 @@ partial class Program
                 var intent = intentSnapshot.HasValue
                     ? intentSnapshot.Intent
                     : ControlIntent.Idle;
+
+                controlModule.SetCapabilityProfile(actuatorManager.CapabilityProfile);
 
                 var controlOutput = controlModule.Update(
                     intent,
@@ -636,6 +794,13 @@ partial class Program
 
                 latestFrameForAnalysis = frameToUse;
 
+                lastGeometrySnapshot = UpdateScenarioGeometrySnapshot(
+                    geometryAuthority,
+                    planningCache,
+                    tasks,
+                    state,
+                    loopState.TickIndex);
+
                 await runtimeScheduler.TickDueAsync(cts.Token);
 
                 var analysisSnapshot = analysisCache.Snapshot();
@@ -696,7 +861,11 @@ partial class Program
                     ref loopState
                 );
 
-                runtimeScenarioController.Tick(state, loopState.TickIndex);
+                TickScenarioRuntimeWithGeometryGuard(
+                    runtimeScenarioController,
+                    state,
+                    loopState.TickIndex,
+                    lastGeometrySnapshot);
 
                 await TryPublishOpsTelemetryFramesAsync(
                     tcpFrameSource,
@@ -792,141 +961,122 @@ partial class Program
         }
     }
 
-    private static DecisionAdviceProfile BuildWorldAwareDecisionAdvice(
-        DecisionAdviceProfile analysisAdvice,
-        RuntimePlanningSnapshot? planningSnapshot)
+    private static bool ShouldBindPlanLookAheadToDecision(
+        TaskDefinition? task,
+        RuntimePlanningSnapshot planningSnapshot,
+        RuntimeScenarioGeometrySnapshot geometrySnapshot,
+        double finalRiskScore,
+        bool hardBlocked,
+        bool softBlocked)
     {
-        var safeAnalysisAdvice = analysisAdvice.Sanitized();
-        var planningAdvice = BuildPlanningDecisionAdvice(planningSnapshot);
+        if (hardBlocked)
+            return false;
 
-        return safeAnalysisAdvice
-            .MergeConservative(planningAdvice)
-            .Sanitized();
-    }
+        if (task is null)
+            return false;
 
-    private static DecisionAdviceProfile BuildPlanningDecisionAdvice(
-        RuntimePlanningSnapshot? planningSnapshot)
-    {
-        var snapshot = (planningSnapshot ?? RuntimePlanningSnapshot.Empty).Sanitized();
-
-        if (!snapshot.HasPlan ||
-            !snapshot.IsValid ||
-            snapshot.AgeMs > 500.0 ||
-            snapshot.RequiresReplan)
+        if (!planningSnapshot.HasPlan ||
+            !planningSnapshot.IsValid ||
+            planningSnapshot.AgeMs > 500.0 ||
+            planningSnapshot.Trajectory.LookAheadPoint is null)
         {
-            return DecisionAdviceProfile.Neutral;
-        }
-
-        var localRisk = snapshot.LocalPath.Risk.Sanitized();
-        var trajectoryRisk = snapshot.Trajectory.Risk.Sanitized();
-
-        var riskScore = Math.Max(
-            Math.Max(localRisk.RiskScore, trajectoryRisk.RiskScore),
-            snapshot.Trajectory.LookAheadPoint?.RiskScore ?? 0.0);
-
-        var clearance = ResolvePlanningClearanceMeters(
-            localRisk.MinimumClearanceMeters,
-            trajectoryRisk.MinimumClearanceMeters);
-
-        var isWorldCorridor =
-            ContainsToken(snapshot.Summary, "WORLD_CORRIDOR") ||
-            ContainsToken(snapshot.LocalPath.Summary, "WORLD_CORRIDOR") ||
-            snapshot.LocalPath.Mode.ToString().Equals("Corridor", StringComparison.OrdinalIgnoreCase);
-
-        var hasSafeCorridor =
-            isWorldCorridor &&
-            riskScore <= 0.45 &&
-            clearance >= 1.0;
-
-        if (!hasSafeCorridor)
-            return DecisionAdviceProfile.Neutral;
-
-        var confidence = ComputeCorridorConfidence(
-            riskScore,
-            clearance,
-            snapshot.AgeMs);
-
-        return (DecisionAdviceProfile.Neutral with
-        {
-            MaxSpeedScale = riskScore <= 0.20 ? 0.90 : 0.75,
-            ThrottleScale = riskScore <= 0.20 ? 0.85 : 0.65,
-            YawAggressionScale = 0.85,
-            ArrivalCautionScale = riskScore <= 0.20 ? 1.10 : 1.35,
-            ObstacleAvoidanceUrgency = Math.Clamp(riskScore, 0.05, 0.35),
-            RequireSlowMode = snapshot.RequiresSlowMode || riskScore >= 0.30,
-            PreferSafeHeading = true,
-            PrimaryReason = "WORLD_SAFE_CORRIDOR",
-            HasPassableCorridor = true,
-            CorridorCenterOffsetDeg = 0.0,
-            CorridorWidthMeters = Math.Max(0.0, clearance),
-            CorridorClearanceMeters = Math.Max(0.0, clearance),
-            CorridorConfidence = confidence,
-            SuppressObstaclePanic = true,
-            PreferCorridorHeading = false
-        }).Sanitized();
-    }
-
-    private static double ResolvePlanningClearanceMeters(
-        double localClearance,
-        double trajectoryClearance)
-    {
-        var hasLocal = double.IsFinite(localClearance) && localClearance >= 0.0;
-        var hasTrajectory = double.IsFinite(trajectoryClearance) && trajectoryClearance >= 0.0;
-
-        if (hasLocal && hasTrajectory)
-            return Math.Min(localClearance, trajectoryClearance);
-
-        if (hasLocal)
-            return localClearance;
-
-        if (hasTrajectory)
-            return trajectoryClearance;
-
-        /*
-         * Bazı ilk planlarda clearance sonsuz/boş gelebilir.
-         * WORLD_CORRIDOR + düşük risk varsa yine geçilebilir corridor kabul edebilmek için
-         * makul bir varsayılan güvenli açıklık veriyoruz.
-         */
-        return 3.0;
-    }
-
-    private static double ComputeCorridorConfidence(
-        double riskScore,
-        double clearanceMeters,
-        double ageMs)
-    {
-        var riskConfidence = 1.0 - Math.Clamp(riskScore, 0.0, 1.0);
-
-        var clearanceConfidence = Math.Clamp(
-            clearanceMeters / 4.0,
-            0.0,
-            1.0);
-
-        var ageConfidence = 1.0 - Math.Clamp(
-            ageMs / 500.0,
-            0.0,
-            1.0);
-
-        return Math.Clamp(
-            riskConfidence * 0.50 +
-            clearanceConfidence * 0.35 +
-            ageConfidence * 0.15,
-            0.0,
-            1.0);
-    }
-
-    private static bool ContainsToken(string? value, string token)
-    {
-        return !string.IsNullOrWhiteSpace(value) &&
-               value.Contains(token, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private sealed class NullFrameSource : IFrameSource
-    {
-        public bool TryGetLatestFrame(out FusedFrame? frame)
-        {
-            frame = null;
             return false;
         }
+
+        /*
+         * Scenario reach_wp görevlerinde local-detour, gerçek görev hedefini ezemez.
+         * Bu, WP2'ye gitmesi gereken aracın sağ dubanın altındaki detour'a kırılmasını engeller.
+         */
+        if (IsExternalReachWaypointTask(task) &&
+            IsLocalDetourLookAhead(planningSnapshot))
+        {
+            return false;
+        }
+
+        if (IsExternalReachWaypointTask(task) &&
+            (softBlocked || geometrySnapshot.SoftBlocked || finalRiskScore >= 0.50) &&
+            IsLocalDetourLookAhead(planningSnapshot))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool ShouldBindPlanReferenceToIntent(
+        TaskDefinition? task,
+        RuntimePlanningSnapshot planningSnapshot,
+        RuntimeScenarioGeometrySnapshot geometrySnapshot,
+        double finalRiskScore,
+        bool hardBlocked,
+        bool softBlocked)
+    {
+        if (hardBlocked)
+            return false;
+
+        if (task is null)
+            return false;
+
+        if (!planningSnapshot.HasPlan ||
+            !planningSnapshot.IsValid ||
+            planningSnapshot.AgeMs > 500.0 ||
+            planningSnapshot.Trajectory.LookAheadPoint is null)
+        {
+            return false;
+        }
+
+        /*
+         * Scenario waypoint görevlerinde local-detour intent hedefini ezemez.
+         * Bu kapı/slalomda "WP2'ye git" hedefinin "sağ duba altındaki detour'a git"e dönüşmesini engeller.
+         */
+        if (IsExternalReachWaypointTask(task) &&
+            IsLocalDetourLookAhead(planningSnapshot))
+        {
+            return false;
+        }
+
+        if (IsExternalReachWaypointTask(task) &&
+            (softBlocked || geometrySnapshot.SoftBlocked || finalRiskScore >= 0.50) &&
+            IsLocalDetourLookAhead(planningSnapshot))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsExternalReachWaypointTask(TaskDefinition? task)
+    {
+        if (task is null)
+            return false;
+
+        if (!task.IsExternallyCompleted)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(task.ExternalObjectiveId) &&
+            task.ExternalObjectiveId.Contains("reach_wp", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(task.Name) &&
+            task.Name.Contains("reach_wp", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsLocalDetourLookAhead(RuntimePlanningSnapshot planningSnapshot)
+    {
+        var id = planningSnapshot.Trajectory.LookAheadPoint?.Id;
+
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+
+        return id.Contains("local-detour", StringComparison.OrdinalIgnoreCase) ||
+               id.Contains("detour", StringComparison.OrdinalIgnoreCase) ||
+               id.Contains("avoid", StringComparison.OrdinalIgnoreCase);
     }
 }

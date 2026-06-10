@@ -199,7 +199,7 @@ partial class Program
             $"SyntheticState={runtime.UseSyntheticStateWhenNoExternal}"
         );
 
-        Console.WriteLine("[CFG] Obstacle Policy â†’ Runtime obstacle Ã¼retmez. Obstacle yalnÄ±zca Python/TcpJson fresh frame'den alÄ±nÄ±r.");
+        Console.WriteLine("[CFG] Obstacle Policy → RuntimeWorldModel + ScenarioGeometryAuthority authoritative; TcpJson/Python varsa ek sensor frame olarak merge edilir.");
 
         Console.WriteLine(
             $"[CFG] Physics â†’ Mass={physics.MassKg:F2}kg " +

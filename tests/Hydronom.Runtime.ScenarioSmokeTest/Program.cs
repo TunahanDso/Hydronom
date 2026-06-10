@@ -1,4 +1,4 @@
-using Hydronom.Core.Domain;
+﻿using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
@@ -301,7 +301,7 @@ static async Task RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(string 
 }
 static async Task RunRuntimeScenarioControllerSlalomUTurnPackageSmokeTest()
 {
-    const string scenarioId = "teknofest_2026_parkur_s_slalom_uturn";
+    const string scenarioId = "teknofest_2026_parkur_1_point_tracking";
 
     var config = BuildRuntimeScenarioControllerConfig(scenarioId);
     var taskManager = new InMemoryScenarioTaskManager();

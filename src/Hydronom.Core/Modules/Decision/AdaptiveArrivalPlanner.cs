@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Hydronom.Core.Modules
 {
@@ -539,7 +539,7 @@ namespace Hydronom.Core.Modules
             // Bu yüzden daha sakin ve kontrollü bir değer kullanıyoruz.
             const double scenarioReverseThrottleNorm = 0.14;
 
-            bool scenarioAllowReverseSurge = true;
+            bool scenarioAllowReverseSurge = profileKind == ArrivalProfileKind.PrecisionStop;
 
             return PlanMissionArrival(
                 distanceM: distanceM,

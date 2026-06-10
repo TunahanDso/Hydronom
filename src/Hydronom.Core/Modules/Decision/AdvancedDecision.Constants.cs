@@ -1,4 +1,4 @@
-namespace Hydronom.Core.Modules
+﻿namespace Hydronom.Core.Modules
 {
     public partial class AdvancedDecision
     {
@@ -55,22 +55,22 @@ namespace Hydronom.Core.Modules
         // ---------------------------------------------------------------------
         // SCENARIO / PARKUR ARRIVAL PROFILE
         // ---------------------------------------------------------------------
-        private const double ScenarioSlowRadiusM = 12.0;
-        private const double ScenarioCaptureRadiusM = 1.50;
-        private const double ScenarioCoastRadiusM = 2.75;
+        private const double ScenarioSlowRadiusM = 5.50;
+        private const double ScenarioCaptureRadiusM = 0.75;
+        private const double ScenarioCoastRadiusM = 1.30;
 
-        private const double ScenarioMaxCaptureSpeedMps = 0.70;
-        private const double ScenarioDesiredSpeedFloorMps = 0.18;
+        private const double ScenarioMaxCaptureSpeedMps = 0.95;
+        private const double ScenarioDesiredSpeedFloorMps = 0.30;
 
         /*
          * Tek yönlü thruster varsayımında aktif geri fren yoktur.
          * Bu yüzden decel değeri agresif değil, erken yavaşlamayı zorlayan muhafazakâr bir tahmindir.
          */
-        private const double ScenarioEstimatedCoastDecelMps2 = 0.16;
+        private const double ScenarioEstimatedCoastDecelMps2 = 0.28;
 
         private const double ScenarioMinThrottleNorm = 0.00;
-        private const double ScenarioCreepThrottleNorm = 0.025;
-        private const double ScenarioMaxApproachThrottleNorm = 0.42;
+        private const double ScenarioCreepThrottleNorm = 0.055;
+        private const double ScenarioMaxApproachThrottleNorm = 0.55;
 
         // ---------------------------------------------------------------------
         // HEADING / YAW KONTROL

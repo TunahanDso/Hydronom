@@ -33,7 +33,12 @@ namespace Hydronom.Core.Modules
             double sideSign;
             if (Math.Abs(right - left) < 0.10)
             {
-                sideSign = nav.HeadingErrorDeg >= 0.0 ? +1.0 : -1.0;
+                /*
+                 * Clearance kararsızsa hedefin istediği tarafa kör kırma.
+                 * Örneğin WP2 sağ/aşağıdaysa ve sağ duba yakınsa aynı yöne saplanmasın diye
+                 * hedef heading'in ters tarafına recovery açısı veriyoruz.
+                 */
+                sideSign = nav.HeadingErrorDeg >= 0.0 ? -1.0 : +1.0;
             }
             else
             {
@@ -42,30 +47,63 @@ namespace Hydronom.Core.Modules
 
             double clearanceMax = Math.Max(left, right);
             double clearanceMin = Math.Min(left, right);
-            double clearanceBalance = (clearanceMax - clearanceMin) / Math.Max(0.5, clearanceMax);
+
+            bool clearancesUseful =
+                clearanceMax > 0.05 &&
+                double.IsFinite(clearanceMax);
+
+            double clearanceBalance = clearancesUseful
+                ? (clearanceMax - clearanceMin) / Math.Max(0.5, clearanceMax)
+                : 0.35;
 
             double urgency = Math.Clamp(advice.ObstacleAvoidanceUrgency, 0.0, 1.0);
 
-            double throttleNorm = 0.10;
+            /*
+             * Avoid modu stop modu değildir.
+             * Yakın engel varsa bile tekne kaçış manevrası yapabilsin diye
+             * minimum canlı gaz korunur.
+             */
+            double throttleNorm =
+                urgency >= 0.85 ? 0.11 :
+                urgency >= 0.65 ? 0.14 :
+                0.18;
 
-            if (clearanceMin < 1.0)
-                throttleNorm = 0.02;
-            else if (clearanceMin < 2.0)
-                throttleNorm = 0.06;
+            if (clearancesUseful)
+            {
+                if (clearanceMin < 0.35)
+                    throttleNorm *= 0.75;
+                else if (clearanceMin < 0.75)
+                    throttleNorm *= 0.85;
+                else if (clearanceMin < 1.25)
+                    throttleNorm *= 0.95;
+            }
 
-            throttleNorm *= advice.ThrottleScale;
+            throttleNorm *= Math.Clamp(advice.ThrottleScale, 0.35, 1.25);
 
             if (advice.RequireSlowMode)
-                throttleNorm *= 0.55;
+                throttleNorm *= 0.85;
 
-            if (advice.ForceCoast)
+            /*
+             * ForceCoast artık sadece gerçek son çare sebeplerinde gazı sıfırlayabilir.
+             * Recovery / soft obstacle durumunda gazı öldürmesine izin vermiyoruz.
+             */
+            if (advice.ForceCoast &&
+                IsLastResortStopReasonForNavigation(advice.PrimaryReason))
+            {
                 throttleNorm = 0.0;
+            }
 
-            double rudderNorm =
-                (0.50 + 0.35 * Math.Clamp(clearanceBalance, 0.0, 1.0)) *
-                sideSign;
+            if (throttleNorm > 0.0)
+                throttleNorm = Math.Clamp(throttleNorm, 0.06, 0.28);
 
-            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.25, 2.0);
+            double turnBase =
+                clearancesUseful
+                    ? 0.42 + 0.38 * Math.Clamp(clearanceBalance, 0.0, 1.0)
+                    : 0.58;
+
+            double rudderNorm = turnBase * sideSign;
+
+            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.45, 2.0);
             rudderNorm *= 1.0 + urgency * 0.35;
             rudderNorm = Math.Clamp(rudderNorm, -0.95, 0.95);
 
@@ -73,7 +111,7 @@ namespace Hydronom.Core.Modules
             var output = ScaleCommand(raw);
 
             string reason = AppendAdviceReason(
-                $"AVOID side={(sideSign > 0 ? "right" : "left")} clearL={left:F2} clearR={right:F2}",
+                $"AVOID_RECOVERY side={(sideSign > 0 ? "right" : "left")} clearL={left:F2} clearR={right:F2} liveThrottle={throttleNorm:F2}",
                 advice);
 
             return new DecisionResult(
@@ -110,43 +148,51 @@ namespace Hydronom.Core.Modules
             if (Math.Abs(rudderNorm) < 0.08 && absOffset > 2.0)
                 rudderNorm = corridorOffsetDeg >= 0.0 ? 0.08 : -0.08;
 
-            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.75, 1.35);
-            rudderNorm = Math.Clamp(rudderNorm, -0.75, 0.75);
+            rudderNorm *= Math.Clamp(advice.YawAggressionScale, 0.75, 1.45);
+            rudderNorm = Math.Clamp(rudderNorm, -0.82, 0.82);
 
-            double throttleNorm = 0.12 + confidence * 0.18;
+            /*
+             * Koridor takipte de canlı gaz tabanı var.
+             * Koridor var diyorsak araç durup bakmayacak, kontrollü geçecek.
+             */
+            double throttleNorm = 0.14 + confidence * 0.20;
 
             if (absOffset > 20.0)
-                throttleNorm *= 0.65;
+                throttleNorm *= 0.75;
 
             if (absOffset > 35.0)
-                throttleNorm *= 0.45;
+                throttleNorm *= 0.60;
 
             if (absYawRate > 35.0)
-                throttleNorm *= 0.70;
+                throttleNorm *= 0.80;
 
-            throttleNorm *= advice.ThrottleScale;
+            throttleNorm *= Math.Clamp(advice.ThrottleScale, 0.45, 1.25);
 
             if (advice.RequireSlowMode)
-                throttleNorm *= 0.85;
+                throttleNorm *= 0.90;
 
-            throttleNorm = Math.Clamp(throttleNorm, 0.04, 0.32);
+            throttleNorm = Math.Clamp(throttleNorm, 0.06, 0.36);
 
             /*
              * Geçilebilir koridor modunda ForceCoast normalde kullanılmaz.
-             * Ancak üst seviye analiz çok kritik bir durum üretmişse yine de güvenlik baskın gelir.
+             * Sadece gerçek last-resort sebebi varsa sıfır gaz kabul edilir.
              */
-            if (advice.ForceCoast)
+            if (advice.ForceCoast &&
+                IsLastResortStopReasonForNavigation(advice.PrimaryReason))
+            {
                 throttleNorm = 0.0;
+            }
 
             var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
             var output = ScaleCommand(raw);
 
             string reason =
-                $"PASSABLE_CORRIDOR offset={corridorOffsetDeg:F1}deg " +
+                $"PASSABLE_CORRIDOR_RECOVERY offset={corridorOffsetDeg:F1}deg " +
                 $"width={advice.CorridorWidthMeters:F2}m " +
                 $"clear={advice.CorridorClearanceMeters:F2}m " +
                 $"conf={confidence:F2} " +
-                $"obsAhead={ins.HasObstacleAhead}";
+                $"obsAhead={ins.HasObstacleAhead} " +
+                $"liveThrottle={throttleNorm:F2}";
 
             return new DecisionResult(
                 RawCommand: raw,
@@ -168,6 +214,9 @@ namespace Hydronom.Core.Modules
             bool scenarioOwnedTask = task.IsExternallyCompleted;
 
             var advice = _currentAdvice.Sanitized();
+
+            bool lastResortStop =
+                IsLastResortStopReasonForNavigation(advice.PrimaryReason);
 
             double rudderNorm = ComputeNavigationRudder(
                 nav,
@@ -195,7 +244,7 @@ namespace Hydronom.Core.Modules
             if (advice.RequireSlowMode)
                 throttleNorm *= 0.55;
 
-            if (advice.ForceCoast)
+            if (advice.ForceCoast && lastResortStop)
                 throttleNorm = Math.Min(throttleNorm, 0.0);
 
             var arrival = PlanMissionArrival(task, throttleNorm, nav, advice);
@@ -210,7 +259,6 @@ namespace Hydronom.Core.Modules
             if (arrival.Phase is ArrivalPhase.Capture or ArrivalPhase.CaptureCoast)
             {
                 /*
-                 * Türkçe yorum:
                  * Fly-through davranışı için capture fazında dümeni fazla öldürmek istemiyoruz.
                  * Ancak final/precision yaklaşmada hâlâ daha sakin dümen iyi olur.
                  */
@@ -237,7 +285,13 @@ namespace Hydronom.Core.Modules
                     advice);
             }
 
-            if (advice.RecommendHold && nav.PlanarSpeedMps <= 0.35)
+            /*
+             * Soft obstacle / recovery durumunda RecommendHold aracı öldürmesin.
+             * Sadece gerçek last-resort sebebi varsa hold tavsiyesi uygulanır.
+             */
+            if (advice.RecommendHold &&
+                lastResortStop &&
+                nav.PlanarSpeedMps <= 0.35)
             {
                 throttleNorm = 0.0;
                 reason = $"{reason}_ANALYSIS_HOLD_RECOMMENDED";
@@ -258,10 +312,23 @@ namespace Hydronom.Core.Modules
                     GeneralMaxApproachThrottleNorm);
             }
 
-            if (advice.ForceCoast && throttleNorm > 0.0)
+            if (advice.ForceCoast &&
+                lastResortStop &&
+                throttleNorm > 0.0)
             {
                 throttleNorm = 0.0;
                 reason = $"{reason}_ANALYSIS_FORCE_COAST";
+            }
+
+            /*
+             * Navigation içinde obstacle risk var ama last-resort yoksa minimum hareket enerjisi korunsun.
+             * Bu özellikle "duba gördü, dönüyor ama gitmiyor" davranışını engeller.
+             */
+            if (!lastResortStop &&
+                advice.ObstacleAvoidanceUrgency >= 0.45 &&
+                throttleNorm > 0.0)
+            {
+                throttleNorm = Math.Max(throttleNorm, 0.05);
             }
 
             var raw = PlanarToRawWrench(throttleNorm, rudderNorm, task, state, dt);
@@ -284,7 +351,6 @@ namespace Hydronom.Core.Modules
             string reason)
         {
             /*
-             * Türkçe yorum:
              * Eski davranış:
              * - Scenario task her zaman ScenarioMinThrottleNorm..ScenarioMaxApproachThrottleNorm aralığına kırpılıyordu.
              * - Bu yüzden AdaptiveArrivalPlanner negatif reverse braking üretse bile burada kayboluyordu.
@@ -438,6 +504,18 @@ namespace Hydronom.Core.Modules
                 PlanarSpeedMps: planarSpeed,
                 YawRateDeg: state.AngularVelocity.Z
             );
+        }
+
+        private static bool IsLastResortStopReasonForNavigation(string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                return false;
+
+            return reason.Contains("IMMINENT_CONTACT_LAST_RESORT", StringComparison.OrdinalIgnoreCase) ||
+                   reason.Contains("COLLISION_CANDIDATE", StringComparison.OrdinalIgnoreCase) ||
+                   reason.Contains("HARD_COLLISION", StringComparison.OrdinalIgnoreCase) ||
+                   reason.Contains("HARD_BLOCK", StringComparison.OrdinalIgnoreCase) ||
+                   reason.Contains("MISSION_ABORT", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

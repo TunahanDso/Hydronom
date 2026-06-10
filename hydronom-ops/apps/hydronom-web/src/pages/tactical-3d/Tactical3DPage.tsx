@@ -142,6 +142,19 @@ export function Tactical3DPage() {
 
   const worldRouteCount = world?.route?.length ?? 0;
   const worldObjectCount = world?.objects?.length ?? 0;
+  const worldScenarioObstacleCount =
+    world?.objects?.filter((object) => object.type === "obstacle").length ?? 0;
+
+  const worldScenarioBoundaryCount =
+    world?.objects?.filter((object) => object.type === "boundary").length ?? 0;
+
+  const worldScenarioGateCount =
+    world?.objects?.filter(
+      (object) => object.type === "gate_left" || object.type === "gate_right"
+    ).length ?? 0;
+
+  const worldScenarioNoGoZoneCount =
+    world?.objects?.filter((object) => object.type === "no_go_zone").length ?? 0;
   const worldCheckpointCount =
     world?.objects?.filter((object) => object.type === "checkpoint" || object.type === "finish").length ?? 0;
   const worldCompletedCheckpointCount =
@@ -161,7 +174,10 @@ export function Tactical3DPage() {
     actuator?.thrusters?.filter((thruster) => thruster.active).length ?? 0;
 
   const armState = getTelemetryArmState(telemetry);
-  const totalObstacleCount = getTelemetryObstacleCount(telemetry) + sensorObstacleCount;
+  const totalObstacleCount =
+    getTelemetryObstacleCount(telemetry) +
+    sensorObstacleCount +
+    worldScenarioObstacleCount;
 
   return (
     <section className="h-[calc(100vh-4.5rem)] min-h-[760px] overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-panel">
@@ -272,8 +288,12 @@ export function Tactical3DPage() {
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-300">
             <span>Route: {worldRouteCount || mission?.route?.length || 0}</span>
             <span>Objects: {worldObjectCount}</span>
-            <span>LiDAR: {lidarCount}</span>
             <span>Obs: {totalObstacleCount}</span>
+            <span>No-Go: {worldScenarioNoGoZoneCount}</span>
+            <span>Gate: {worldScenarioGateCount}</span>
+            <span>Boundary: {worldScenarioBoundaryCount}</span>
+            <span>LiDAR: {lidarCount}</span>
+            <span>Sensor Obs: {sensorObstacleCount}</span>
           </div>
         </div>
 

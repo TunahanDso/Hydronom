@@ -65,6 +65,64 @@ export function TacticalWorldLayer(props: {
       }));
   }, [world?.objects, origin]);
 
+  const scenarioObstacles = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) => object.type === "obstacle")
+      .map((object) => ({
+        id: object.id,
+        position: worldToSceneTuple(object.x, object.y, object.z, origin),
+        radius: getWorldObjectNumber(object, "radius", 0.35),
+        height: getWorldObjectNumber(object, "height", REAL_BUOY_HEIGHT_M),
+        color: object.color ?? "#ef4444"
+      }));
+  }, [world?.objects, origin]);
+
+  const boundaryObjects = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) => object.type === "boundary")
+      .map((object) => ({
+        id: object.id,
+        position: worldToSceneTuple(object.x, object.y, object.z, origin),
+        radius: getWorldObjectNumber(object, "radius", REAL_BUOY_RADIUS_M),
+        height: getWorldObjectNumber(object, "height", REAL_BUOY_HEIGHT_M),
+        color: object.color ?? "#f59e0b"
+      }));
+  }, [world?.objects, origin]);
+
+  const gateObjects = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) => object.type === "gate_left" || object.type === "gate_right")
+      .map((object) => ({
+        id: object.id,
+        type: object.type,
+        position: worldToSceneTuple(object.x, object.y, object.z, origin),
+        radius: getWorldObjectNumber(object, "radius", REAL_BUOY_RADIUS_M),
+        height: getWorldObjectNumber(object, "height", REAL_BUOY_HEIGHT_M),
+        color:
+          object.color ??
+          (object.type === "gate_left" ? "#22c55e" : "#ef4444")
+      }));
+  }, [world?.objects, origin]);
+
+  const noGoZones = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) => object.type === "no_go_zone")
+      .map((object) => ({
+        id: object.id,
+        position: worldToSceneTuple(object.x, object.y, object.z, origin),
+        radius: Math.max(0.5, getWorldObjectNumber(object, "radius", 2.5)),
+        color: object.color ?? "#a855f7"
+      }));
+  }, [world?.objects, origin]);
+
   const pathSegments = useMemo(() => {
     const objects = world?.objects ?? [];
 
@@ -169,6 +227,10 @@ export function TacticalWorldLayer(props: {
     routePoints.length > 1 ||
     waypointObjects.length > 0 ||
     buoys.length > 0 ||
+    scenarioObstacles.length > 0 ||
+    boundaryObjects.length > 0 ||
+    gateObjects.length > 0 ||
+    noGoZones.length > 0 ||
     pathSegments.length > 0 ||
     trackingStripes.length > 0 ||
     pipes.length > 0 ||
@@ -230,6 +292,47 @@ export function TacticalWorldLayer(props: {
           height={zone.height}
           color={zone.color}
           opacity={0.22}
+        />
+      ))}
+
+      {noGoZones.map((zone) => (
+        <NoGoZoneMarker
+          key={zone.id}
+          position={zone.position}
+          radius={zone.radius}
+          color={zone.color}
+        />
+      ))}
+
+      {scenarioObstacles.map((obstacle) => (
+        <ScenarioObstacleMarker
+          key={obstacle.id}
+          position={obstacle.position}
+          radius={obstacle.radius}
+          height={obstacle.height}
+          color={obstacle.color}
+        />
+      ))}
+
+      {boundaryObjects.map((boundary) => (
+        <BuoyMarker
+          key={boundary.id}
+          position={boundary.position}
+          side="left"
+          radius={boundary.radius}
+          height={boundary.height}
+          colorOverride={boundary.color}
+        />
+      ))}
+
+      {gateObjects.map((gate) => (
+        <BuoyMarker
+          key={gate.id}
+          position={gate.position}
+          side={gate.type === "gate_left" ? "left" : "right"}
+          radius={gate.radius}
+          height={gate.height}
+          colorOverride={gate.color}
         />
       ))}
 
@@ -475,6 +578,121 @@ function BuoyMarker(props: {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
         <ringGeometry args={[radius * 1.2, radius * 1.42, 32]} />
         <meshBasicMaterial color={color} transparent opacity={0.42} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function ScenarioObstacleMarker(props: {
+  position: [number, number, number];
+  radius: number;
+  height: number;
+  color: string;
+}) {
+  const pulseRef = useRef<THREE.Mesh | null>(null);
+  const radius = Math.max(0.08, Math.min(0.45, props.radius));
+  const height = Math.max(0.25, Math.min(1.1, props.height));
+  const safetyRadius = Math.max(radius * 1.8, props.radius * 1.15);
+
+  useFrame(({ clock }) => {
+    if (!pulseRef.current) return;
+
+    const t = clock.getElapsedTime();
+    const s = 1 + Math.sin(t * 2.0) * 0.045;
+    pulseRef.current.scale.setScalar(s);
+  });
+
+  return (
+    <group position={props.position}>
+      <mesh position={[0, height * 0.5, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[radius * 0.82, radius, height, 20]} />
+        <meshStandardMaterial
+          color={props.color}
+          emissive={props.color}
+          emissiveIntensity={0.18}
+          roughness={0.42}
+        />
+      </mesh>
+
+      <mesh position={[0, height + radius * 0.32, 0]} castShadow>
+        <sphereGeometry args={[radius * 0.62, 18, 18]} />
+        <meshStandardMaterial
+          color={props.color}
+          emissive={props.color}
+          emissiveIntensity={0.24}
+          roughness={0.38}
+        />
+      </mesh>
+
+      <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
+        <ringGeometry args={[safetyRadius * 0.94, safetyRadius, 56]} />
+        <meshBasicMaterial
+          color="#f97316"
+          transparent
+          opacity={0.48}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.045, 0]}>
+        <ringGeometry args={[radius * 1.06, radius * 1.26, 40]} />
+        <meshBasicMaterial
+          color="#fed7aa"
+          transparent
+          opacity={0.58}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function NoGoZoneMarker(props: {
+  position: [number, number, number];
+  radius: number;
+  color: string;
+}) {
+  const pulseRef = useRef<THREE.Mesh | null>(null);
+  const radius = Math.max(0.5, props.radius);
+
+  useFrame(({ clock }) => {
+    if (!pulseRef.current) return;
+
+    const t = clock.getElapsedTime();
+    const s = 1 + Math.sin(t * 1.5) * 0.025;
+    pulseRef.current.scale.setScalar(s);
+  });
+
+  return (
+    <group position={props.position}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
+        <circleGeometry args={[radius, 96]} />
+        <meshBasicMaterial
+          color={props.color}
+          transparent
+          opacity={0.14}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
+        <ringGeometry args={[radius * 0.97, radius, 96]} />
+        <meshBasicMaterial
+          color={props.color}
+          transparent
+          opacity={0.86}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.042, 0]}>
+        <ringGeometry args={[radius * 0.52, radius * 0.55, 72]} />
+        <meshBasicMaterial
+          color="#f8fafc"
+          transparent
+          opacity={0.2}
+          side={THREE.DoubleSide}
+        />
       </mesh>
     </group>
   );

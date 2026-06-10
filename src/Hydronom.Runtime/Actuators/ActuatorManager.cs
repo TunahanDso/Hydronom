@@ -1,4 +1,5 @@
-﻿// Hydronom.Runtime\Actuators\ActuatorManager.cs
+﻿
+// Hydronom.Runtime\Actuators\ActuatorManager.cs
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace Hydronom.Runtime.Actuators
     ///
     /// Parçalanmış sorumluluklar:
     /// - ActuatorManager.Allocation.cs  : B matrisi, ridge LS solver, authority, allocation raporu
+    /// - ActuatorManager.Capability.cs  : VehicleCapabilityProfile üretimi ve capability logları
     /// - ActuatorManager.Protocol.cs    : Serial, COBS, CRC, TX/RX, telemetry parse
     /// - ActuatorManager.Diagnostics.cs : Watchdog, failsafe, health, logging, summary, dispose
     /// - ActuatorModels.cs              : Thruster, authority, health, allocation report modelleri
@@ -219,6 +221,8 @@ namespace Hydronom.Runtime.Actuators
             }
 
             EnqueueLog($"[ActuatorManager] Control authority profile: {AuthorityProfile}");
+            LogCapabilityProfile("startup");
+
             EnqueueLog($"[SERIAL] SetSerialPort -> {(_serialPortName ?? "<disabled>")} @ {_serialBaud}");
         }
 
@@ -247,6 +251,7 @@ namespace Hydronom.Runtime.Actuators
             }
 
             EnqueueLog($"[SERIAL] SetSerialPort -> {(_serialPortName ?? "<disabled>")} @ {_serialBaud}");
+            LogCapabilityProfile("serial-port-update");
         }
 
         /// <summary>
@@ -380,7 +385,9 @@ namespace Hydronom.Runtime.Actuators
             {
                 RebuildSolverCache_NoLockRequired();
                 RecomputeAuthorityProfile_NoLockRequired();
+
                 EnqueueLog($"[ActuatorManager] Health update → authority profile: {AuthorityProfile}");
+                LogCapabilityProfile("health-update");
             }
 
             WrenchComputed?.Invoke(totalFBody, totalTBody);
@@ -493,3 +500,4 @@ namespace Hydronom.Runtime.Actuators
         }
     }
 }
+

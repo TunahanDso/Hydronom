@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
@@ -134,37 +134,158 @@ namespace Hydronom.Core.Modules
             NavigationGeometry nav)
         {
             /*
-             * TaskDefinition modelinde Id/Title/Description alanları yok.
-             * Bu yüzden scenario waypoint profilini aktif hedef koordinatına göre çözüyoruz.
+             * Paket-7A.2:
              *
-             * TEKNOFEST S-Slalom-U dönüş parkuru:
-             * WP-1..WP-6  -> FlyThrough
-             * WP-7..WP-9  -> TurnCritical
-             * WP-10       -> PrecisionStop
+             * Profil seçimi sadece owner/wpIndex'e güvenmez.
+             * Çünkü son testte slalom reach_wp_4 hedefi (52,-4) olmasına rağmen
+             * PrecisionStop görüldü. Bu, scenario owner/id karıştığında aracı ara
+             * waypointte final gibi durdurabiliyor.
              *
-             * İleride ScenarioObjective metadata içine doğrudan profile/passMode eklenirse
-             * bu koordinat bazlı çözüm yerine metadata bazlı çözüm kullanılabilir.
+             * Öncelik:
+             * 1) Koordinat tabanlı kesin slalom / final güvenlikleri
+             * 2) Güvenilir owner + wpIndex eşleşmeleri
+             * 3) Fallback koordinat sezgisi
              */
-            if (task.Target is not Vec3 target)
-                return ArrivalProfileKind.TurnCritical;
 
-            double x = target.X;
-            double y = target.Y;
+            var owner = task.ExternalOwnerId ?? string.Empty;
+            var objectiveId = task.ExternalObjectiveId ?? task.Name ?? string.Empty;
+            int wpIndex = ParseReachWaypointIndex(objectiveId);
 
-            // WP-10 / Final: (76, -10)
-            if (IsNear(x, y, 76.0, -10.0, tolerance: 0.75))
-                return ArrivalProfileKind.PrecisionStop;
+            Vec3? target = task.Target is Vec3 vec
+                ? vec
+                : null;
 
-            // WP-7, WP-8, WP-9: U dönüş ve final yaklaşma hattı.
-            if (IsNear(x, y, 96.0, 8.0, tolerance: 0.75) ||
-                IsNear(x, y, 104.0, 0.0, tolerance: 0.75) ||
-                IsNear(x, y, 92.0, -8.0, tolerance: 0.75))
+            if (target is Vec3 t)
             {
-                return ArrivalProfileKind.TurnCritical;
+                double x = t.X;
+                double y = t.Y;
+
+                /*
+                 * S-Slalom-Uturn kesin final.
+                 */
+                if (IsNear(x, y, 76.0, -10.0, tolerance: 1.00))
+                    return ArrivalProfileKind.PrecisionStop;
+
+                /*
+                 * S-Slalom-Uturn U dönüş / final yaklaşma hattı.
+                 */
+                if (IsNear(x, y, 96.0, 8.0, tolerance: 1.25) ||
+                    IsNear(x, y, 104.0, 0.0, tolerance: 1.25) ||
+                    IsNear(x, y, 92.0, -8.0, tolerance: 1.25))
+                {
+                    return ArrivalProfileKind.TurnCritical;
+                }
+
+                /*
+                 * S-Slalom erken/orta slalom hattı.
+                 *
+                 * Son gerçek log:
+                 * reach_wp_4 target=(52,-4)
+                 * Bu hedef kesinlikle final değildir; FlyThrough olmalıdır.
+                 *
+                 * Bu geniş bant, owner yanlış gelse bile slalom orta hattında
+                 * WP4 gibi ara hedeflerin PrecisionStop'a düşmesini engeller.
+                 */
+                if (x >= 8.0 && x <= 70.0 &&
+                    y >= -12.0 && y <= 12.0 &&
+                    !IsNear(x, y, 48.0, 0.0, tolerance: 1.00))
+                {
+                    return ArrivalProfileKind.FlyThrough;
+                }
+
+                /*
+                 * Parkur-1 final.
+                 * Bunu slalom orta banttan sonra değil, özel final olarak koruyoruz.
+                 * Ancak slalom WP4=(52,-4) ile karışmasın diye koordinat kesinliği ister.
+                 */
+                if (IsNear(x, y, 48.0, 0.0, tolerance: 1.00) &&
+                    owner.Contains("parkur_1_point_tracking", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ArrivalProfileKind.PrecisionStop;
+                }
             }
 
-            // Diğer scenario checkpointleri akıcı geçiş noktasıdır.
+            /*
+             * Güvenilir Parkur-1 metadata.
+             * Burada wpIndex=4 tek başına yetmez; hedefin de Parkur-1 finaline
+             * yakın olması gerekir. Böylece owner yanlışlıkla Parkur-1 kalsa bile
+             * slalom WP4 final sanılmaz.
+             */
+            if (owner.Contains("parkur_1_point_tracking", StringComparison.OrdinalIgnoreCase))
+            {
+                if (wpIndex >= 4 &&
+                    target is Vec3 p1Final &&
+                    IsNear(p1Final.X, p1Final.Y, 48.0, 0.0, tolerance: 1.25))
+                {
+                    return ArrivalProfileKind.PrecisionStop;
+                }
+
+                if (wpIndex >= 1)
+                    return ArrivalProfileKind.FlyThrough;
+            }
+
+            /*
+             * Güvenilir S-Slalom metadata.
+             */
+            if (owner.Contains("parkur_s_slalom_uturn", StringComparison.OrdinalIgnoreCase) ||
+                owner.Contains("s_slalom", StringComparison.OrdinalIgnoreCase) ||
+                owner.Contains("slalom", StringComparison.OrdinalIgnoreCase))
+            {
+                if (wpIndex >= 10)
+                    return ArrivalProfileKind.PrecisionStop;
+
+                if (wpIndex >= 7)
+                    return ArrivalProfileKind.TurnCritical;
+
+                if (wpIndex >= 1)
+                    return ArrivalProfileKind.FlyThrough;
+            }
+
+            /*
+             * Metadata yoksa veya beklenmeyen şekilde geldiyse:
+             * - reach_wp_10 final kabul edilir.
+             * - reach_wp_7..9 turn-critical kabul edilir.
+             * - reach_wp_1..6 fly-through kabul edilir.
+             * - reach_wp_4 artık asla varsayılan final kabul edilmez.
+             */
+            if (wpIndex >= 10)
+                return ArrivalProfileKind.PrecisionStop;
+
+            if (wpIndex >= 7)
+                return ArrivalProfileKind.TurnCritical;
+
+            if (wpIndex >= 1)
+                return ArrivalProfileKind.FlyThrough;
+
+            /*
+             * Son fallback:
+             * Eğer hiçbir bilgi yoksa scenario hedefini duruş hedefi gibi değil,
+             * kontrollü geçiş hedefi gibi ele al. Güvenli taraf budur; gerçek final
+             * zaten coordinate/metadata ile yakalanır.
+             */
             return ArrivalProfileKind.FlyThrough;
+        }
+
+        private static int ParseReachWaypointIndex(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return -1;
+
+            var match = System.Text.RegularExpressions.Regex.Match(
+                text,
+                @"reach_wp_(\d+)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+                return -1;
+
+            return int.TryParse(
+                match.Groups[1].Value,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var value)
+                ? value
+                : -1;
         }
 
         private static bool IsNear(

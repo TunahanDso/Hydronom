@@ -1,7 +1,7 @@
 {
   "Runtime": {
     "TickMs": 20,
-    "DevMode": false,
+    "DevMode": true,
     "SimMode": true,
     "UseSyntheticStateWhenNoExternal": true,
     "ActuatorKeepAliveMs": 20,

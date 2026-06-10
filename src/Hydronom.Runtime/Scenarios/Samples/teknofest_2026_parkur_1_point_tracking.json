@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "teknofest_2026_parkur_1_point_tracking",
   "name": "TEKNOFEST 2026 Parkur-1 Nokta Takip Görevi",
   "description": "TEKNOFEST 2026 İnsansız Deniz Aracı Yarışması Parkur-1 için temsili nokta takip senaryosu. Amaç temel bot kontrolü ve navigasyon kabiliyetini PC simülasyonunda doğrulamaktır.",
@@ -55,7 +55,7 @@
       "x": 12.0,
       "y": 4.0,
       "z": 0.0,
-      "radius": 1.5,
+      "radius": 0.55,
       "yawDeg": 0.0,
       "isActive": true,
       "isBlocking": false,
@@ -63,7 +63,7 @@
       "isJudgeTracked": true,
       "isTargetZone": true,
       "objectiveId": "reach_wp_1",
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.55,
       "scoreValue": 10.0,
       "color": "green",
       "label": "WP-1"
@@ -77,7 +77,7 @@
       "x": 24.0,
       "y": -4.0,
       "z": 0.0,
-      "radius": 1.5,
+      "radius": 0.65,
       "yawDeg": 0.0,
       "isActive": true,
       "isBlocking": false,
@@ -85,7 +85,7 @@
       "isJudgeTracked": true,
       "isTargetZone": true,
       "objectiveId": "reach_wp_2",
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "scoreValue": 10.0,
       "color": "green",
       "label": "WP-2"
@@ -99,7 +99,7 @@
       "x": 36.0,
       "y": 4.0,
       "z": 0.0,
-      "radius": 1.5,
+      "radius": 0.65,
       "yawDeg": 0.0,
       "isActive": true,
       "isBlocking": false,
@@ -107,7 +107,7 @@
       "isJudgeTracked": true,
       "isTargetZone": true,
       "objectiveId": "reach_wp_3",
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "scoreValue": 10.0,
       "color": "green",
       "label": "WP-3"
@@ -121,7 +121,7 @@
       "x": 48.0,
       "y": 0.0,
       "z": 0.0,
-      "radius": 1.5,
+      "radius": 0.65,
       "yawDeg": 0.0,
       "isActive": true,
       "isBlocking": false,
@@ -129,7 +129,7 @@
       "isJudgeTracked": true,
       "isTargetZone": true,
       "objectiveId": "reach_wp_4",
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "scoreValue": 20.0,
       "color": "green",
       "label": "FINISH"
@@ -145,7 +145,7 @@
       "y": 8.0,
       "z": 0.0,
       "radius": 0.15,
-      "height": 0.5,
+      "height": 1.3,
       "yawDeg": 0.0,
       "isActive": true,
       "isBlocking": true,
@@ -348,7 +348,7 @@
       "order": 1,
       "isRequired": true,
       "scoreValue": 10.0,
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.55,
       "timeLimitSeconds": 0.0
     },
     {
@@ -360,7 +360,7 @@
       "order": 2,
       "isRequired": true,
       "scoreValue": 10.0,
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "timeLimitSeconds": 0.0
     },
     {
@@ -372,7 +372,7 @@
       "order": 3,
       "isRequired": true,
       "scoreValue": 10.0,
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "timeLimitSeconds": 0.0
     },
     {
@@ -384,7 +384,7 @@
       "order": 4,
       "isRequired": true,
       "scoreValue": 20.0,
-      "toleranceMeters": 1.5,
+      "toleranceMeters": 0.65,
       "timeLimitSeconds": 0.0
     }
   ],

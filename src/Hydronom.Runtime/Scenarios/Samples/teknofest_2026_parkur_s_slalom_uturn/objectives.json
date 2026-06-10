@@ -8,7 +8,7 @@
         "order":  1,
         "isRequired":  true,
         "scoreValue":  8.0,
-        "toleranceMeters":  1.7,
+        "toleranceMeters":  0.55,
         "timeLimitSeconds":  0.0
     },
     {
@@ -20,7 +20,7 @@
         "order":  2,
         "isRequired":  true,
         "scoreValue":  8.0,
-        "toleranceMeters":  1.7,
+        "toleranceMeters":  0.65,
         "timeLimitSeconds":  0.0
     },
     {
@@ -32,7 +32,7 @@
         "order":  3,
         "isRequired":  true,
         "scoreValue":  8.0,
-        "toleranceMeters":  1.7,
+        "toleranceMeters":  0.65,
         "timeLimitSeconds":  0.0
     },
     {
@@ -44,7 +44,7 @@
         "order":  4,
         "isRequired":  true,
         "scoreValue":  8.0,
-        "toleranceMeters":  1.6,
+        "toleranceMeters":  0.65,
         "timeLimitSeconds":  0.0
     },
     {
@@ -56,7 +56,7 @@
         "order":  5,
         "isRequired":  true,
         "scoreValue":  8.0,
-        "toleranceMeters":  1.5,
+        "toleranceMeters":  0.6,
         "timeLimitSeconds":  0.0
     },
     {
@@ -68,7 +68,7 @@
         "order":  6,
         "isRequired":  true,
         "scoreValue":  10.0,
-        "toleranceMeters":  1.4,
+        "toleranceMeters":  0.6,
         "timeLimitSeconds":  0.0
     },
     {
@@ -80,7 +80,7 @@
         "order":  7,
         "isRequired":  true,
         "scoreValue":  10.0,
-        "toleranceMeters":  1.6,
+        "toleranceMeters":  0.7,
         "timeLimitSeconds":  0.0
     },
     {
@@ -92,7 +92,7 @@
         "order":  8,
         "isRequired":  true,
         "scoreValue":  10.0,
-        "toleranceMeters":  1.6,
+        "toleranceMeters":  0.7,
         "timeLimitSeconds":  0.0
     },
     {
@@ -104,7 +104,7 @@
         "order":  9,
         "isRequired":  true,
         "scoreValue":  10.0,
-        "toleranceMeters":  1.6,
+        "toleranceMeters":  0.7,
         "timeLimitSeconds":  0.0
     },
     {
@@ -116,7 +116,8 @@
         "order":  10,
         "isRequired":  true,
         "scoreValue":  20.0,
-        "toleranceMeters":  1.8,
+        "toleranceMeters":  0.8,
         "timeLimitSeconds":  0.0
     }
 ]
+

@@ -8,28 +8,28 @@ namespace Hydronom.Core.Modules.Control
         /*
          * Trajectory-aware navigation control.
          *
-         * Bu controller artık sadece "hedefe doğru hızlan" mantığıyla çalışmaz.
-         * Planner/trajectory tarafından verilen:
-         * - TargetPosition
-         * - TargetHeadingDeg
-         * - DesiredForwardSpeedMps
-         * - RiskLevel
+         * Stabil rollback / compile-fix sürümü:
+         * - 7A.3 liveScenarioFlow patch'i YOK.
+         * - Boundary clamp YOK.
+         * - Eski navigation davranışı korunur.
+         * - Sadece yeni capability-aware PlatformControlModule.cs çağrılarına uyumlu imza vardır.
          *
-         * referanslarını birlikte kullanır.
+         * PlatformControlModule.cs artık şunu çağırıyor:
+         * Navigate(intent, state, dt, avoidanceMode, capability)
+         * HoldPosition(intent, state, dt, capability)
          *
-         * Temel güvenlik:
-         * - Heading error büyükse ileri kuvvet ciddi kısılır.
-         * - Yaw rate yüksekse ileri kuvvet kısılır.
-         * - Turn-align fazında araç önce burnunu trajectory heading'e oturtur.
-         * - Yaw damping P kontrolünden bağımsız güçlü biçimde uygulanır.
-         * - Lateral error gövde ekseninde sınırlı Fy ile bastırılır.
+         * Bu dosya capability parametresini kabul eder ama eski stabil davranışı bozmamak için
+         * navigation matematiğinde agresif yeni müdahale yapmaz.
          */
         private ControlOutput Navigate(
             ControlIntent intent,
             VehicleState state,
             double dt,
-            bool avoidanceMode)
+            bool avoidanceMode,
+            VehicleCapabilityProfile capability)
         {
+            capability = capability.Sanitized();
+
             var target = SanitizeVec(intent.TargetPosition);
 
             var dx = Safe(target.X - state.Position.X);
@@ -132,6 +132,7 @@ namespace Hydronom.Core.Modules.Control
              * bir sway kuvveti üretir. Bu ana yönelim kontrolünü ezmez.
              */
             var lateralErrorBody = Safe(targetBody.Y);
+
             var fyPath = Math.Clamp(
                 lateralErrorBody * 1.35 - lateralSpeed * 2.25,
                 -MaxFyN * 0.35,
@@ -139,14 +140,25 @@ namespace Hydronom.Core.Modules.Control
 
             var secondary = StabilizeSecondaryAxes(intent, state, dt);
 
-            var command = ClampCommand(new DecisionCommand(
+            var rawCommand = new DecisionCommand(
                 fx: fx,
                 fy: secondary.Fy + fyPath,
                 fz: secondary.Fz,
                 tx: secondary.Tx,
                 ty: secondary.Ty,
                 tz: tz
-            ));
+            );
+
+            /*
+             * Eski stabil davranışa en yakın yol:
+             * Önce klasik ClampCommand.
+             *
+             * Not:
+             * Capability parametresi imza uyumu için var. Burada agresif capability shaping
+             * yapmıyoruz çünkü son testlerde davranışı bozan şey controller tarafındaki
+             * ekstra müdahalelerdi.
+             */
+            var command = ClampCommand(rawCommand);
 
             var mode = avoidanceMode ? "AVOID_TRAJECTORY_CONTROL" : "TRAJECTORY_CONTROL";
 
@@ -161,6 +173,7 @@ namespace Hydronom.Core.Modules.Control
                 $"gate={combinedSpeedGate:F2} " +
                 $"turnAlign={turnAlign} " +
                 $"risk={intent.RiskLevel:F2} " +
+                $"cap={capability.Summary} " +
                 $"src={intent.Reason}";
 
             return new ControlOutput(
@@ -172,8 +185,11 @@ namespace Hydronom.Core.Modules.Control
         private ControlOutput HoldPosition(
             ControlIntent intent,
             VehicleState state,
-            double dt)
+            double dt,
+            VehicleCapabilityProfile capability)
         {
+            capability = capability.Sanitized();
+
             var target = SanitizeVec(intent.TargetPosition);
 
             var dx = Safe(target.X - state.Position.X);
@@ -200,19 +216,24 @@ namespace Hydronom.Core.Modules.Control
 
             var secondary = StabilizeSecondaryAxes(intent, state, dt);
 
-            var command = ClampCommand(new DecisionCommand(
+            var rawCommand = new DecisionCommand(
                 fx: fx,
                 fy: fy,
                 fz: secondary.Fz,
                 tx: secondary.Tx,
                 ty: secondary.Ty,
                 tz: tz
-            ));
+            );
+
+            var command = ClampCommand(rawCommand);
 
             return new ControlOutput(
                 command,
                 "HOLD_CONTROL",
-                $"HOLD posErr=({dx:F2},{dy:F2}) headErr={headingErrorDeg:F1} src={intent.Reason}");
+                $"HOLD posErr=({dx:F2},{dy:F2}) " +
+                $"headErr={headingErrorDeg:F1} " +
+                $"cap={capability.Summary} " +
+                $"src={intent.Reason}");
         }
 
         private static double ResolveTrajectoryDesiredSpeed(

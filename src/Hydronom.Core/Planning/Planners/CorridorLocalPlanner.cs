@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Planning.Abstractions;
@@ -10,27 +9,40 @@ using Hydronom.Core.World.Models;
 namespace Hydronom.Core.Planning.Planners
 {
     /// <summary>
-    /// World-aware local planner.
+    /// Hydronom Autonomous Navigation Core - CorridorLocalPlanner.
     ///
-    /// Bu planner artık yalnızca "hedefe giden düz çizgide engel var mı?" diye bakmaz.
-    /// RuntimeWorldModel içindeki semantik dünya objelerini okuyarak:
+    /// Paket-7A.4:
+    /// Local detour noktaları artık parkur/boundary çizgisinin dışına taşamaz.
     ///
-    /// - Sol/sağ buoy çiftlerinden gate/corridor merkezleri çıkarır.
-    /// - Checkpoint/finish gibi görev objelerini path'e bağlar.
-    /// - Corridor centerline üretir.
-    /// - Düz hat riskini hesaplar.
-    /// - Corridor varsa hedefe çıplak saldırmak yerine güvenli geçiş hattı üretir.
+    /// Kök problem:
+    /// Slalomda planner engelden kaçarken local-detour@(45.2,8.3) gibi
+    /// boundary arkasına taşan nokta üretebiliyordu. Sonra trajectory bu noktaya bakıyor,
+    /// GEOM-AUTH / risk zinciri safe=false / planRisk=0.95 tarafına düşüyordu.
     ///
-    /// Bu hâlâ ilk ürün seviyesi sürümdür; ileride grid/A*/RRT/MPC tabanlı local planner
-    /// bu sınıfın yerine veya altına eklenebilir. Ancak bu sürüm artık gerçek world model
-    /// semantiğini kullanır.
+    /// Yeni davranış:
+    /// - WorldObjects içindeki left_boundary/right_boundary objelerinden yerel Y bandı çözülür.
+    /// - Detour noktası bu bandın içine, araç yarıçapı payıyla clamp edilir.
+    /// - Clamp edilen aday summary/tag içinde görünür.
+    /// - Boundary bulunamazsa eski davranış korunur.
     /// </summary>
-    public sealed class CorridorLocalPlanner : ILocalPlanner
+    public sealed partial class CorridorLocalPlanner : ILocalPlanner
     {
         private const double GatePairMaxXDeltaMeters = 2.75;
         private const double GatePairMinWidthMeters = 1.5;
         private const double GatePairMaxWidthMeters = 24.0;
         private const double DuplicatePointDistanceMeters = 0.35;
+
+        private const double HardCollisionRisk = 1.0;
+        private const double NearCollisionRisk = 0.92;
+        private const double BlockedRiskFloor = 0.20;
+        private const double BlockedRiskCeiling = 0.95;
+
+        private const double CandidateRejectCollisionPenalty = 1_000.0;
+        private const double CandidateUnsafePenalty = 80.0;
+        private const double CandidateStaleCorridorPenalty = 25.0;
+
+        private const double BoundaryRelevantXPadMeters = 8.0;
+        private const double BoundaryMinimumUsableWidthMeters = 2.0;
 
         public PlannedPath RefineLocal(
             PlanningContext context,
@@ -50,13 +62,18 @@ namespace Hydronom.Core.Planning.Planners
 
             var start = safe.VehicleState.Position.Sanitized();
             var target = global.LastPoint?.Position ?? safe.Goal.TargetPosition.Sanitized();
-
             var blocking = safe.BlockingObjects();
-            var directRisk = EvaluateLineRisk(
+
+            var candidates = new List<LocalPathCandidate>();
+
+            var directCandidate = BuildDirectCandidate(
                 safe,
+                global,
                 start,
                 target,
                 blocking);
+
+            candidates.Add(directCandidate);
 
             var corridor = BuildWorldCorridor(
                 safe,
@@ -65,509 +82,130 @@ namespace Hydronom.Core.Planning.Planners
 
             if (corridor.Count > 0)
             {
-                var corridorPath = BuildCorridorPath(
+                var corridorCandidate = BuildWorldCorridorCandidate(
                     safe,
                     start,
                     target,
                     corridor,
-                    directRisk,
                     blocking);
 
-                if (corridorPath.IsValid)
-                    return corridorPath.Sanitized();
+                candidates.Add(corridorCandidate);
             }
 
-            if (!directRisk.RequiresReplan)
-            {
-                return global with
-                {
-                    Risk = directRisk,
-                    RequiresReplan = false,
-                    Source = nameof(CorridorLocalPlanner),
-                    Summary = $"LOCAL_WORLD_DIRECT_CLEAR {directRisk.Summary}"
-                };
-            }
-
-            var detour = BuildDetourPoint(
+            var detourCandidates = BuildDetourCandidates(
                 safe,
                 start,
                 target,
                 blocking);
 
-            var heading1 = HeadingDeg(start, detour);
-            var heading2 = HeadingDeg(detour, target);
+            candidates.AddRange(detourCandidates);
 
-            var points = new List<PlannedPathPoint>
-            {
-                new PlannedPathPoint
-                {
-                    Id = "local-start",
-                    Position = start,
-                    PreferredHeadingDeg = heading1,
-                    PreferredSpeedMps = 0.0,
-                    AcceptanceRadiusMeters = Math.Max(0.5, safe.VehicleRadiusMeters),
-                    ClearanceMeters = directRisk.MinimumClearanceMeters,
-                    RiskScore = directRisk.RiskScore,
-                    IsMandatory = true,
-                    Reason = "LOCAL_START"
-                },
-                new PlannedPathPoint
-                {
-                    Id = "local-detour",
-                    Position = detour,
-                    PreferredHeadingDeg = heading2,
-                    PreferredSpeedMps = Math.Min(safe.Goal.DesiredCruiseSpeedMps, safe.MaxPlanSpeedMps) * 0.55,
-                    AcceptanceRadiusMeters = Math.Max(0.8, safe.VehicleRadiusMeters + safe.SafetyMarginMeters),
-                    ClearanceMeters = directRisk.MinimumClearanceMeters,
-                    RiskScore = directRisk.RiskScore,
-                    IsMandatory = true,
-                    IsCorridorPoint = true,
-                    Reason = "LOCAL_DETOUR_FROM_BLOCKING_OBJECT"
-                },
-                new PlannedPathPoint
-                {
-                    Id = safe.Goal.GoalId,
-                    Position = target,
-                    PreferredHeadingDeg = heading2,
-                    PreferredSpeedMps = Math.Min(safe.Goal.DesiredCruiseSpeedMps, safe.MaxPlanSpeedMps),
-                    AcceptanceRadiusMeters = safe.Goal.AcceptanceRadiusMeters,
-                    ClearanceMeters = directRisk.MinimumClearanceMeters,
-                    RiskScore = directRisk.RiskScore,
-                    IsMandatory = true,
-                    Reason = "LOCAL_TARGET_AFTER_DETOUR"
-                }
-            };
+            var best = SelectBestCandidate(candidates);
 
-            return new PlannedPath
+            if (best is null)
             {
-                Mode = PlanningMode.Avoidance,
-                Goal = safe.Goal,
-                Points = points,
-                Risk = directRisk,
-                IsValid = true,
-                RequiresReplan = false,
+                return global with
+                {
+                    Risk = directCandidate.Path.Risk,
+                    RequiresReplan = true,
+                    Source = nameof(CorridorLocalPlanner),
+                    Summary = "LOCAL_NO_CANDIDATE_FALLBACK " + directCandidate.Diagnostics
+                };
+            }
+
+            return best.Path with
+            {
                 Source = nameof(CorridorLocalPlanner),
-                Summary = $"LOCAL_AVOIDANCE detour=({detour.X:F1},{detour.Y:F1}) {directRisk.Summary}"
-            }.Sanitized();
+                Summary =
+                    $"NAVCORE_SELECTED kind={best.Kind} " +
+                    $"score={best.Score:F2} " +
+                    $"feasible={best.IsFeasible} safe={best.IsSafe} " +
+                    $"progress={best.Progress:F2} " +
+                    $"length={best.PathLengthMeters:F2}m " +
+                    $"risk={best.Path.Risk.RiskScore:F2} " +
+                    best.Diagnostics
+            };
         }
 
-        private static PlannedPath BuildCorridorPath(
+        private static LocalPathCandidate BuildDirectCandidate(
+            PlanningContext context,
+            PlannedPath global,
+            Vec3 start,
+            Vec3 target,
+            IReadOnlyList<HydronomWorldObject> blocking)
+        {
+            var risk = EvaluateLineRisk(
+                context,
+                start,
+                target,
+                blocking);
+
+            var path = global with
+            {
+                Risk = risk,
+                RequiresReplan = risk.RequiresReplan,
+                Source = nameof(CorridorLocalPlanner),
+                Summary = $"DIRECT {risk.Summary}"
+            };
+
+            return ScorePathCandidate(
+                kind: "direct",
+                context: context,
+                start: start,
+                target: target,
+                path: path.Sanitized(),
+                diagnostics: risk.Summary);
+        }
+
+        private static LocalPathCandidate BuildWorldCorridorCandidate(
             PlanningContext context,
             Vec3 start,
             Vec3 target,
             IReadOnlyList<CorridorGate> corridor,
-            PlanningRiskReport directRisk,
             IReadOnlyList<HydronomWorldObject> blocking)
         {
-            var points = new List<PlannedPathPoint>();
-
-            var firstTarget = corridor.Count > 0
-                ? corridor[0].Center
-                : target;
-
-            points.Add(new PlannedPathPoint
-            {
-                Id = "local-start",
-                Position = start,
-                PreferredHeadingDeg = HeadingDeg(start, firstTarget),
-                PreferredSpeedMps = 0.0,
-                AcceptanceRadiusMeters = Math.Max(0.5, context.VehicleRadiusMeters),
-                ClearanceMeters = directRisk.MinimumClearanceMeters,
-                RiskScore = directRisk.RiskScore,
-                IsMandatory = true,
-                Reason = "WORLD_CORRIDOR_START"
-            });
-
-            for (var i = 0; i < corridor.Count; i++)
-            {
-                var gate = corridor[i];
-
-                var next = i + 1 < corridor.Count
-                    ? corridor[i + 1].Center
-                    : target;
-
-                var gateRisk = EvaluateGateRisk(
-                    context,
-                    gate,
-                    blocking);
-
-                var speedScale = gateRisk.RequiresSlowMode ? 0.55 : 0.85;
-
-                points.Add(new PlannedPathPoint
-                {
-                    Id = gate.Id,
-                    Position = gate.Center,
-                    PreferredHeadingDeg = HeadingDeg(gate.Center, next),
-                    PreferredSpeedMps = Math.Min(context.Goal.DesiredCruiseSpeedMps, context.MaxPlanSpeedMps) * speedScale,
-                    AcceptanceRadiusMeters = Math.Max(0.75, Math.Min(gate.WidthMeters * 0.35, 2.5)),
-                    ClearanceMeters = Math.Min(gate.ClearanceMeters, gateRisk.MinimumClearanceMeters),
-                    RiskScore = Math.Max(gate.RiskScore, gateRisk.RiskScore),
-                    IsMandatory = true,
-                    IsCorridorPoint = true,
-                    Reason = gate.Reason
-                });
-            }
-
-            var lastHeadingFrom = points.Count > 0
-                ? points[^1].Position
-                : start;
-
-            var targetRisk = EvaluateLineRisk(
+            var directRisk = EvaluateLineRisk(
                 context,
-                lastHeadingFrom,
+                start,
                 target,
                 blocking);
 
-            AddIfNotDuplicate(points, new PlannedPathPoint
-            {
-                Id = context.Goal.GoalId,
-                Position = target,
-                PreferredHeadingDeg = HeadingDeg(lastHeadingFrom, target),
-                PreferredSpeedMps = Math.Min(context.Goal.DesiredCruiseSpeedMps, context.MaxPlanSpeedMps),
-                AcceptanceRadiusMeters = context.Goal.AcceptanceRadiusMeters,
-                ClearanceMeters = targetRisk.MinimumClearanceMeters,
-                RiskScore = targetRisk.RiskScore,
-                IsMandatory = true,
-                IsCorridorPoint = false,
-                Reason = "WORLD_CORRIDOR_TARGET"
-            });
-
-            var combinedRisk = CombineRisks(
+            var path = BuildCorridorPath(
+                context,
+                start,
+                target,
+                corridor,
                 directRisk,
-                targetRisk,
-                points);
+                blocking);
 
-            return new PlannedPath
-            {
-                Mode = PlanningMode.Corridor,
-                Goal = context.Goal,
-                Points = points,
-                Risk = combinedRisk,
-                IsValid = points.Count >= 2,
-                RequiresReplan = false,
-                Source = nameof(CorridorLocalPlanner),
-                Summary =
-                    $"WORLD_CORRIDOR gates={corridor.Count} " +
-                    $"points={points.Count} " +
-                    $"risk={combinedRisk.RiskScore:F2} " +
-                    $"minClear={FormatClearance(combinedRisk.MinimumClearanceMeters)}"
-            }.Sanitized();
+            return ScorePathCandidate(
+                kind: "world-corridor",
+                context: context,
+                start: start,
+                target: target,
+                path: path.Sanitized(),
+                diagnostics: path.Summary);
         }
 
-        private static IReadOnlyList<CorridorGate> BuildWorldCorridor(
-            PlanningContext context,
-            Vec3 start,
-            Vec3 target)
-        {
-            var explicitGates = BuildExplicitTaggedGates(context.WorldObjects);
-            if (explicitGates.Count > 0)
-                return SelectRelevantGates(explicitGates, start, target);
-
-            var inferredGates = InferGatesFromBuoyPairs(context.WorldObjects);
-            if (inferredGates.Count > 0)
-                return SelectRelevantGates(inferredGates, start, target);
-
-            return Array.Empty<CorridorGate>();
-        }
-
-        private static IReadOnlyList<CorridorGate> BuildExplicitTaggedGates(
-            IReadOnlyList<HydronomWorldObject> objects)
-        {
-            var markers = objects
-                .Where(x => x.IsActive)
-                .Where(IsCorridorMarker)
-                .Where(x => TryGetTagInt(x, "gateIndex") is not null)
-                .ToArray();
-
-            if (markers.Length == 0)
-                return Array.Empty<CorridorGate>();
-
-            var gates = new List<CorridorGate>();
-
-            foreach (var group in markers.GroupBy(x => TryGetTagInt(x, "gateIndex")!.Value))
-            {
-                var left = group.FirstOrDefault(IsLeftMarker);
-                var right = group.FirstOrDefault(IsRightMarker);
-
-                if (left is null || right is null)
-                    continue;
-
-                var gate = BuildGateFromPair(
-                    $"gate-{group.Key}",
-                    left,
-                    right,
-                    $"WORLD_TAGGED_GATE index={group.Key}");
-
-                if (gate is not null)
-                    gates.Add(gate);
-            }
-
-            return gates
-                .OrderBy(x => x.Center.X)
-                .ThenBy(x => x.Center.Y)
-                .ToArray();
-        }
-
-        private static IReadOnlyList<CorridorGate> InferGatesFromBuoyPairs(
-            IReadOnlyList<HydronomWorldObject> objects)
-        {
-            var buoys = objects
-                .Where(x => x.IsActive)
-                .Where(x => x.Kind.Equals("buoy", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-
-            if (buoys.Length < 2)
-                return Array.Empty<CorridorGate>();
-
-            var lefts = buoys.Where(IsLeftMarker).ToArray();
-            var rights = buoys.Where(IsRightMarker).ToArray();
-
-            if (lefts.Length == 0 || rights.Length == 0)
-                return Array.Empty<CorridorGate>();
-
-            var gates = new List<CorridorGate>();
-            var usedRights = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var left in lefts.OrderBy(x => x.X))
-            {
-                var right = rights
-                    .Where(x => !usedRights.Contains(x.Id))
-                    .Where(x => Math.Abs(x.X - left.X) <= GatePairMaxXDeltaMeters)
-                    .OrderBy(x => Math.Abs(x.X - left.X))
-                    .ThenBy(x => Distance2D(ToVec3(left), ToVec3(x)))
-                    .FirstOrDefault();
-
-                if (right is null)
-                    continue;
-
-                var gate = BuildGateFromPair(
-                    $"inferred-gate-{gates.Count + 1}",
-                    left,
-                    right,
-                    "WORLD_INFERRED_GATE_FROM_BUOYS");
-
-                if (gate is null)
-                    continue;
-
-                usedRights.Add(right.Id);
-                gates.Add(gate);
-            }
-
-            return gates
-                .OrderBy(x => x.Center.X)
-                .ThenBy(x => x.Center.Y)
-                .ToArray();
-        }
-
-        private static CorridorGate? BuildGateFromPair(
-            string id,
-            HydronomWorldObject left,
-            HydronomWorldObject right,
-            string reason)
-        {
-            var leftPos = ToVec3(left);
-            var rightPos = ToVec3(right);
-
-            var width = Distance2D(leftPos, rightPos);
-
-            if (width < GatePairMinWidthMeters || width > GatePairMaxWidthMeters)
-                return null;
-
-            var center = new Vec3(
-                (left.X + right.X) * 0.5,
-                (left.Y + right.Y) * 0.5,
-                (left.Z + right.Z) * 0.5);
-
-            var clearance = Math.Max(0.0, width - left.Radius - right.Radius);
-
-            var risk = clearance switch
-            {
-                < 1.5 => 0.85,
-                < 2.5 => 0.65,
-                < 4.0 => 0.35,
-                _ => 0.12
-            };
-
-            return new CorridorGate(
-                Id: id,
-                Center: center,
-                LeftObjectId: left.Id,
-                RightObjectId: right.Id,
-                WidthMeters: width,
-                ClearanceMeters: clearance,
-                RiskScore: risk,
-                Reason: reason);
-        }
-
-        private static IReadOnlyList<CorridorGate> SelectRelevantGates(
-            IReadOnlyList<CorridorGate> gates,
-            Vec3 start,
-            Vec3 target)
-        {
-            if (gates.Count == 0)
-                return Array.Empty<CorridorGate>();
-
-            var sx = Math.Min(start.X, target.X) - 3.0;
-            var ex = Math.Max(start.X, target.X) + 3.0;
-
-            var selected = gates
-                .Where(g => g.Center.X >= sx && g.Center.X <= ex)
-                .OrderBy(g => ProjectionAlongSegment(g.Center, start, target))
-                .ToArray();
-
-            if (selected.Length > 0)
-                return selected;
-
-            return gates
-                .OrderBy(g => DistancePointToSegment2D(g.Center, start, target))
-                .Take(4)
-                .OrderBy(g => ProjectionAlongSegment(g.Center, start, target))
-                .ToArray();
-        }
-
-        private static PlanningRiskReport EvaluateGateRisk(
-            PlanningContext context,
-            CorridorGate gate,
-            IReadOnlyList<HydronomWorldObject> blocking)
-        {
-            var margin = context.VehicleRadiusMeters + context.SafetyMarginMeters;
-            var clearance = gate.ClearanceMeters - margin;
-
-            var risk = Math.Max(
-                gate.RiskScore,
-                clearance switch
-                {
-                    < 0.0 => 0.95,
-                    < 0.75 => 0.75,
-                    < 1.5 => 0.45,
-                    _ => 0.15
-                });
-
-            return new PlanningRiskReport
-            {
-                RiskScore = risk,
-                ObstacleRisk = risk,
-                CorridorRisk = risk,
-                MinimumClearanceMeters = Math.Max(0.0, clearance),
-                BlockingObjectCount = risk >= 0.75 ? 1 : 0,
-                ConsideredObjectCount = blocking.Count,
-                RequiresReplan = risk >= 0.90,
-                RequiresSlowMode = risk >= 0.45,
-                Summary = $"GATE width={gate.WidthMeters:F2}m clearance={clearance:F2}m"
-            }.Sanitized();
-        }
-
-        private static PlanningRiskReport EvaluateLineRisk(
+        private static IReadOnlyList<LocalPathCandidate> BuildDetourCandidates(
             PlanningContext context,
             Vec3 start,
             Vec3 target,
             IReadOnlyList<HydronomWorldObject> blocking)
         {
-            var relevantBlocking = blocking
+            var nonCorridorBlocking = blocking
                 .Where(x => !IsCorridorMarker(x))
                 .ToArray();
 
-            if (relevantBlocking.Length == 0)
-                return PlanningRiskReport.Clear;
+            if (nonCorridorBlocking.Length == 0)
+                return Array.Empty<LocalPathCandidate>();
 
-            var safetyDistance = context.VehicleRadiusMeters + context.SafetyMarginMeters;
-            var minClearance = double.PositiveInfinity;
-            var considered = 0;
-            var blockingOnLine = 0;
-
-            foreach (var obj in relevantBlocking)
-            {
-                considered++;
-
-                var objectPosition = new Vec3(obj.X, obj.Y, obj.Z);
-                var clearance = DistancePointToSegment2D(objectPosition, start, target) - Math.Max(0.0, obj.Radius);
-
-                if (double.IsFinite(clearance))
-                    minClearance = Math.Min(minClearance, clearance);
-
-                if (clearance <= safetyDistance)
-                    blockingOnLine++;
-            }
-
-            if (blockingOnLine == 0)
-            {
-                return new PlanningRiskReport
-                {
-                    RiskScore = 0.10,
-                    ObstacleRisk = 0.10,
-                    MinimumClearanceMeters = minClearance,
-                    BlockingObjectCount = 0,
-                    ConsideredObjectCount = considered,
-                    RequiresReplan = false,
-                    RequiresSlowMode = false,
-                    Summary = $"CLEAR minClear={FormatClearance(minClearance)}"
-                }.Sanitized();
-            }
-
-            var risk = Math.Clamp(1.0 - (minClearance / Math.Max(0.01, safetyDistance)), 0.45, 1.0);
-
-            return new PlanningRiskReport
-            {
-                RiskScore = risk,
-                ObstacleRisk = risk,
-                MinimumClearanceMeters = minClearance,
-                BlockingObjectCount = blockingOnLine,
-                ConsideredObjectCount = considered,
-                RequiresReplan = true,
-                RequiresSlowMode = true,
-                Summary = $"BLOCKED count={blockingOnLine} minClear={FormatClearance(minClearance)}"
-            }.Sanitized();
-        }
-
-        private static PlanningRiskReport CombineRisks(
-            PlanningRiskReport direct,
-            PlanningRiskReport target,
-            IReadOnlyList<PlannedPathPoint> points)
-        {
-            var maxPointRisk = points.Count == 0
-                ? 0.0
-                : points.Max(x => x.RiskScore);
-
-            var minClearance = new[]
-                {
-                    direct.MinimumClearanceMeters,
-                    target.MinimumClearanceMeters
-                }
-                .Concat(points.Select(x => x.ClearanceMeters))
-                .Where(double.IsFinite)
-                .DefaultIfEmpty(double.PositiveInfinity)
-                .Min();
-
-            var risk = Math.Max(
-                Math.Max(direct.RiskScore, target.RiskScore),
-                maxPointRisk);
-
-            return new PlanningRiskReport
-            {
-                RiskScore = risk,
-                ObstacleRisk = Math.Max(direct.ObstacleRisk, target.ObstacleRisk),
-                CorridorRisk = maxPointRisk,
-                MinimumClearanceMeters = minClearance,
-                BlockingObjectCount = direct.BlockingObjectCount + target.BlockingObjectCount,
-                ConsideredObjectCount = direct.ConsideredObjectCount + target.ConsideredObjectCount,
-                RequiresReplan = risk >= 0.90,
-                RequiresSlowMode = risk >= 0.45,
-                Summary = $"WORLD_CORRIDOR_RISK risk={risk:F2} minClear={FormatClearance(minClearance)}"
-            }.Sanitized();
-        }
-
-        private static Vec3 BuildDetourPoint(
-            PlanningContext context,
-            Vec3 start,
-            Vec3 target,
-            IReadOnlyList<HydronomWorldObject> blocking)
-        {
             var dx = target.X - start.X;
             var dy = target.Y - start.Y;
             var len = Math.Sqrt(dx * dx + dy * dy);
 
             if (len <= 1e-6)
-                return target;
+                return Array.Empty<LocalPathCandidate>();
 
             var ux = dx / len;
             var uy = dy / len;
@@ -575,233 +213,250 @@ namespace Hydronom.Core.Planning.Planners
             var nx = -uy;
             var ny = ux;
 
-            var midpoint = new Vec3(
-                start.X + dx * 0.45,
-                start.Y + dy * 0.45,
-                start.Z + (target.Z - start.Z) * 0.45);
-
-            var nonCorridorBlocking = blocking
-                .Where(x => !IsCorridorMarker(x))
-                .ToArray();
-
-            var leftScore = ScoreSide(midpoint, nx, ny, nonCorridorBlocking);
-            var rightScore = ScoreSide(midpoint, -nx, -ny, nonCorridorBlocking);
-
-            var sign = leftScore >= rightScore ? 1.0 : -1.0;
-            var offset = Math.Max(
+            var baseOffset = Math.Max(
                 context.VehicleRadiusMeters + context.SafetyMarginMeters + 1.0,
-                2.5);
+                2.2);
 
-            return new Vec3(
-                midpoint.X + nx * sign * offset,
-                midpoint.Y + ny * sign * offset,
-                midpoint.Z);
-        }
+            var fractions = new[] { 0.25, 0.38, 0.50, 0.62, 0.76 };
+            var multipliers = new[] { 0.85, 1.15, 1.55, 2.05, 2.65 };
+            var signs = new[] { 1.0, -1.0 };
 
-        private static void AddIfNotDuplicate(
-            List<PlannedPathPoint> points,
-            PlannedPathPoint point)
-        {
-            if (points.Count > 0 &&
-                Distance2D(points[^1].Position, point.Position) <= DuplicatePointDistanceMeters)
+            var boundaryBand = TryResolveLocalBoundaryBand(
+                context,
+                start,
+                target);
+
+            var candidates = new List<LocalPathCandidate>();
+
+            foreach (var fraction in fractions)
             {
-                return;
+                var anchor = new Vec3(
+                    start.X + dx * fraction,
+                    start.Y + dy * fraction,
+                    start.Z + (target.Z - start.Z) * fraction);
+
+                foreach (var sign in signs)
+                {
+                    foreach (var multiplier in multipliers)
+                    {
+                        var offset = baseOffset * multiplier;
+
+                        var rawDetour = new Vec3(
+                            anchor.X + nx * sign * offset,
+                            anchor.Y + ny * sign * offset,
+                            anchor.Z);
+
+                        var detour = ClampDetourToBoundaryBand(
+                            rawDetour,
+                            boundaryBand,
+                            out var boundaryTag);
+
+                        var tag =
+                            $"f={fraction:F2}," +
+                            $"side={(sign > 0 ? "L" : "R")}," +
+                            $"off={offset:F2}" +
+                            boundaryTag;
+
+                        var candidatePath = BuildDetourPath(
+                            context,
+                            start,
+                            detour,
+                            target,
+                            blocking,
+                            tag: tag);
+
+                        candidates.Add(
+                            ScorePathCandidate(
+                                kind: "detour",
+                                context: context,
+                                start: start,
+                                target: target,
+                                path: candidatePath,
+                                diagnostics: candidatePath.Summary));
+                    }
+                }
             }
 
-            points.Add(point);
+            return candidates;
         }
 
-        private static bool IsCorridorMarker(HydronomWorldObject obj)
+        private static CorridorBoundaryBand? TryResolveLocalBoundaryBand(
+            PlanningContext context,
+            Vec3 start,
+            Vec3 target)
         {
-            if (!obj.Kind.Equals("buoy", StringComparison.OrdinalIgnoreCase))
-                return false;
+            var objects = context.WorldObjects ?? Array.Empty<HydronomWorldObject>();
 
-            if (TryGetTagBool(obj, "corridorMarker"))
-                return true;
-
-            if (TryGetTag(obj, "side", out _))
-                return true;
-
-            return obj.Id.Contains("buoy", StringComparison.OrdinalIgnoreCase) &&
-                   (obj.Id.Contains("left", StringComparison.OrdinalIgnoreCase) ||
-                    obj.Id.Contains("right", StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static bool IsLeftMarker(HydronomWorldObject obj)
-        {
-            if (TryGetTag(obj, "side", out var side))
-                return side.Equals("left", StringComparison.OrdinalIgnoreCase);
-
-            if (TryGetTag(obj, "gateSide", out var gateSide))
-                return gateSide.Equals("left", StringComparison.OrdinalIgnoreCase);
-
-            return obj.Id.Contains("left", StringComparison.OrdinalIgnoreCase) ||
-                   obj.Name.Contains("L-", StringComparison.OrdinalIgnoreCase) ||
-                   obj.Name.EndsWith("-L", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsRightMarker(HydronomWorldObject obj)
-        {
-            if (TryGetTag(obj, "side", out var side))
-                return side.Equals("right", StringComparison.OrdinalIgnoreCase);
-
-            if (TryGetTag(obj, "gateSide", out var gateSide))
-                return gateSide.Equals("right", StringComparison.OrdinalIgnoreCase);
-
-            return obj.Id.Contains("right", StringComparison.OrdinalIgnoreCase) ||
-                   obj.Name.Contains("R-", StringComparison.OrdinalIgnoreCase) ||
-                   obj.Name.EndsWith("-R", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static int? TryGetTagInt(HydronomWorldObject obj, string key)
-        {
-            if (!TryGetTag(obj, key, out var raw))
+            if (objects.Count == 0)
                 return null;
 
-            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
-                ? value
-                : null;
-        }
+            var minX = Math.Min(start.X, target.X) - BoundaryRelevantXPadMeters;
+            var maxX = Math.Max(start.X, target.X) + BoundaryRelevantXPadMeters;
 
-        private static bool TryGetTagBool(HydronomWorldObject obj, string key)
-        {
-            if (!TryGetTag(obj, key, out var raw))
-                return false;
+            var boundaryObjects = objects
+                .Where(x => x.IsActive)
+                .Where(IsBoundaryLike)
+                .Where(x => double.IsFinite(x.X) && double.IsFinite(x.Y))
+                .Where(x => x.X >= minX && x.X <= maxX)
+                .ToArray();
 
-            return bool.TryParse(raw, out var value) && value;
-        }
-
-        private static bool TryGetTag(HydronomWorldObject obj, string key, out string value)
-        {
-            value = string.Empty;
-
-            if (obj.Tags is null)
-                return false;
-
-            if (!obj.Tags.TryGetValue(key, out var raw))
-                return false;
-
-            if (string.IsNullOrWhiteSpace(raw))
-                return false;
-
-            value = raw.Trim();
-            return true;
-        }
-
-        private static double ScoreSide(
-            Vec3 midpoint,
-            double nx,
-            double ny,
-            IReadOnlyList<HydronomWorldObject> blocking)
-        {
-            if (blocking.Count == 0)
-                return double.PositiveInfinity;
-
-            double minDistance = double.PositiveInfinity;
-
-            var sample = new Vec3(
-                midpoint.X + nx * 2.5,
-                midpoint.Y + ny * 2.5,
-                midpoint.Z);
-
-            foreach (var obj in blocking)
+            /*
+             * Eğer lokal X penceresinde boundary bulamazsak tüm boundary objelerine düş.
+             * Bu fallback kapalı kalmasın diye var ama lokal pencere öncelikli.
+             */
+            if (boundaryObjects.Length < 2)
             {
-                var dx = sample.X - obj.X;
-                var dy = sample.Y - obj.Y;
-                var d = Math.Sqrt(dx * dx + dy * dy) - Math.Max(0.0, obj.Radius);
-
-                minDistance = Math.Min(minDistance, d);
+                boundaryObjects = objects
+                    .Where(x => x.IsActive)
+                    .Where(IsBoundaryLike)
+                    .Where(x => double.IsFinite(x.X) && double.IsFinite(x.Y))
+                    .ToArray();
             }
 
-            return minDistance;
+            if (boundaryObjects.Length < 2)
+                return null;
+
+            var leftYs = boundaryObjects
+                .Where(IsLeftMarker)
+                .Select(x => x.Y)
+                .Where(double.IsFinite)
+                .OrderBy(x => x)
+                .ToArray();
+
+            var rightYs = boundaryObjects
+                .Where(IsRightMarker)
+                .Select(x => x.Y)
+                .Where(double.IsFinite)
+                .OrderBy(x => x)
+                .ToArray();
+
+            double minY;
+            double maxY;
+
+            if (leftYs.Length > 0 && rightYs.Length > 0)
+            {
+                var leftY = Median(leftYs);
+                var rightY = Median(rightYs);
+
+                minY = Math.Min(leftY, rightY);
+                maxY = Math.Max(leftY, rightY);
+            }
+            else
+            {
+                var allYs = boundaryObjects
+                    .Select(x => x.Y)
+                    .Where(double.IsFinite)
+                    .OrderBy(x => x)
+                    .ToArray();
+
+                if (allYs.Length < 2)
+                    return null;
+
+                minY = allYs.First();
+                maxY = allYs.Last();
+            }
+
+            if (!double.IsFinite(minY) ||
+                !double.IsFinite(maxY) ||
+                maxY - minY < BoundaryMinimumUsableWidthMeters)
+            {
+                return null;
+            }
+
+            /*
+             * Margin:
+             * Fiziksel gövde payı. SafetyMargin tamamını kullanırsak dar koridorlarda
+             * rota gereksiz boğulur. Bu yüzden vehicleRadius + küçük tampon kullanıyoruz.
+             */
+            var margin = Math.Clamp(
+                Math.Max(0.0, context.VehicleRadiusMeters) + 0.10,
+                0.65,
+                1.10);
+
+            if (maxY - minY <= margin * 2.0 + 0.75)
+                margin = Math.Max(0.20, (maxY - minY - 0.75) * 0.50);
+
+            if (margin <= 0.0 || maxY - minY <= margin * 2.0)
+                return null;
+
+            return new CorridorBoundaryBand(
+                MinY: minY + margin,
+                MaxY: maxY - margin,
+                RawMinY: minY,
+                RawMaxY: maxY,
+                Margin: margin);
         }
 
-        private static double DistancePointToSegment2D(Vec3 point, Vec3 a, Vec3 b)
+        private static Vec3 ClampDetourToBoundaryBand(
+            Vec3 rawDetour,
+            CorridorBoundaryBand? boundaryBand,
+            out string tag)
         {
-            var vx = b.X - a.X;
-            var vy = b.Y - a.Y;
-            var wx = point.X - a.X;
-            var wy = point.Y - a.Y;
+            tag = "";
 
-            var c1 = vx * wx + vy * wy;
-            if (c1 <= 0.0)
-                return Distance2D(point, a);
+            if (boundaryBand is null)
+                return rawDetour;
 
-            var c2 = vx * vx + vy * vy;
-            if (c2 <= c1)
-                return Distance2D(point, b);
+            var band = boundaryBand.Value;
 
-            var t = c1 / c2;
+            var clampedY = Math.Clamp(
+                rawDetour.Y,
+                band.MinY,
+                band.MaxY);
 
-            var projection = new Vec3(
-                a.X + t * vx,
-                a.Y + t * vy,
-                a.Z);
+            if (Math.Abs(clampedY - rawDetour.Y) <= 1e-6)
+            {
+                tag =
+                    $",boundary=in" +
+                    $",band=[{band.MinY:F2},{band.MaxY:F2}]";
+                return rawDetour;
+            }
 
-            return Distance2D(point, projection);
+            tag =
+                $",boundary=clamped" +
+                $",rawY={rawDetour.Y:F2}" +
+                $",clampedY={clampedY:F2}" +
+                $",band=[{band.MinY:F2},{band.MaxY:F2}]" +
+                $",rawBand=[{band.RawMinY:F2},{band.RawMaxY:F2}]" +
+                $",margin={band.Margin:F2}";
+
+            return new Vec3(
+                rawDetour.X,
+                clampedY,
+                rawDetour.Z);
         }
 
-        private static double ProjectionAlongSegment(Vec3 point, Vec3 a, Vec3 b)
+        private static double Median(IReadOnlyList<double> values)
         {
-            var vx = b.X - a.X;
-            var vy = b.Y - a.Y;
-            var wx = point.X - a.X;
-            var wy = point.Y - a.Y;
-
-            var c2 = vx * vx + vy * vy;
-            if (c2 <= 1e-9)
+            if (values.Count == 0)
                 return 0.0;
 
-            return (vx * wx + vy * wy) / c2;
+            var mid = values.Count / 2;
+
+            if (values.Count % 2 == 1)
+                return values[mid];
+
+            return (values[mid - 1] + values[mid]) * 0.5;
         }
 
-        private static Vec3 ToVec3(HydronomWorldObject obj)
-        {
-            return new Vec3(obj.X, obj.Y, obj.Z);
-        }
+        private readonly record struct CorridorBoundaryBand(
+            double MinY,
+            double MaxY,
+            double RawMinY,
+            double RawMaxY,
+            double Margin);
 
-        private static double Distance2D(Vec3 a, Vec3 b)
-        {
-            var dx = a.X - b.X;
-            var dy = a.Y - b.Y;
-
-            return Math.Sqrt(dx * dx + dy * dy);
-        }
-
-        private static double HeadingDeg(Vec3 from, Vec3 to)
-        {
-            return NormalizeDeg(Math.Atan2(to.Y - from.Y, to.X - from.X) * 180.0 / Math.PI);
-        }
-
-        private static double NormalizeDeg(double deg)
-        {
-            if (!double.IsFinite(deg))
-                return 0.0;
-
-            deg %= 360.0;
-
-            if (deg > 180.0)
-                deg -= 360.0;
-
-            if (deg < -180.0)
-                deg += 360.0;
-
-            return deg;
-        }
-
-        private static string FormatClearance(double clearance)
-        {
-            return double.IsFinite(clearance) ? $"{clearance:F2}m" : "inf";
-        }
-
-        private sealed record CorridorGate(
-            string Id,
-            Vec3 Center,
-            string LeftObjectId,
-            string RightObjectId,
-            double WidthMeters,
-            double ClearanceMeters,
-            double RiskScore,
-            string Reason);
+        private sealed record LocalPathCandidate(
+            string Kind,
+            PlannedPath Path,
+            double Score,
+            bool IsFeasible,
+            bool IsSafe,
+            bool HasCollision,
+            double Progress,
+            double PathLengthMeters,
+            double MinimumPhysicalClearanceMeters,
+            double MinimumSafetyClearanceMeters,
+            string Diagnostics);
     }
 }
