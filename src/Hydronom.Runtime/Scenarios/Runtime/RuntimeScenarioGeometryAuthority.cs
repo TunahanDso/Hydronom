@@ -311,6 +311,23 @@ public sealed class RuntimeScenarioGeometryAuthority
         if (!isActive)
             return false;
 
+        // Boundary objects are semantic track limits/visual safety rails by default.
+        // They must NOT become giant circular collision obstacles just because they have a large width.
+        // Only allow them into geometry authority when a scenario explicitly opts in.
+        var isBoundary =
+            TextEquals(kind, "boundary") ||
+            TextEquals(layer, "scenario_boundary") ||
+            TextEquals(TryGetTag(tags, "visual.kind"), "boundary") ||
+            TextEquals(TryGetTag(tags, "geometry.kind"), "boundary");
+
+        if (isBoundary)
+        {
+            return
+                TextEquals(TryGetTag(tags, "geometryObstacle"), "true") ||
+                TextEquals(TryGetTag(tags, "collisionBoundary"), "true") ||
+                TextEquals(TryGetTag(tags, "treatAsObstacle"), "true");
+        }
+
         if (TryGetTag(tags, "isCompleted") == "true" &&
             TryGetTag(tags, "missionMarker") == "true")
             return false;
@@ -326,14 +343,12 @@ public sealed class RuntimeScenarioGeometryAuthority
             TextEquals(kind, "buoy") ||
             TextEquals(kind, "gate_left") ||
             TextEquals(kind, "gate_right") ||
-            TextEquals(kind, "no_go_zone") ||
-            TextEquals(kind, "boundary"))
+            TextEquals(kind, "no_go_zone"))
             return true;
 
         if (TextEquals(layer, "scenario_obstacles") ||
             TextEquals(layer, "scenario_navigation") ||
-            TextEquals(layer, "scenario_safety") ||
-            TextEquals(layer, "scenario_boundary"))
+            TextEquals(layer, "scenario_safety"))
             return true;
 
         if (TryGetTag(tags, "isNoGoZone") == "true" ||
@@ -654,3 +669,4 @@ public sealed class RuntimeScenarioGeometryAuthority
         return value;
     }
 }
+

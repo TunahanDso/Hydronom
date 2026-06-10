@@ -1,0 +1,74 @@
+﻿[
+  {
+    "id": "reach_wp_1",
+    "type": "reach_zone",
+    "title": "Geniş giriş kapısından geç",
+    "description": "Başlangıçtan sonra ilk geniş kapı merkezine ulaş.",
+    "targetObjectId": "wp_1",
+    "order": 1,
+    "isRequired": true,
+    "scoreValue": 12.0,
+    "toleranceMeters": 1.35,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_2",
+    "type": "reach_zone",
+    "title": "Yumuşak sağ sapma noktasına ulaş",
+    "description": "Aracı sert dönüşe sokmadan sağ tarafa doğru kontrollü yön değiştir.",
+    "targetObjectId": "wp_2",
+    "order": 2,
+    "isRequired": true,
+    "scoreValue": 14.0,
+    "toleranceMeters": 1.45,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_3",
+    "type": "reach_zone",
+    "title": "Yumuşak sol sapma noktasına ulaş",
+    "description": "S hattının ikinci yön değişimini tamamla.",
+    "targetObjectId": "wp_3",
+    "order": 3,
+    "isRequired": true,
+    "scoreValue": 14.0,
+    "toleranceMeters": 1.45,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_4",
+    "type": "reach_zone",
+    "title": "Orta slalom çıkışına ulaş",
+    "description": "Engellerin arasından geçtikten sonra tekrar merkeze yakın hatta dön.",
+    "targetObjectId": "wp_4",
+    "order": 4,
+    "isRequired": true,
+    "scoreValue": 16.0,
+    "toleranceMeters": 1.5,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_5",
+    "type": "reach_zone",
+    "title": "Final hizalanma noktasına ulaş",
+    "description": "Finalden önce düşük sapmalı ve sakin bir yaklaşma hattına gir.",
+    "targetObjectId": "wp_5",
+    "order": 5,
+    "isRequired": true,
+    "scoreValue": 18.0,
+    "toleranceMeters": 1.5,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_6",
+    "type": "reach_zone",
+    "title": "Final noktasına ulaş",
+    "description": "Orta seviye parkuru tamamla.",
+    "targetObjectId": "wp_6",
+    "order": 6,
+    "isRequired": true,
+    "scoreValue": 26.0,
+    "toleranceMeters": 1.6,
+    "timeLimitSeconds": 0.0
+  }
+]

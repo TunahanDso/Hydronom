@@ -1,0 +1,19 @@
+﻿{
+  "id": "teknofest_2026_parkur_m_medium_slalom",
+  "name": "TEKNOFEST 2026 Orta Seviye Parkur - Geniş Slalom ve Engel Kaçınma",
+  "description": "Basit nokta takip parkurları ile zor S-slalom/U-dönüş parkuru arasında köprü test senaryosu. Geniş geçitler, yumuşak S hattı, az sayıda engel ve affedici toleranslarla karar, planlama, analiz, kontrol ve objective advance zincirini doğrular.",
+  "version": "1.0.0",
+  "scenarioFamily": "teknofest_2026_usv",
+  "coordinateFrame": "local_metric",
+  "runMode": "simulation",
+  "vehicleId": "hydronom-main",
+  "vehiclePlatform": "surface_vessel",
+  "startX": 0.0,
+  "startY": 0.0,
+  "startZ": 0.0,
+  "startRollDeg": 0.0,
+  "startPitchDeg": 0.0,
+  "startYawDeg": 0.0,
+  "timeLimitSeconds": 900.0,
+  "minimumSuccessScore": 70.0
+}

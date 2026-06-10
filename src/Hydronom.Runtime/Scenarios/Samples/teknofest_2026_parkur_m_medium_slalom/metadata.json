@@ -1,0 +1,8 @@
+﻿{
+  "tags": {
+    "scenario.package": "true",
+    "scenario.level": "medium",
+    "scenario.intent": "bridge_between_simple_and_hard_slalom",
+    "scenario.createdFor": "Hydronom autonomy stabilization test"
+  }
+}

@@ -1,0 +1,24 @@
+﻿{
+  "enabled": true,
+  "checkCollisions": true,
+  "checkNoGoZones": true,
+  "enforceObjectiveOrder": true,
+  "failOnRequiredObjectiveFailure": true,
+  "failOnCollision": true,
+  "failOnNoGoZoneViolation": true,
+  "collisionPenalty": 100.0,
+  "noGoZonePenalty": 100.0,
+  "degradedOperationPenalty": 10.0,
+  "parameters": {
+    "parkur": "medium_slalom",
+    "parkurName": "Orta Seviye Geniş Slalom ve Engel Kaçınma",
+    "completionRule": "Sıralı 6 görev noktasına ulaş, geniş kapılardan geç, engellere ve no-go zone alanına temas etme.",
+    "modeledGateCount": "3",
+    "representedObjectiveCount": "6",
+    "modeledObstacleCount": "3",
+    "modeledNoGoZoneCount": "1",
+    "designIntent": "Basit parkurlar ile zor S-slalom/U-dönüş parkuru arasında kontrollü ara test sağlamak.",
+    "expectedBehavior": "Araç hedefleri sırayla almalı, yumuşak S hattını overshoot yapmadan tamamlamalı ve engel çevresinde takılı kalmadan final noktasına ulaşmalıdır.",
+    "diagnostics": "Runtime loglarında objective advance, nearest object, physicalClear, safetyClear, arrival speed ve yaw-rate değerleri izlenmelidir."
+  }
+}
