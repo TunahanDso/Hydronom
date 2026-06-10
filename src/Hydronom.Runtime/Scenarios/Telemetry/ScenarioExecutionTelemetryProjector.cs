@@ -118,6 +118,20 @@ public sealed class ScenarioExecutionTelemetryProjector
             SensorCount: ScenarioReplaySensorCount,
             HealthySensorCount: ScenarioReplayHealthySensorCount,
 
+            // Scenario replay kinematic truth/timeline verisinden üretildiği için burada gerçek runtime
+            // capability snapshot yoktur. Bu alanları bilinçli olarak boş/default bırakıyoruz.
+            // Canlı C# Primary runtime akışında capability bilgisi TelemetryBridge üzerinden dolu gelir.
+            CapabilityCount: 0,
+            AvailableCapabilityCount: 0,
+            DegradedCapabilityCount: 0,
+            MissingCapabilityCount: 0,
+            HasGlobalPositionCapability: false,
+            HasLocalPositionCapability: false,
+            HasAttitudeCapability: false,
+            HasDepthCapability: false,
+            HasObstacleDetectionCapability: false,
+            CapabilitySummary: "Scenario replay telemetry does not include live runtime sensor capability snapshot.",
+
             FusionEngineName: "scenario_kinematic_executor",
             FusionProducedCandidate: true,
             FusionConfidence: Clamp01(fusionConfidence),

@@ -6,6 +6,7 @@ using Hydronom.Core.Simulation.Truth;
 using Hydronom.Core.State.Authority;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Sensors.Backends.Common;
+using Hydronom.Runtime.Sensors.Diagnostics;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
 using Hydronom.Runtime.StateRuntime;
@@ -85,6 +86,9 @@ await sensorRuntime.StartAsync();
 
 var samples = await sensorRuntime.ReadBatchAsync();
 var sensorHealth = sensorRuntime.GetHealth();
+var sensorCapabilities = new RuntimeSensorCapabilityProjector()
+    .Project(sensorRuntime)
+    .Sanitized();
 
 await sensorRuntime.StopAsync();
 
@@ -93,6 +97,12 @@ Console.WriteLine($"Sample count       : {samples.Count}");
 Console.WriteLine($"Sensor count       : {sensorHealth.SensorCount}");
 Console.WriteLine($"Healthy count      : {sensorHealth.HealthyCount}");
 Console.WriteLine($"Has critical issue : {sensorHealth.HasCriticalIssue}");
+Console.WriteLine($"Capability count   : {sensorCapabilities.CapabilityCount}");
+Console.WriteLine($"Capability summary : {sensorCapabilities.Summary}");
+Console.WriteLine($"Has global pos     : {sensorCapabilities.HasGlobalPosition}");
+Console.WriteLine($"Has local pos      : {sensorCapabilities.HasLocalPosition}");
+Console.WriteLine($"Has attitude       : {sensorCapabilities.HasAttitude}");
+Console.WriteLine($"Has depth          : {sensorCapabilities.HasDepth}");
 
 foreach (var sample in samples)
 {
@@ -110,6 +120,14 @@ Require(!samples.Any(x => x.DataKind == SensorDataKind.Gps), "Sensor batch için
 Require(sensorHealth.SensorCount == 2, "Sensor health sensor count 2 olmalı.");
 Require(sensorHealth.HealthyCount == 2, "Sensor health healthy count 2 olmalı.");
 Require(!sensorHealth.HasCriticalIssue, "Sensor health critical issue olmamalı.");
+
+Require(sensorCapabilities.CapabilityCount > 0, "Degraded capability snapshot boş olmamalı.");
+Require(!sensorCapabilities.HasGlobalPosition, "GPS kapalıyken global_position capability false olmalı.");
+Require(!sensorCapabilities.HasLocalPosition, "GPS kapalıyken local_position capability false olmalı.");
+Require(sensorCapabilities.HasAttitude, "IMU açıkken attitude capability true olmalı.");
+Require(sensorCapabilities.HasDepth, "Depth açıkken depth capability true olmalı.");
+Require(sensorCapabilities.Summary.Contains("global_position:missing", StringComparison.OrdinalIgnoreCase), "Capability summary global_position:missing içermeli.");
+Require(sensorCapabilities.Summary.Contains("depth:available", StringComparison.OrdinalIgnoreCase), "Capability summary depth:available içermeli.");
 
 var policy = StateAuthorityPolicy.CSharpPrimary with
 {
@@ -259,7 +277,7 @@ Require(debugSummary.Contains("gps=missing", StringComparison.OrdinalIgnoreCase)
 Require(debugSummary.Contains("depth=ok", StringComparison.OrdinalIgnoreCase), "Debug summary Depth kullanımını içermeli.");
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("PASS: Runtime CDSE degraded smoke test GPS yokken IMU + Depth ile authoritative degraded state üretti.");
+Console.WriteLine("PASS: Runtime CDSE degraded smoke test GPS yokken IMU + Depth ile authoritative degraded state ve capability snapshot üretti.");
 Console.ResetColor();
 
 return 0;

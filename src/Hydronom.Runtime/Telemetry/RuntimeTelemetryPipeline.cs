@@ -1,6 +1,7 @@
 using Hydronom.Core.Fusion.Models;
 using Hydronom.Core.Sensors.Common.Abstractions;
 using Hydronom.Runtime.FusionRuntime;
+using Hydronom.Runtime.Sensors.Diagnostics;
 using Hydronom.Runtime.StateRuntime;
 
 namespace Hydronom.Runtime.Telemetry;
@@ -18,6 +19,7 @@ public sealed class RuntimeTelemetryPipeline : IAsyncDisposable
     private readonly FusionRuntimeHost _fusionHost;
     private readonly VehicleStateStore _stateStore;
     private readonly RuntimeTelemetryHost _telemetryHost;
+    private readonly RuntimeSensorCapabilityProjector _capabilityProjector = new();
     private readonly string _vehicleId;
     private readonly string _frameId;
     private readonly double _maxSampleAgeMs;
@@ -78,7 +80,7 @@ public sealed class RuntimeTelemetryPipeline : IAsyncDisposable
             return;
         }
 
-        await _sensorRuntime.StartAsync().ConfigureAwait(false);
+        await _sensorRuntime.StartAsync(cancellationToken).ConfigureAwait(false);
         _started = true;
     }
 
@@ -108,8 +110,9 @@ public sealed class RuntimeTelemetryPipeline : IAsyncDisposable
             await StartAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var samples = await _sensorRuntime.ReadBatchAsync().ConfigureAwait(false);
+        var samples = await _sensorRuntime.ReadBatchAsync(cancellationToken).ConfigureAwait(false);
         var sensorHealth = _sensorRuntime.GetHealth();
+        var sensorCapabilities = _capabilityProjector.Project(_sensorRuntime);
 
         var context = FusionContext.Create(
             vehicleId: _vehicleId,
@@ -123,7 +126,12 @@ public sealed class RuntimeTelemetryPipeline : IAsyncDisposable
             .Sanitized();
 
         var publishResult = await _telemetryHost
-            .PublishAsync(sensorHealth, _fusionHost, _stateStore, cancellationToken)
+            .PublishAsync(
+                sensorHealth: sensorHealth,
+                fusionHost: _fusionHost,
+                stateStore: _stateStore,
+                cancellationToken: cancellationToken,
+                sensorCapabilities: sensorCapabilities)
             .ConfigureAwait(false);
 
         var result = RuntimeTelemetryPipelineTickResult.CreateExecuted(

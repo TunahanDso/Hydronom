@@ -1,12 +1,13 @@
 using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Operations.Snapshots;
+using Hydronom.Runtime.Sensors.Diagnostics;
 using Hydronom.Runtime.StateRuntime;
 
 namespace Hydronom.Runtime.Telemetry;
 
 /// <summary>
-/// Runtime içindeki sensor health, fusion ve state authority bilgisinden
+/// Runtime içindeki sensor health, capability, fusion ve state authority bilgisinden
 /// RuntimeTelemetrySummary üretip dış publisher'a aktarır.
 ///
 /// Bu sınıfın görevi sensör verisini TCP'den almak değildir.
@@ -38,7 +39,8 @@ public sealed class RuntimeTelemetryHost
         SensorRuntimeHealth sensorHealth,
         FusionRuntimeHost fusionHost,
         VehicleStateStore stateStore,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        RuntimeSensorCapabilitySnapshot? sensorCapabilities = null)
     {
         if (cancellationToken.IsCancellationRequested)
         {
@@ -51,7 +53,11 @@ public sealed class RuntimeTelemetryHost
         ArgumentNullException.ThrowIfNull(stateStore);
 
         var snapshot = _snapshotBuilder
-            .Build(sensorHealth, fusionHost, stateStore)
+            .Build(
+                sensorHealth: sensorHealth,
+                fusionHost: fusionHost,
+                stateStore: stateStore,
+                sensorCapabilities: sensorCapabilities ?? RuntimeSensorCapabilitySnapshot.Empty)
             .Sanitized();
 
         var summary = _telemetryBridge

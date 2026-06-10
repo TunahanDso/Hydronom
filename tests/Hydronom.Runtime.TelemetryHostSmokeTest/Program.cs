@@ -7,6 +7,7 @@ using Hydronom.Core.State.Authority;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Operations.Snapshots;
 using Hydronom.Runtime.Sensors.Backends.Common;
+using Hydronom.Runtime.Sensors.Diagnostics;
 using Hydronom.Runtime.Sensors.Runtime;
 using Hydronom.Runtime.Simulation.Physics;
 using Hydronom.Runtime.StateRuntime;
@@ -68,6 +69,9 @@ await sensorRuntime.StartAsync();
 
 var samples = await sensorRuntime.ReadBatchAsync();
 var sensorHealth = sensorRuntime.GetHealth();
+var sensorCapabilities = new RuntimeSensorCapabilityProjector()
+    .Project(sensorRuntime)
+    .Sanitized();
 
 await sensorRuntime.StopAsync();
 
@@ -76,6 +80,12 @@ Console.WriteLine($"Sample count       : {samples.Count}");
 Console.WriteLine($"Sensor count       : {sensorHealth.SensorCount}");
 Console.WriteLine($"Healthy count      : {sensorHealth.HealthyCount}");
 Console.WriteLine($"Has critical issue : {sensorHealth.HasCriticalIssue}");
+Console.WriteLine($"Capability count   : {sensorCapabilities.CapabilityCount}");
+Console.WriteLine($"Capability summary : {sensorCapabilities.Summary}");
+Console.WriteLine($"Has global pos     : {sensorCapabilities.HasGlobalPosition}");
+Console.WriteLine($"Has local pos      : {sensorCapabilities.HasLocalPosition}");
+Console.WriteLine($"Has attitude       : {sensorCapabilities.HasAttitude}");
+Console.WriteLine($"Has depth          : {sensorCapabilities.HasDepth}");
 
 foreach (var sample in samples)
 {
@@ -90,6 +100,11 @@ Require(samples.Any(x => x.DataKind == SensorDataKind.Imu), "IMU sample olmalı.
 Require(sensorHealth.SensorCount == 2, "Sensor health sensor count 2 olmalı.");
 Require(sensorHealth.HealthyCount == 2, "Sensor health healthy count 2 olmalı.");
 Require(!sensorHealth.HasCriticalIssue, "Sensor health critical issue olmamalı.");
+Require(sensorCapabilities.CapabilityCount > 0, "Sensor capability snapshot boş olmamalı.");
+Require(sensorCapabilities.HasGlobalPosition, "Sensor capability snapshot global_position göstermeli.");
+Require(sensorCapabilities.HasLocalPosition, "Sensor capability snapshot local_position göstermeli.");
+Require(sensorCapabilities.HasAttitude, "Sensor capability snapshot attitude göstermeli.");
+Require(!sensorCapabilities.HasDepth, "Sensor capability snapshot depth göstermemeli çünkü bu testte depth kapalı.");
 
 var policy = StateAuthorityPolicy.CSharpPrimary with
 {
@@ -162,10 +177,11 @@ var telemetryHost = new RuntimeTelemetryHost(
 );
 
 var publishResult = await telemetryHost.PublishAsync(
-    sensorHealth,
-    fusionHost,
-    stateStore,
-    CancellationToken.None
+    sensorHealth: sensorHealth,
+    fusionHost: fusionHost,
+    stateStore: stateStore,
+    cancellationToken: CancellationToken.None,
+    sensorCapabilities: sensorCapabilities
 );
 
 Console.WriteLine("[4] RuntimeTelemetryHost publish result");
@@ -200,6 +216,15 @@ Console.WriteLine($"RuntimeId             : {summary.RuntimeId}");
 Console.WriteLine($"OverallHealth         : {summary.OverallHealth}");
 Console.WriteLine($"SensorCount           : {summary.SensorCount}");
 Console.WriteLine($"HealthySensorCount    : {summary.HealthySensorCount}");
+Console.WriteLine($"CapabilityCount       : {summary.CapabilityCount}");
+Console.WriteLine($"AvailableCapabilities : {summary.AvailableCapabilityCount}");
+Console.WriteLine($"DegradedCapabilities  : {summary.DegradedCapabilityCount}");
+Console.WriteLine($"MissingCapabilities   : {summary.MissingCapabilityCount}");
+Console.WriteLine($"HasGlobalPosition     : {summary.HasGlobalPositionCapability}");
+Console.WriteLine($"HasLocalPosition      : {summary.HasLocalPositionCapability}");
+Console.WriteLine($"HasAttitude           : {summary.HasAttitudeCapability}");
+Console.WriteLine($"HasDepth              : {summary.HasDepthCapability}");
+Console.WriteLine($"CapabilitySummary     : {summary.CapabilitySummary}");
 Console.WriteLine($"FusionEngine          : {summary.FusionEngineName}");
 Console.WriteLine($"FusionProduced        : {summary.FusionProducedCandidate}");
 Console.WriteLine($"FusionConfidence      : {summary.FusionConfidence:F3}");
@@ -220,6 +245,14 @@ Require(!summary.HasCriticalIssue, "Summary critical issue olmamalı.");
 Require(!summary.HasWarnings, "Summary warning olmamalı.");
 Require(summary.SensorCount == 2, "Summary sensor count 2 olmalı.");
 Require(summary.HealthySensorCount == 2, "Summary healthy sensor count 2 olmalı.");
+Require(summary.CapabilityCount > 0, "Summary capability count 0'dan büyük olmalı.");
+Require(summary.AvailableCapabilityCount >= 2, "Summary en az GPS/IMU capability'lerini available göstermeli.");
+Require(summary.HasGlobalPositionCapability, "Summary global_position capability true olmalı.");
+Require(summary.HasLocalPositionCapability, "Summary local_position capability true olmalı.");
+Require(summary.HasAttitudeCapability, "Summary attitude capability true olmalı.");
+Require(!summary.HasDepthCapability, "Summary depth capability false olmalı çünkü bu testte depth kapalı.");
+Require(summary.CapabilitySummary.Contains("global_position", StringComparison.OrdinalIgnoreCase), "Summary capability summary global_position içermeli.");
+Require(summary.CapabilitySummary.Contains("attitude", StringComparison.OrdinalIgnoreCase), "Summary capability summary attitude bilgisini içermeli.");
 Require(summary.FusionEngineName == "capability_driven_state_estimator", "Summary fusion engine CDSE olmalı.");
 Require(summary.FusionProducedCandidate, "Summary fusion produced true olmalı.");
 Require(summary.FusionConfidence >= 0.75, "Summary CDSE fusion confidence yeterli olmalı.");
@@ -235,7 +268,7 @@ Require(summary.AcceptedStateUpdateCount == 1, "Summary accepted update count 1 
 Require(summary.RejectedStateUpdateCount == 0, "Summary rejected update count 0 olmalı.");
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("PASS: RuntimeTelemetryHost gerçek CSharpSensorRuntime sample'larıyla CDSE, snapshot, telemetry bridge ve publisher zincirini doğru çalıştırdı.");
+Console.WriteLine("PASS: RuntimeTelemetryHost gerçek CSharpSensorRuntime sample'larıyla CDSE, capability snapshot, telemetry bridge ve publisher zincirini doğru çalıştırdı.");
 Console.ResetColor();
 
 return 0;

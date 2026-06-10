@@ -11,6 +11,7 @@ public sealed class TelemetryBridge
     public RuntimeTelemetrySummary Project(RuntimeDiagnosticsSnapshot snapshot)
     {
         var safe = snapshot.Sanitized();
+        var capabilities = safe.SensorCapabilities.Sanitized();
 
         return new RuntimeTelemetrySummary(
             RuntimeId: safe.RuntimeId,
@@ -20,6 +21,16 @@ public sealed class TelemetryBridge
             HasWarnings: safe.HasWarnings,
             SensorCount: safe.SensorHealth.SensorCount,
             HealthySensorCount: safe.SensorHealth.HealthyCount,
+            CapabilityCount: capabilities.CapabilityCount,
+            AvailableCapabilityCount: capabilities.AvailableCount,
+            DegradedCapabilityCount: capabilities.DegradedCount,
+            MissingCapabilityCount: capabilities.MissingCount,
+            HasGlobalPositionCapability: capabilities.HasGlobalPosition,
+            HasLocalPositionCapability: capabilities.HasLocalPosition,
+            HasAttitudeCapability: capabilities.HasAttitude,
+            HasDepthCapability: capabilities.HasDepth,
+            HasObstacleDetectionCapability: capabilities.HasObstacleDetection,
+            CapabilitySummary: capabilities.Summary,
             FusionEngineName: safe.FusionDiagnostics.FusionEngineName,
             FusionProducedCandidate: safe.FusionDiagnostics.ProducedCandidate,
             FusionConfidence: safe.FusionDiagnostics.Confidence,
@@ -51,6 +62,16 @@ public readonly record struct RuntimeTelemetrySummary(
     bool HasWarnings,
     int SensorCount,
     int HealthySensorCount,
+    int CapabilityCount,
+    int AvailableCapabilityCount,
+    int DegradedCapabilityCount,
+    int MissingCapabilityCount,
+    bool HasGlobalPositionCapability,
+    bool HasLocalPositionCapability,
+    bool HasAttitudeCapability,
+    bool HasDepthCapability,
+    bool HasObstacleDetectionCapability,
+    string CapabilitySummary,
     string FusionEngineName,
     bool FusionProducedCandidate,
     double FusionConfidence,
@@ -78,6 +99,18 @@ public readonly record struct RuntimeTelemetrySummary(
             HasWarnings: HasWarnings,
             SensorCount: SensorCount < 0 ? 0 : SensorCount,
             HealthySensorCount: HealthySensorCount < 0 ? 0 : HealthySensorCount,
+            CapabilityCount: CapabilityCount < 0 ? 0 : CapabilityCount,
+            AvailableCapabilityCount: AvailableCapabilityCount < 0 ? 0 : AvailableCapabilityCount,
+            DegradedCapabilityCount: DegradedCapabilityCount < 0 ? 0 : DegradedCapabilityCount,
+            MissingCapabilityCount: MissingCapabilityCount < 0 ? 0 : MissingCapabilityCount,
+            HasGlobalPositionCapability: HasGlobalPositionCapability,
+            HasLocalPositionCapability: HasLocalPositionCapability,
+            HasAttitudeCapability: HasAttitudeCapability,
+            HasDepthCapability: HasDepthCapability,
+            HasObstacleDetectionCapability: HasObstacleDetectionCapability,
+            CapabilitySummary: string.IsNullOrWhiteSpace(CapabilitySummary)
+                ? "No runtime sensor capability summary."
+                : CapabilitySummary.Trim(),
             FusionEngineName: string.IsNullOrWhiteSpace(FusionEngineName) ? "unknown_fusion" : FusionEngineName.Trim(),
             FusionProducedCandidate: FusionProducedCandidate,
             FusionConfidence: Clamp01(FusionConfidence),
