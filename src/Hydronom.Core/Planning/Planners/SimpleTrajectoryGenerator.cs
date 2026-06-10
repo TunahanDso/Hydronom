@@ -156,6 +156,22 @@ namespace Hydronom.Core.Planning.Planners
             }.Sanitized();
         }
 
+        private static bool IsScenarioFlowGoal(PlanningGoal goal)
+        {
+            var text =
+                $"{goal.Source} {goal.Reason} {goal.GoalId} {goal.DisplayName}";
+
+            if (!text.Contains("SCENARIO", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (text.Contains("finish", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("hold", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("stop", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("park", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return true;
+        }
         private static double ResolveHeading(
             PlannedPathPoint current,
             PlannedPathPoint next)
@@ -178,6 +194,7 @@ namespace Hydronom.Core.Planning.Planners
             double vehicleDistanceToGoal)
         {
             var acceptance = Math.Max(0.25, context.Goal.AcceptanceRadiusMeters);
+            var scenarioFlowGoal = IsScenarioFlowGoal(context.Goal);
 
             var captureDistance = Math.Max(
                 acceptance * CaptureZoneFactor,
@@ -191,23 +208,39 @@ namespace Hydronom.Core.Planning.Planners
                 acceptance * CautionZoneFactor,
                 approachDistance + 1.25);
 
+            if (scenarioFlowGoal)
+            {
+                captureDistance = Math.Min(
+                    captureDistance,
+                    Math.Max(0.45, acceptance * 0.85));
+
+                approachDistance = Math.Min(
+                    approachDistance,
+                    Math.Max(captureDistance + 0.65, acceptance * 1.85));
+
+                cautionDistance = Math.Min(
+                    cautionDistance,
+                    Math.Max(approachDistance + 1.25, acceptance * 3.25));
+            }
+
+            var requestedCruise = SafeNonNegative(
+                context.Goal.DesiredCruiseSpeedMps,
+                0.0);
+
             /*
-             * Temel cruise hızı üç kaynaktan sınırlanır:
-             * - PlanningContext.MaxPlanSpeedMps: runtime/platform üst sınırı
-             * - Goal.DesiredCruiseSpeedMps: görevin istediği seyir hızı
-             * - planner nominal sınırı: bu generator'ın güvenli default tavanı
+             * For scenario flow objectives, DesiredCruise is a preference, not a hard cap.
+             * The true cap is MaxPlanSpeed + vehicle/control envelope.
              */
-            var nominalCruise = Math.Min(
-                context.MaxPlanSpeedMps,
-                Math.Min(context.Goal.DesiredCruiseSpeedMps, MaximumNominalCruiseMps));
+            var nominalCruise = scenarioFlowGoal
+                ? Math.Min(context.MaxPlanSpeedMps, MaximumNominalCruiseMps)
+                : Math.Min(
+                    context.MaxPlanSpeedMps,
+                    Math.Min(
+                        requestedCruise > 0.0 ? requestedCruise : MaximumNominalCruiseMps,
+                        MaximumNominalCruiseMps));
 
             nominalCruise = Math.Max(0.0, nominalCruise);
 
-            /*
-             * Mod bazlı tavan.
-             * Corridor geçişlerinde fazla hız, gate merkezlerini overshoot ettirebilir.
-             * Avoidance modunda clearance/risk daha önemli olduğu için hız düşürülür.
-             */
             var modeLimitedCruise = path.Mode switch
             {
                 PlanningMode.Avoidance => Math.Min(nominalCruise, MaximumAvoidanceCruiseMps),
@@ -217,22 +250,37 @@ namespace Hydronom.Core.Planning.Planners
             };
 
             /*
-             * Risk yumuşatması.
-             * Risk çok düşükse cruise korunur, orta riskte hafif azaltılır, yüksek riskte
-             * slow-mode'a yaklaşılır.
+             * Path-level risk policy:
+             *
+             * Collision/replan risk hız profilini ciddi düşürür.
+             * Ama safe=True / feasible=True olan soft corridor risk, özellikle scenario
+             * fly-through hedeflerinde "sürün" anlamına gelmemeli.
              */
             var risk = Math.Clamp(path.Risk.RiskScore, 0.0, 1.0);
+            var hardRisk =
+                path.RequiresReplan ||
+                path.Risk.RequiresReplan ||
+                risk >= 0.85;
 
-            var riskScale = risk switch
-            {
-                >= 0.85 => 0.35,
-                >= 0.65 => 0.50,
-                >= 0.45 => 0.65,
-                >= 0.25 => 0.82,
-                _ => 1.00
-            };
+            var riskScale = hardRisk
+                ? risk switch
+                {
+                    >= 0.85 => 0.35,
+                    >= 0.65 => 0.50,
+                    >= 0.45 => 0.65,
+                    >= 0.25 => 0.82,
+                    _ => 1.00
+                }
+                : risk switch
+                {
+                    >= 0.70 => 0.70,
+                    >= 0.55 => 0.82,
+                    >= 0.35 => 0.90,
+                    >= 0.25 => 0.96,
+                    _ => 1.00
+                };
 
-            if (path.Risk.RequiresSlowMode)
+            if (path.Risk.RequiresSlowMode && hardRisk)
                 riskScale = Math.Min(riskScale, 0.55);
 
             var cruise = Math.Clamp(
@@ -240,11 +288,6 @@ namespace Hydronom.Core.Planning.Planners
                 0.0,
                 context.MaxPlanSpeedMps);
 
-            /*
-             * Final yaklaşma fazı araç-hedef mesafesine göre hesaplanır.
-             * Eski hatada trajectory point final hedefte olduğu için distance=0 çıkıyor ve
-             * araç uzaktayken bile final nokta arrival speed'e kilitleniyordu.
-             */
             var arrivalSpeed = Math.Clamp(
                 context.Goal.DesiredArrivalSpeedMps,
                 0.0,
@@ -266,10 +309,6 @@ namespace Hydronom.Core.Planning.Planners
                     (vehicleDistanceToGoal - captureDistance) /
                     Math.Max(1e-6, approachDistance - captureDistance));
 
-                /*
-                 * Capture bölgesinden approach dışına doğru hız yumuşak artar.
-                 * SmoothStep ani hız sıçramasını engeller.
-                 */
                 phaseScale = Lerp(
                     0.35,
                     0.72,
@@ -289,11 +328,6 @@ namespace Hydronom.Core.Planning.Planners
                     SmoothStep(t));
             }
 
-            /*
-             * Reverse olmayan araçlarda finale yaklaşırken daha erken ve daha kontrollü hız
-             * profili gerekir. Bu, cruise'u öldürmez; sadece approach/capture davranışını
-             * daha saygılı hale getirir.
-             */
             if (!context.Goal.AllowReverse &&
                 phase is TrajectorySpeedPhase.Approach or TrajectorySpeedPhase.Capture)
             {
@@ -309,27 +343,29 @@ namespace Hydronom.Core.Planning.Planners
                 _ => cruise * phaseScale
             };
 
-            /*
-             * Araç hedefe hâlâ uzaktaysa ve rota temizse, final arrival hızına çakılı
-             * kalmasını engelle. Bu özellikle iki noktalı direct path'te kritik.
-             */
             if (phase is TrajectorySpeedPhase.Cruise or TrajectorySpeedPhase.Caution &&
-                !path.Risk.RequiresSlowMode &&
-                risk < 0.35)
+                !hardRisk &&
+                risk < 0.70)
             {
                 targetSpeed = Math.Max(
                     targetSpeed,
                     Math.Min(cruise, CleanPathMinimumCruiseMps));
             }
 
-            /*
-             * Capture dışındayken sıfıra düşen hız, görev ilerlemesini öldürür.
-             * Bu taban sadece hâlâ hedefe yaklaşma mesafesi varsa uygulanır.
-             */
             if (phase != TrajectorySpeedPhase.Capture &&
                 vehicleDistanceToGoal > captureDistance)
             {
                 targetSpeed = Math.Max(targetSpeed, MinimumMovingSpeedMps);
+            }
+
+            if (scenarioFlowGoal &&
+                !hardRisk &&
+                phase != TrajectorySpeedPhase.Capture &&
+                cruise > 0.0)
+            {
+                targetSpeed = Math.Max(
+                    targetSpeed,
+                    Math.Min(cruise, 0.52));
             }
 
             targetSpeed = Math.Clamp(targetSpeed, 0.0, context.MaxPlanSpeedMps);
@@ -344,9 +380,8 @@ namespace Hydronom.Core.Planning.Planners
                 TargetSpeedMps: targetSpeed,
                 ArrivalSpeedMps: arrivalSpeed,
                 RiskScale: riskScale,
-                RequiresSlowMode: path.Risk.RequiresSlowMode || risk >= 0.45);
+                RequiresSlowMode: hardRisk || (!scenarioFlowGoal && (path.Risk.RequiresSlowMode || risk >= 0.70)));
         }
-
         private static double ResolveSpeed(
             PlanningContext context,
             PlannedPath path,
@@ -366,11 +401,6 @@ namespace Hydronom.Core.Planning.Planners
                 point.PreferredSpeedMps,
                 preferredFallback);
 
-            /*
-             * Start noktası çoğu zaman 0 hız taşır. Bu doğru.
-             * Ancak start dışındaki noktalarda 0 tercihli hız gelirse path'i öldürmesin diye
-             * hedef hız fallback olarak kullanılır.
-             */
             if (index > 0 && pointPreferred <= 1e-6)
                 pointPreferred = preferredFallback;
 
@@ -380,51 +410,43 @@ namespace Hydronom.Core.Planning.Planners
                 context.MaxPlanSpeedMps,
                 Math.Min(pointPreferred, profile.TargetSpeedMps));
 
-            /*
-             * Path'in ilk noktası genellikle aracın o anki pozisyonudur.
-             * Bu noktanın çok yüksek hız taşıması lookahead seçimi/başlangıç geçişinde
-             * gereksiz agresif davranış üretebilir.
-             */
             if (index == 0)
                 speed = Math.Min(speed, StartPointSpeedLimitMps);
 
             /*
-             * Nokta bazlı risk yumuşatması.
-             * Corridor gate darsa veya lokal planner nokta riskini yükselttiyse, sadece
-             * ilgili noktada hız düşer; bütün path gereksiz yavaşlamaz.
+             * Point-level risk policy:
+             *
+             * Path risk already shaped profile.TargetSpeedMps in ResolveSpeedProfile.
+             * Do NOT apply the same path risk again for every trajectory point.
              */
-            var pointRisk = Math.Clamp(Math.Max(point.RiskScore, path.Risk.RiskScore), 0.0, 1.0);
+            var pathRisk = Math.Clamp(path.Risk.RiskScore, 0.0, 1.0);
+            var rawPointRisk = Math.Clamp(point.RiskScore, 0.0, 1.0);
+            var extraPointRisk = Math.Clamp(
+                rawPointRisk - Math.Max(0.0, pathRisk - 0.10),
+                0.0,
+                1.0);
 
-            if (path.Risk.RequiresSlowMode || pointRisk >= 0.45)
+            if (path.RequiresReplan || path.Risk.RequiresReplan)
                 speed *= 0.70;
 
-            if (pointRisk >= 0.65)
-                speed *= 0.70;
+            if (extraPointRisk >= 0.45)
+                speed *= 0.82;
 
-            if (pointRisk >= 0.85)
+            if (extraPointRisk >= 0.65)
+                speed *= 0.75;
+
+            if (extraPointRisk >= 0.85)
                 speed *= 0.55;
 
-            /*
-             * Final capture bölgesinde tüm noktaların hızı arrival hızını aşmamalı.
-             * Ama bu karar araç-hedef mesafesine göre verilir, point-hedef mesafesine göre değil.
-             */
             if (profile.Phase == TrajectorySpeedPhase.Capture)
                 speed = Math.Min(speed, profile.ArrivalSpeedMps);
 
-            /*
-             * Approach fazında hız sıfıra düşmesin ama profile.TargetSpeedMps üstüne de
-             * kontrolsüz çıkmasın.
-             */
             if (profile.Phase == TrajectorySpeedPhase.Approach && index > 0)
             {
                 speed = Math.Max(speed, Math.Min(profile.ArrivalSpeedMps, profile.TargetSpeedMps));
                 speed = Math.Min(speed, profile.TargetSpeedMps);
             }
 
-            /*
-             * Eğer görev hareket istiyorsa ve hedefe hâlâ uzaksak hızın tamamen sıfıra
-             * düşmesini engelle. Start noktası hariç tutulur; start noktası 0 kalabilir.
-             */
             if (index > 0 &&
                 profile.Phase is TrajectorySpeedPhase.Cruise or TrajectorySpeedPhase.Caution &&
                 speed > 0.0)
@@ -434,7 +456,6 @@ namespace Hydronom.Core.Planning.Planners
 
             return Math.Clamp(speed, 0.0, context.MaxPlanSpeedMps);
         }
-
         private static TrajectoryPoint? SelectLookAheadPoint(
             PlanningContext context,
             IReadOnlyList<TrajectoryPoint> points,

@@ -1,0 +1,19 @@
+﻿{
+  "id": "teknofest_2026_parkur_h_advanced_slalom_corridor",
+  "name": "TEKNOFEST 2026 Orta-Zor Parkur - Advanced Slalom Corridor",
+  "description": "Basit ve orta parkurdan sonra zor S-slalom/U-turn öncesi ara seviye stres testi. Çift S hattı, dar koridor, ardışık engel kaçınma, no-go zone çevresinden geçiş, final hizalanması ve kontrollü hız düşürme davranışlarını test eder.",
+  "version": "1.0.0",
+  "scenarioFamily": "teknofest_2026_usv",
+  "coordinateFrame": "local_metric",
+  "runMode": "simulation",
+  "vehicleId": "hydronom-main",
+  "vehiclePlatform": "surface_vessel",
+  "startX": 0.0,
+  "startY": 0.0,
+  "startZ": 0.0,
+  "startRollDeg": 0.0,
+  "startPitchDeg": 0.0,
+  "startYawDeg": 0.0,
+  "timeLimitSeconds": 1200.0,
+  "minimumSuccessScore": 75.0
+}

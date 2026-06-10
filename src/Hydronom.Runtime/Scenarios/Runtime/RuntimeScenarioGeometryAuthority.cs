@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hydronom.Core.World.Models;
@@ -108,7 +108,7 @@ public sealed class RuntimeScenarioGeometryAuthority
 
         foreach (var obj in activeObjects)
         {
-            if (!ShouldUseAsGeometryObstacle(obj.Kind, obj.Layer, obj.IsActive, obj.IsBlocking, obj.IsObstacleLike, obj.Tags))
+            if (!ShouldUseAsGeometryObstacle(obj.Id, obj.Name, obj.Kind, obj.Layer, obj.IsActive, obj.IsBlocking, obj.IsObstacleLike, obj.Tags))
                 continue;
 
             var obstacle = BuildObstacle(obj, state);
@@ -301,6 +301,8 @@ public sealed class RuntimeScenarioGeometryAuthority
     }
 
     private bool ShouldUseAsGeometryObstacle(
+        string? id,
+        string? name,
         string? kind,
         string? layer,
         bool isActive,
@@ -311,9 +313,39 @@ public sealed class RuntimeScenarioGeometryAuthority
         if (!isActive)
             return false;
 
-        // Boundary objects are semantic track limits/visual safety rails by default.
-        // They must NOT become giant circular collision obstacles just because they have a large width.
-        // Only allow them into geometry authority when a scenario explicitly opts in.
+        /*
+         * GENERIC_SEMANTIC_MARKER_FILTER:
+         *
+         * Gate/corridor/path/route markers are guidance semantics, not physical
+         * collision objects by default. A marker only becomes a collision obstacle
+         * when the scenario explicitly says so via blocking/collision tags.
+         */
+        static bool ContainsMarkerText(string? value, string token)
+        {
+            return !string.IsNullOrWhiteSpace(value) &&
+                   value.Contains(token, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var isNoGo =
+            TextEquals(kind, "no_go_zone") ||
+            TextEquals(TryGetTag(tags, "isNoGoZone"), "true");
+
+        var explicitGeometryObstacle =
+            isBlocking ||
+            TextEquals(TryGetTag(tags, "geometryObstacle"), "true") ||
+            TextEquals(TryGetTag(tags, "collisionObstacle"), "true") ||
+            TextEquals(TryGetTag(tags, "collisionBoundary"), "true") ||
+            TextEquals(TryGetTag(tags, "treatAsObstacle"), "true") ||
+            TextEquals(TryGetTag(tags, "isBlocking"), "true");
+
+        var explicitGeometryNonObstacle =
+            TextEquals(TryGetTag(tags, "geometryObstacle"), "false") ||
+            TextEquals(TryGetTag(tags, "collisionObstacle"), "false") ||
+            TextEquals(TryGetTag(tags, "treatAsObstacle"), "false");
+
+        if (explicitGeometryNonObstacle && !isNoGo)
+            return false;
+
         var isBoundary =
             TextEquals(kind, "boundary") ||
             TextEquals(layer, "scenario_boundary") ||
@@ -321,44 +353,60 @@ public sealed class RuntimeScenarioGeometryAuthority
             TextEquals(TryGetTag(tags, "geometry.kind"), "boundary");
 
         if (isBoundary)
-        {
-            return
-                TextEquals(TryGetTag(tags, "geometryObstacle"), "true") ||
-                TextEquals(TryGetTag(tags, "collisionBoundary"), "true") ||
-                TextEquals(TryGetTag(tags, "treatAsObstacle"), "true");
-        }
+            return explicitGeometryObstacle || isNoGo;
 
         if (TryGetTag(tags, "isCompleted") == "true" &&
             TryGetTag(tags, "missionMarker") == "true")
             return false;
 
         if (TryGetTag(tags, "isTargetZone") == "true" &&
-            !isBlocking)
+            !explicitGeometryObstacle)
             return false;
 
-        if (isBlocking || isObstacleLike)
-            return true;
-
-        if (TextEquals(kind, "obstacle") ||
+        var isPhysicalObstacleKind =
+            TextEquals(kind, "obstacle") ||
             TextEquals(kind, "buoy") ||
+            isNoGo;
+
+        var isSemanticGuidanceMarker =
+            TextEquals(layer, "scenario_navigation") ||
+            ContainsMarkerText(id, "corridor") ||
+            ContainsMarkerText(name, "corridor") ||
+            ContainsMarkerText(kind, "corridor") ||
+            ContainsMarkerText(layer, "corridor") ||
+            ContainsMarkerText(id, "gate_") ||
+            ContainsMarkerText(name, "gate_") ||
             TextEquals(kind, "gate_left") ||
             TextEquals(kind, "gate_right") ||
-            TextEquals(kind, "no_go_zone"))
+            TextEquals(TryGetTag(tags, "isGate"), "true") ||
+            TextEquals(TryGetTag(tags, "missionMarker"), "true") ||
+            TextEquals(TryGetTag(tags, "visual.kind"), "gate") ||
+            TextEquals(TryGetTag(tags, "geometry.kind"), "gate") ||
+            TextEquals(TryGetTag(tags, "visual.kind"), "corridor") ||
+            TextEquals(TryGetTag(tags, "geometry.kind"), "corridor") ||
+            TextEquals(TryGetTag(tags, "visual.kind"), "path") ||
+            TextEquals(TryGetTag(tags, "geometry.kind"), "path");
+
+        if (isSemanticGuidanceMarker &&
+            !explicitGeometryObstacle &&
+            !isPhysicalObstacleKind)
+            return false;
+
+        if (isPhysicalObstacleKind)
+            return true;
+
+        if (explicitGeometryObstacle)
+            return true;
+
+        if (isObstacleLike && !isSemanticGuidanceMarker)
             return true;
 
         if (TextEquals(layer, "scenario_obstacles") ||
-            TextEquals(layer, "scenario_navigation") ||
             TextEquals(layer, "scenario_safety"))
-            return true;
-
-        if (TryGetTag(tags, "isNoGoZone") == "true" ||
-            TryGetTag(tags, "isGate") == "true" ||
-            TryGetTag(tags, "isBlocking") == "true")
             return true;
 
         return false;
     }
-
     private double ResolveObjectRadius(
         double radius,
         double width,

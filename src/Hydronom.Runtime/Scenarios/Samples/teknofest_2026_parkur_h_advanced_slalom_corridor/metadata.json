@@ -1,0 +1,9 @@
+﻿{
+  "tags": {
+    "scenario.package": "true",
+    "scenario.level": "advanced-medium",
+    "scenario.intent": "stress_test_before_hard_slalom_uturn",
+    "scenario.createdFor": "Hydronom autonomy stabilization test",
+    "scenario.boundaryMode": "visual_semantic_only"
+  }
+}

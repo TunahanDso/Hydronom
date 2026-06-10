@@ -113,25 +113,60 @@ public sealed class RuntimeScenarioObjectiveTracker
             headingErrorAbs <= DefaultMaxArrivalHeadingErrorDeg ||
             distance3D <= Math.Max(0.35, tolerance * 0.55);
 
+        /*
+         * Fly-through scenario objective policy:
+         *
+         * Intermediate scenario waypoints are not parking targets.
+         * They are gates/checkpoints that should be crossed smoothly.
+         *
+         * Final / hold objectives still use the old strict settle policy.
+         */
+        var isFinalObjective = IsFinalObjective(session, currentTarget);
+        var isFlyThroughObjective =
+            !currentTarget.HoldOnArrive &&
+            !isFinalObjective;
+
+        /*
+         * Fly-through objectives should be crossed, not parked on.
+         * Use a slightly wider pass radius so the next target is acquired
+         * before the vehicle bleeds all momentum near the checkpoint.
+         */
+        var flyThroughTolerance = Math.Max(
+            tolerance,
+            Math.Min(tolerance * 1.85, tolerance + 1.10));
+
+        var flyThroughSatisfied =
+            isFlyThroughObjective &&
+            distance3D <= flyThroughTolerance;
+
         var allSettleInputsSatisfied =
             insideTolerance &&
             speedSettled &&
             yawRateSettled &&
             headingSettled;
 
-        UpdateSettleState(
-            objectiveId: currentTarget.ObjectiveId,
-            allSettleInputsSatisfied: allSettleInputsSatisfied,
-            now: now);
+        if (!isFlyThroughObjective)
+        {
+            UpdateSettleState(
+                objectiveId: currentTarget.ObjectiveId,
+                allSettleInputsSatisfied: allSettleInputsSatisfied,
+                now: now);
+        }
+        else
+        {
+            ResetSettleState();
+        }
 
         var settleElapsed = ComputeSettleElapsed(now);
-        var settleSatisfied = IsSettleSatisfied(safeOptions, settleElapsed);
+        var settleSatisfied = isFlyThroughObjective ||
+                              IsSettleSatisfied(safeOptions, settleElapsed);
 
         var objectiveCompleted =
             safeOptions.UseDistanceTrackerForAdvance &&
-            allSettleInputsSatisfied &&
-            settleSatisfied;
-
+            (
+                flyThroughSatisfied ||
+                (!isFlyThroughObjective && allSettleInputsSatisfied && settleSatisfied)
+            );
         string? completedObjectiveId = null;
         ScenarioMissionTarget? nextTarget = null;
 
@@ -254,6 +289,24 @@ public sealed class RuntimeScenarioObjectiveTracker
         }
 
         return settleElapsedSeconds >= safeOptions.SettleSeconds;
+    }
+
+    private static bool IsFinalObjective(
+        RuntimeScenarioSession session,
+        ScenarioMissionTarget target)
+    {
+        var last = session.Plan.Targets
+            .OrderBy(x => x.Order)
+            .ThenBy(x => x.ObjectiveId, StringComparer.OrdinalIgnoreCase)
+            .LastOrDefault();
+
+        if (last is null)
+            return false;
+
+        return string.Equals(
+            last.ObjectiveId,
+            target.ObjectiveId,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private void ResetSettleState()

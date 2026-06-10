@@ -31,6 +31,15 @@ namespace Hydronom.Core.Modules.Control
 
         private const double SpeedKp = 0.65;
         private const double SpeedKd = 0.12;
+        /*
+         * Surge speed feed-forward:
+         *
+         * Pure P speed control settles below the requested speed because thrust
+         * becomes zero as error approaches zero. Feed-forward estimates the force
+         * needed to maintain the requested speed against nominal hull drag.
+         */
+        private const double SpeedLinearFeedForwardNPerMps = 4.00;
+        private const double SpeedQuadraticFeedForwardNPerMps2 = 0.50;
 
         private const double DepthKp = 0.85;
         private const double DepthKd = 0.22;

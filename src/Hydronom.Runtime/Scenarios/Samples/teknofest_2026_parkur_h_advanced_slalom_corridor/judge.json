@@ -1,0 +1,25 @@
+﻿{
+  "enabled": true,
+  "checkCollisions": true,
+  "checkNoGoZones": true,
+  "enforceObjectiveOrder": true,
+  "failOnRequiredObjectiveFailure": true,
+  "failOnCollision": true,
+  "failOnNoGoZoneViolation": true,
+  "collisionPenalty": 100.0,
+  "noGoZonePenalty": 100.0,
+  "degradedOperationPenalty": 10.0,
+  "parameters": {
+    "parkur": "advanced_slalom_corridor",
+    "parkurName": "Orta-Zor Advanced Slalom Corridor",
+    "completionRule": "8 görev noktasını sırayla tamamla, kapı çiftlerinden geç, engellerden ve no-go zone alanlarından kaçın.",
+    "modeledGateCount": "5",
+    "representedObjectiveCount": "8",
+    "modeledObstacleCount": "5",
+    "modeledNoGoZoneCount": "2",
+    "modeledNarrowCorridorPairs": "3",
+    "designIntent": "Orta parkur başarısından sonra zor S-slalom/U-turn öncesinde geometri, analiz, planner, decision ve control zincirini daha yüksek karmaşıklıkla test etmek.",
+    "expectedBehavior": "Araç hedefleri sırayla almalı, S hattında kararlı kalmalı, dar koridorda hızı düşürmeli, no-go zone çevresinden güvenli geçmeli ve finalde overshoot yapmadan tamamlamalıdır.",
+    "diagnostics": "ADVANCE_BLOCKED_BY_GEOMETRY, GEOMETRY_COLLISION_CANDIDATE, nearest object, safety clear, arrival speed, yaw rate, objective advance ve allocation error takip edilmelidir."
+  }
+}

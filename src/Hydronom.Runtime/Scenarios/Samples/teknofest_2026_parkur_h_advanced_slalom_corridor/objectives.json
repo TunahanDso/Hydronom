@@ -1,0 +1,98 @@
+﻿[
+  {
+    "id": "reach_wp_1",
+    "type": "reach_zone",
+    "title": "Gate 1 / Kontrollü giriş",
+    "description": "Başlangıçtan sonra ilk geniş kapı merkezine ulaş.",
+    "targetObjectId": "wp_1",
+    "order": 1,
+    "isRequired": true,
+    "scoreValue": 9.0,
+    "toleranceMeters": 1.15,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_2",
+    "type": "reach_zone",
+    "title": "İlk sağ sapma",
+    "description": "İlk S hareketi için sağ hatta kontrollü sap.",
+    "targetObjectId": "wp_2",
+    "order": 2,
+    "isRequired": true,
+    "scoreValue": 11.0,
+    "toleranceMeters": 1.20,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_3",
+    "type": "reach_zone",
+    "title": "İlk sol dönüş ve engel kaçınma",
+    "description": "Engel baskısı altında sol hatta geç.",
+    "targetObjectId": "wp_3",
+    "order": 3,
+    "isRequired": true,
+    "scoreValue": 12.0,
+    "toleranceMeters": 1.20,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_4",
+    "type": "reach_zone",
+    "title": "İkinci S dönüşü",
+    "description": "Ardışık S hareketinin ikinci sağ yön değişimini tamamla.",
+    "targetObjectId": "wp_4",
+    "order": 4,
+    "isRequired": true,
+    "scoreValue": 12.0,
+    "toleranceMeters": 1.20,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_5",
+    "type": "reach_zone",
+    "title": "Dar koridor girişi",
+    "description": "Hızı düşürerek dar koridor girişine hizalan.",
+    "targetObjectId": "wp_5",
+    "order": 5,
+    "isRequired": true,
+    "scoreValue": 13.0,
+    "toleranceMeters": 1.10,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_6",
+    "type": "reach_zone",
+    "title": "Dar koridor çıkışı",
+    "description": "Dar koridoru temas etmeden ve overshoot üretmeden tamamla.",
+    "targetObjectId": "wp_6",
+    "order": 6,
+    "isRequired": true,
+    "scoreValue": 15.0,
+    "toleranceMeters": 1.10,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_7",
+    "type": "reach_zone",
+    "title": "Final öncesi ters hizalanma",
+    "description": "Dar koridor çıkışından sonra final hattına doğru ters yanal hizalanma yap.",
+    "targetObjectId": "wp_7",
+    "order": 7,
+    "isRequired": true,
+    "scoreValue": 13.0,
+    "toleranceMeters": 1.25,
+    "timeLimitSeconds": 0.0
+  },
+  {
+    "id": "reach_wp_8",
+    "type": "reach_zone",
+    "title": "Final hassas yaklaşma",
+    "description": "Parkuru final noktasında kontrollü şekilde tamamla.",
+    "targetObjectId": "wp_8",
+    "order": 8,
+    "isRequired": true,
+    "scoreValue": 15.0,
+    "toleranceMeters": 1.30,
+    "timeLimitSeconds": 0.0
+  }
+]

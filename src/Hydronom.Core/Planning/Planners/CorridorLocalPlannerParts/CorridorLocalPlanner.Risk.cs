@@ -24,10 +24,10 @@ namespace Hydronom.Core.Planning.Planners
                 gate.RiskScore,
                 safetyClearance switch
                 {
-                    < 0.0 => 0.95,
-                    < 0.75 => 0.72,
-                    < 1.5 => 0.42,
-                    _ => 0.15
+                    < 0.0 => 0.65,
+                    < 0.75 => 0.50,
+                    < 1.5 => 0.30,
+                    _ => 0.10
                 });
 
             return new PlanningRiskReport
@@ -36,9 +36,9 @@ namespace Hydronom.Core.Planning.Planners
                 ObstacleRisk = risk,
                 CorridorRisk = risk,
                 MinimumClearanceMeters = physicalClearance,
-                BlockingObjectCount = safetyClearance < 0.0 ? 1 : 0,
+                BlockingObjectCount = physicalClearance < 0.0 ? 1 : 0,
                 ConsideredObjectCount = blocking.Count,
-                RequiresReplan = safetyClearance < 0.0,
+                RequiresReplan = physicalClearance < 0.0,
                 RequiresSlowMode = safetyClearance < 1.25,
                 Summary =
                     $"GATE width={gate.WidthMeters:F2}m " +
@@ -140,12 +140,12 @@ namespace Hydronom.Core.Planning.Planners
                     : Math.Clamp(
                         1.0 - Math.Clamp(minSafetyClearance / safetyDistance, 0.0, 1.0),
                         BlockedRiskFloor,
-                        BlockedRiskCeiling);
+                        0.65);
 
             if (physicalCollisionCount == 0 && minPhysicalClearance < 0.20)
-                risk = Math.Max(risk, NearCollisionRisk);
+                risk = Math.Max(risk, 0.78);
 
-            var requiresReplan = physicalCollisionCount > 0 || minSafetyClearance < 0.35;
+            var requiresReplan = physicalCollisionCount > 0;
             var requiresSlowMode = physicalCollisionCount > 0 || minSafetyClearance < 1.25;
 
             return new PlanningRiskReport
@@ -154,13 +154,13 @@ namespace Hydronom.Core.Planning.Planners
                 ObstacleRisk = risk,
                 CorridorRisk = 0.0,
                 MinimumClearanceMeters = minPhysicalClearance,
-                BlockingObjectCount = blockingOnLine,
+                BlockingObjectCount = physicalCollisionCount,
                 ConsideredObjectCount = considered,
                 RequiresReplan = requiresReplan,
                 RequiresSlowMode = requiresSlowMode,
                 Summary =
-                    $"{(physicalCollisionCount > 0 ? "COLLISION_CANDIDATE" : "BLOCKED")} " +
-                    $"count={blockingOnLine} collisions={physicalCollisionCount} " +
+                    $"{(physicalCollisionCount > 0 ? "COLLISION_CANDIDATE" : "CAUTION")} " +
+                    $"count={physicalCollisionCount} safetyHits={blockingOnLine} collisions={physicalCollisionCount} " +
                     $"physicalClear={FormatClearance(minPhysicalClearance)} " +
                     $"safetyClear={FormatClearance(minSafetyClearance)} " +
                     $"nearest={nearestObject?.Id ?? "none"}"

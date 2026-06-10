@@ -57,33 +57,46 @@ namespace Hydronom.Core.Modules.Control
 
             var desiredSpeed = ResolveTrajectoryDesiredSpeed(
                 intent,
+                avoidanceMode);
+
+            var speedLimit = ComputeOptimalSpeedLimit(
+                intent,
                 distance,
                 absHeadingError,
                 absYawRate,
                 avoidanceMode);
 
-            var headingGate = ComputeHeadingSpeedGate(absHeadingError);
-            var yawRateGate = ComputeYawRateSpeedGate(absYawRate);
-            var distanceGate = ComputeDistanceSpeedGate(distance);
-            var riskGate = ComputeRiskSpeedGate(intent.RiskLevel);
-
-            var combinedSpeedGate = Math.Clamp(
-                headingGate * yawRateGate * distanceGate * riskGate,
-                0.0,
-                1.0);
-
             /*
-             * Büyük heading hatasında ileri kuvveti neredeyse kesiyoruz.
-             * Bu, "yanlış yöne bakarken gazla savrulma" problemini çözer.
+             * Constraint-optimal speed policy:
+             *
+             * Trajectory already computes the desired mission speed.
+             * Control must not multiply it with fear gates again.
+             *
+             * We only cap it by physically/control-wise valid speed limits.
              */
-            var gatedDesiredSpeed = desiredSpeed * combinedSpeedGate;
-
+            var gatedDesiredSpeed = Math.Clamp(
+                desiredSpeed,
+                intent.AllowReverse ? -speedLimit : 0.0,
+                speedLimit);
             if (!intent.AllowReverse && gatedDesiredSpeed < 0.0)
                 gatedDesiredSpeed = 0.0;
 
             var gatedSpeedError = gatedDesiredSpeed - forwardSpeed;
 
-            var fx = gatedSpeedError * SpeedKp * MaxFxN;
+            /*
+             * Constraint-optimal surge control:
+             *
+             * P control corrects speed error.
+             * Feed-forward supplies the force needed to maintain requested speed.
+             *
+             * Without feed-forward, 0.75 m/s request settles around 0.59 m/s
+             * because P thrust balances drag before the target speed is reached.
+             */
+            var feedForwardFx = ComputeSpeedFeedForwardFx(gatedDesiredSpeed);
+
+            var fx =
+                feedForwardFx +
+                gatedSpeedError * SpeedKp * MaxFxN;
 
             /*
              * Turn-align fazı:
@@ -170,7 +183,7 @@ namespace Hydronom.Core.Modules.Control
                 $"headErr={headingErrorDeg:F1}deg " +
                 $"yawRate={yawRateDeg:F1}degps " +
                 $"v={forwardSpeed:F2}->{desiredSpeed:F2}/{gatedDesiredSpeed:F2}mps " +
-                $"gate={combinedSpeedGate:F2} " +
+                $"vLimit={speedLimit:F2} " +
                 $"turnAlign={turnAlign} " +
                 $"risk={intent.RiskLevel:F2} " +
                 $"cap={capability.Summary} " +
@@ -236,124 +249,108 @@ namespace Hydronom.Core.Modules.Control
                 $"src={intent.Reason}");
         }
 
+        private static double ComputeSpeedFeedForwardFx(double desiredSpeedMps)
+        {
+            desiredSpeedMps = Safe(desiredSpeedMps);
+
+            if (Math.Abs(desiredSpeedMps) <= 1e-6)
+                return 0.0;
+
+            return
+                SpeedLinearFeedForwardNPerMps * desiredSpeedMps +
+                SpeedQuadraticFeedForwardNPerMps2 * desiredSpeedMps * Math.Abs(desiredSpeedMps);
+        }
         private static double ResolveTrajectoryDesiredSpeed(
             ControlIntent intent,
-            double distance,
+            bool avoidanceMode)
+        {
+            /*
+             * Desired speed is a mission/trajectory request.
+             * Do not downscale it here. Only clamp impossible values.
+             */
+            var maxSpeed = avoidanceMode ? 1.10 : 2.25;
+
+            return Math.Clamp(
+                Safe(intent.DesiredForwardSpeedMps),
+                intent.AllowReverse ? -maxSpeed : 0.0,
+                maxSpeed);
+        }
+
+        private static double ComputeOptimalSpeedLimit(
+            ControlIntent intent,
+            double distanceMeters,
             double absHeadingErrorDeg,
             double absYawRateDeg,
             bool avoidanceMode)
         {
-            var maxSpeed = avoidanceMode ? 0.75 : 2.25;
+            /*
+             * This is not a "mode". It is the physical/control envelope:
+             * go as fast as possible while still being able to steer, brake,
+             * and respect risk/geometry constraints.
+             */
+            var limit = avoidanceMode ? 1.10 : 2.25;
 
-            var desired = Math.Clamp(
-                Safe(intent.DesiredForwardSpeedMps),
-                intent.AllowReverse ? -1.25 : 0.0,
-                maxSpeed);
-
-            if (distance < 1.0)
-                desired *= 0.25;
-            else if (distance < 2.0)
-                desired *= 0.45;
-            else if (distance < 4.0)
-                desired *= 0.70;
-
-            if (absHeadingErrorDeg >= 85.0)
-                desired = intent.AllowReverse ? Math.Min(desired, 0.0) : 0.0;
-            else if (absHeadingErrorDeg >= 65.0)
-                desired *= 0.20;
-            else if (absHeadingErrorDeg >= 45.0)
-                desired *= 0.38;
-            else if (absHeadingErrorDeg >= 30.0)
-                desired *= 0.62;
-
-            if (absYawRateDeg >= 130.0)
-                desired *= 0.15;
-            else if (absYawRateDeg >= 95.0)
-                desired *= 0.30;
-            else if (absYawRateDeg >= 65.0)
-                desired *= 0.55;
-
-            if (intent.RiskLevel > 0.75)
-                desired *= 0.35;
-            else if (intent.RiskLevel > 0.4)
-                desired *= 0.65;
-
-            return desired;
-        }
-
-        private static double ComputeHeadingSpeedGate(double absHeadingErrorDeg)
-        {
-            if (absHeadingErrorDeg >= 90.0)
+            if (!double.IsFinite(distanceMeters) || distanceMeters <= 0.15)
                 return 0.0;
 
-            if (absHeadingErrorDeg >= 70.0)
-                return 0.12;
+            /*
+             * Distance limit is only a braking envelope near the target.
+             * No more 4m / 2m / 1m double slowdown.
+             */
+            if (distanceMeters <= 0.45)
+                limit = Math.Min(limit, 0.22);
+            else if (distanceMeters <= 0.80)
+                limit = Math.Min(limit, 0.38);
+            else if (distanceMeters <= 1.25)
+                limit = Math.Min(limit, 0.58);
 
-            if (absHeadingErrorDeg >= 55.0)
-                return 0.25;
+            /*
+             * Heading envelope:
+             * If we are badly misaligned, cap forward speed.
+             * If heading is reasonable, keep mission speed alive.
+             */
+            if (absHeadingErrorDeg >= 105.0)
+                limit = 0.0;
+            else if (absHeadingErrorDeg >= 85.0)
+                limit = Math.Min(limit, 0.25);
+            else if (absHeadingErrorDeg >= 70.0)
+                limit = Math.Min(limit, 0.45);
+            else if (absHeadingErrorDeg >= 55.0)
+                limit = Math.Min(limit, 0.70);
+            else if (absHeadingErrorDeg >= 40.0)
+                limit = Math.Min(limit, 1.00);
 
-            if (absHeadingErrorDeg >= 40.0)
-                return 0.45;
-
-            if (absHeadingErrorDeg >= 25.0)
-                return 0.70;
-
-            return 1.0;
-        }
-
-        private static double ComputeYawRateSpeedGate(double absYawRateDeg)
-        {
+            /*
+             * Yaw-rate envelope:
+             * High yaw rate means the boat is already rotating hard,
+             * so cap forward speed until it stabilizes.
+             */
             if (absYawRateDeg >= 150.0)
-                return 0.12;
+                limit = Math.Min(limit, 0.25);
+            else if (absYawRateDeg >= 110.0)
+                limit = Math.Min(limit, 0.45);
+            else if (absYawRateDeg >= 80.0)
+                limit = Math.Min(limit, 0.75);
+            else if (absYawRateDeg >= 55.0)
+                limit = Math.Min(limit, 1.10);
 
-            if (absYawRateDeg >= 110.0)
-                return 0.25;
+            /*
+             * Risk envelope:
+             * Risk is a speed limit, not a multiplicative panic brake.
+             */
+            var risk = Math.Clamp(Safe(intent.RiskLevel), 0.0, 1.0);
 
-            if (absYawRateDeg >= 80.0)
-                return 0.45;
+            if (risk >= 0.95)
+                limit = Math.Min(limit, 0.25);
+            else if (risk >= 0.85)
+                limit = Math.Min(limit, 0.45);
+            else if (risk >= 0.70)
+                limit = Math.Min(limit, 0.75);
+            else if (risk >= 0.55)
+                limit = Math.Min(limit, 1.05);
 
-            if (absYawRateDeg >= 55.0)
-                return 0.70;
-
-            return 1.0;
+            return Math.Clamp(limit, 0.0, avoidanceMode ? 1.10 : 2.25);
         }
-
-        private static double ComputeDistanceSpeedGate(double distanceMeters)
-        {
-            if (!double.IsFinite(distanceMeters))
-                return 0.0;
-
-            if (distanceMeters <= 0.5)
-                return 0.0;
-
-            if (distanceMeters <= 1.0)
-                return 0.25;
-
-            if (distanceMeters <= 2.0)
-                return 0.45;
-
-            if (distanceMeters <= 4.0)
-                return 0.70;
-
-            return 1.0;
-        }
-
-        private static double ComputeRiskSpeedGate(double risk)
-        {
-            risk = Math.Clamp(Safe(risk), 0.0, 1.0);
-
-            if (risk >= 0.85)
-                return 0.25;
-
-            if (risk >= 0.65)
-                return 0.45;
-
-            if (risk >= 0.40)
-                return 0.70;
-
-            return 1.0;
-        }
-
         private static Vec3 SanitizeVec(Vec3 value)
         {
             return new Vec3(
