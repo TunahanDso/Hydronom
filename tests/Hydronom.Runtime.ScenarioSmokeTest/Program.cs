@@ -6,6 +6,9 @@ using Hydronom.Runtime.Scenarios.Mission;
 using Hydronom.Runtime.Scenarios.Replay;
 using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Scenarios.Telemetry;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Configuration;
 using Hydronom.Runtime.Telemetry;
 using Hydronom.Runtime.Testing.Scenarios;
 using Hydronom.Runtime.World.Runtime;
@@ -26,45 +29,44 @@ var scenarioPath = Path.GetFullPath(
         "Samples",
         "teknofest_2026_parkur_1_point_tracking.json"));
 
-Console.WriteLine($"Scenario path: {scenarioPath}");
+Console.WriteLine($"Legacy scenario path: {scenarioPath}");
 
 if (!File.Exists(scenarioPath))
 {
-    throw new FileNotFoundException("Scenario sample file not found.", scenarioPath);
+    throw new FileNotFoundException("Legacy scenario sample file not found.", scenarioPath);
 }
 
 var loader = new ScenarioLoader();
 var scenario = await loader.LoadAsync(scenarioPath);
 
-Console.WriteLine($"Loaded scenario: {scenario.Id}");
-Console.WriteLine($"Name             : {scenario.Name}");
-Console.WriteLine($"Objects          : {scenario.Objects.Count}");
-Console.WriteLine($"Objectives       : {scenario.Objectives.Count}");
-Console.WriteLine($"Fault injections : {scenario.FaultInjections.Count}");
+PrintLoadedScenario("Legacy single-file scenario", scenario);
+ValidateLoadedScenario(scenario);
 
-if (scenario.Objects.Count == 0)
-{
-    throw new InvalidOperationException("Scenario objects should not be empty.");
-}
+var packagePath = await CreateTemporaryScenarioPackageFromLegacyJsonAsync(
+    scenarioPath,
+    "teknofest_2026_parkur_1_point_tracking_package_smoke");
 
-if (scenario.Objectives.Count == 0)
-{
-    throw new InvalidOperationException("Scenario objectives should not be empty.");
-}
+Console.WriteLine();
+Console.WriteLine($"Temporary package path: {packagePath}");
 
-var worldModel = new RuntimeWorldModel();
-var binder = new ScenarioRuntimeBinder();
-var boundObjects = binder.Bind(scenario, worldModel);
+var packageScenario = await loader.LoadAsync(packagePath);
 
-Console.WriteLine($"Bound world objects: {boundObjects.Count}");
+PrintLoadedScenario("Split package scenario", packageScenario);
+ValidateLoadedScenario(packageScenario);
+ValidatePackageScenarioMerge(scenario, packageScenario);
 
-if (boundObjects.Count != scenario.Objects.Count(x => x.IsActive))
-{
-    throw new InvalidOperationException("Bound object count does not match active scenario object count.");
-}
+RunScenarioRuntimeBinderSmokeTest(scenario);
+RunScenarioRuntimeBinderSmokeTest(packageScenario);
 
 RunScenarioMissionAdapterSmokeTest(scenario);
+RunScenarioMissionAdapterSmokeTest(packageScenario);
+
 RunRuntimeScenarioExecutionHostSmokeTest(scenario);
+RunRuntimeScenarioExecutionHostSmokeTest(packageScenario);
+
+await RunRuntimeScenarioControllerPackagePathSmokeTest(packagePath);
+
+await RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(scenarioPath);
 
 var runner = new RuntimeScenarioTestRunner();
 
@@ -78,7 +80,370 @@ await RunScenarioTelemetryReplayPublisherSmokeTest(executionResult);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
+static void PrintLoadedScenario(
+    string title,
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    Console.WriteLine();
+    Console.WriteLine($"{title}:");
+    Console.WriteLine($"  Id               : {scenario.Id}");
+    Console.WriteLine($"  Name             : {scenario.Name}");
+    Console.WriteLine($"  Objects          : {scenario.Objects.Count}");
+    Console.WriteLine($"  Objectives       : {scenario.Objectives.Count}");
+    Console.WriteLine($"  Fault injections : {scenario.FaultInjections.Count}");
+    Console.WriteLine($"  Tags             : {scenario.Tags.Count}");
+}
 
+static void ValidateLoadedScenario(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    if (string.IsNullOrWhiteSpace(scenario.Id))
+    {
+        throw new InvalidOperationException("Scenario id should not be empty.");
+    }
+
+    if (scenario.Objects.Count == 0)
+    {
+        throw new InvalidOperationException("Scenario objects should not be empty.");
+    }
+
+    if (scenario.Objectives.Count == 0)
+    {
+        throw new InvalidOperationException("Scenario objectives should not be empty.");
+    }
+}
+
+static void ValidatePackageScenarioMerge(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition legacyScenario,
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition packageScenario)
+{
+    Console.WriteLine();
+    Console.WriteLine("Package merge validation:");
+    Console.WriteLine($"  LegacyId          : {legacyScenario.Id}");
+    Console.WriteLine($"  PackageId         : {packageScenario.Id}");
+    Console.WriteLine($"  LegacyObjects     : {legacyScenario.Objects.Count}");
+    Console.WriteLine($"  PackageObjects    : {packageScenario.Objects.Count}");
+    Console.WriteLine($"  LegacyObjectives  : {legacyScenario.Objectives.Count}");
+    Console.WriteLine($"  PackageObjectives : {packageScenario.Objectives.Count}");
+
+    if (!string.Equals(legacyScenario.Id, packageScenario.Id, StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            $"Package scenario id should match legacy scenario id. Legacy={legacyScenario.Id}, Package={packageScenario.Id}");
+    }
+
+    if (packageScenario.Objects.Count != legacyScenario.Objects.Count)
+    {
+        throw new InvalidOperationException(
+            $"Package object count should match legacy object count. Legacy={legacyScenario.Objects.Count}, Package={packageScenario.Objects.Count}");
+    }
+
+    if (packageScenario.Objectives.Count != legacyScenario.Objectives.Count)
+    {
+        throw new InvalidOperationException(
+            $"Package objective count should match legacy objective count. Legacy={legacyScenario.Objectives.Count}, Package={packageScenario.Objectives.Count}");
+    }
+
+    if (!packageScenario.Tags.TryGetValue("scenario.package", out var packageTag) ||
+        !string.Equals(packageTag, "true", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException("Package-loaded scenario should contain scenario.package=true tag.");
+    }
+
+    if (!packageScenario.Tags.TryGetValue("scenario.packagePath", out var packagePath) ||
+        string.IsNullOrWhiteSpace(packagePath))
+    {
+        throw new InvalidOperationException("Package-loaded scenario should contain scenario.packagePath tag.");
+    }
+}
+
+static void RunScenarioRuntimeBinderSmokeTest(
+    Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
+{
+    var worldModel = new RuntimeWorldModel();
+    var binder = new ScenarioRuntimeBinder();
+    var boundObjects = binder.Bind(scenario, worldModel);
+
+    Console.WriteLine();
+    Console.WriteLine("Scenario runtime binder report:");
+    Console.WriteLine($"  ScenarioId        : {scenario.Id}");
+    Console.WriteLine($"  ScenarioObjects   : {scenario.Objects.Count}");
+    Console.WriteLine($"  BoundWorldObjects : {boundObjects.Count}");
+
+    if (boundObjects.Count != scenario.Objects.Count(x => x.IsActive))
+    {
+        throw new InvalidOperationException("Bound object count does not match active scenario object count.");
+    }
+}
+
+static async Task RunRuntimeScenarioControllerPackagePathSmokeTest(string packagePath)
+{
+    var config = BuildRuntimeScenarioControllerConfig();
+    var taskManager = new InMemoryScenarioTaskManager();
+    var worldModel = new RuntimeWorldModel();
+
+    var controller = new RuntimeScenarioController(
+        config,
+        taskManager,
+        worldModel);
+
+    var snapshot = await controller.StartScenarioAsync(
+        packagePath,
+        "package-path-smoke");
+
+    Console.WriteLine();
+    Console.WriteLine("Runtime scenario controller package path report:");
+    Console.WriteLine($"  Message           : {snapshot.Message}");
+    Console.WriteLine($"  ScenarioId        : {snapshot.ScenarioId}");
+    Console.WriteLine($"  HasActiveScenario : {snapshot.HasActiveScenario}");
+    Console.WriteLine($"  IsRunning         : {snapshot.IsRunning}");
+    Console.WriteLine($"  TotalObjectives   : {snapshot.TotalObjectiveCount}");
+    Console.WriteLine($"  RoutePoints       : {snapshot.RoutePoints.Count}");
+    Console.WriteLine($"  WorldObjects      : {snapshot.WorldObjects.Count}");
+    Console.WriteLine($"  CurrentTask       : {taskManager.CurrentTask?.Name ?? "null"}");
+
+    if (!snapshot.HasActiveScenario)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController should start package scenario by explicit package path.");
+    }
+
+    if (!snapshot.IsRunning)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController package path scenario should be running after start.");
+    }
+
+    if (snapshot.TotalObjectiveCount <= 0)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController package path scenario should expose objectives.");
+    }
+
+    if (snapshot.RoutePoints.Count <= 0)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController package path scenario should expose route points.");
+    }
+
+    if (snapshot.WorldObjects.Count <= 0)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController package path scenario should expose world objects.");
+    }
+
+    if (taskManager.CurrentTask is null)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController package path start should apply first task.");
+    }
+
+    controller.StopScenario("package path smoke completed");
+}
+
+static async Task RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(string legacyScenarioPath)
+{
+    var scenarioId = "teknofest_2026_controller_package_id_smoke";
+    var outputSamplesRoot = Path.GetFullPath(
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "Scenarios",
+            "Samples"));
+
+    Directory.CreateDirectory(outputSamplesRoot);
+
+    var packagePath = await CreateTemporaryScenarioPackageFromLegacyJsonAsync(
+        legacyScenarioPath,
+        scenarioId,
+        outputSamplesRoot);
+
+    var config = BuildRuntimeScenarioControllerConfig(scenarioId);
+    var taskManager = new InMemoryScenarioTaskManager();
+    var worldModel = new RuntimeWorldModel();
+
+    var controller = new RuntimeScenarioController(
+        config,
+        taskManager,
+        worldModel);
+
+    var snapshot = await controller.StartScenarioAsync(
+        null,
+        "scenario-id-package-smoke");
+
+    Console.WriteLine();
+    Console.WriteLine("Runtime scenario controller ScenarioId package report:");
+    Console.WriteLine($"  ScenarioIdConfig  : {scenarioId}");
+    Console.WriteLine($"  PackagePath       : {packagePath}");
+    Console.WriteLine($"  Message           : {snapshot.Message}");
+    Console.WriteLine($"  ScenarioId        : {snapshot.ScenarioId}");
+    Console.WriteLine($"  HasActiveScenario : {snapshot.HasActiveScenario}");
+    Console.WriteLine($"  IsRunning         : {snapshot.IsRunning}");
+    Console.WriteLine($"  TotalObjectives   : {snapshot.TotalObjectiveCount}");
+    Console.WriteLine($"  RoutePoints       : {snapshot.RoutePoints.Count}");
+    Console.WriteLine($"  WorldObjects      : {snapshot.WorldObjects.Count}");
+    Console.WriteLine($"  CurrentTask       : {taskManager.CurrentTask?.Name ?? "null"}");
+
+    if (!snapshot.HasActiveScenario)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController should resolve package scenario from ScenarioRuntime:ScenarioId.");
+    }
+
+    if (!snapshot.IsRunning)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController ScenarioId package scenario should be running after start.");
+    }
+
+    if (snapshot.TotalObjectiveCount <= 0)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController ScenarioId package scenario should expose objectives.");
+    }
+
+    if (taskManager.CurrentTask is null)
+    {
+        throw new InvalidOperationException("RuntimeScenarioController ScenarioId package start should apply first task.");
+    }
+
+    controller.StopScenario("scenario id package smoke completed");
+}
+
+static IConfiguration BuildRuntimeScenarioControllerConfig(string? scenarioId = null)
+{
+    var values = new Dictionary<string, string?>
+    {
+        ["ScenarioRuntime:Enabled"] = "true",
+        ["ScenarioRuntime:AutoApplyFirstTarget"] = "true",
+        ["ScenarioRuntime:AutoAdvanceObjectives"] = "true",
+        ["ScenarioRuntime:ClearTaskOnCompletion"] = "true",
+        ["ScenarioRuntime:ClearTaskOnStop"] = "true",
+        ["ScenarioRuntime:UseDistanceTrackerForAdvance"] = "true",
+        ["ScenarioRuntime:SettleSeconds"] = "0",
+        ["ScenarioRuntime:MaxArrivalSpeedMps"] = "999",
+        ["ScenarioRuntime:MaxArrivalYawRateDegPerSec"] = "999",
+        ["ScenarioRuntime:DefaultToleranceMeters"] = "1.0",
+        ["ScenarioRuntime:EvaluateJudgeEveryTick"] = "true",
+        ["Runtime:TelemetrySummary:VehicleId"] = "hydronom-scenario-smoke"
+    };
+
+    if (!string.IsNullOrWhiteSpace(scenarioId))
+    {
+        values["ScenarioRuntime:ScenarioId"] = scenarioId.Trim();
+    }
+
+    return new ConfigurationBuilder()
+        .AddInMemoryCollection(values)
+        .Build();
+}
+
+static async Task<string> CreateTemporaryScenarioPackageFromLegacyJsonAsync(
+    string legacyScenarioPath,
+    string packageId,
+    string? packageRootOverride = null)
+{
+    var packageRoot = packageRootOverride is null
+        ? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "ScenarioPackageSmoke"))
+        : Path.GetFullPath(packageRootOverride);
+
+    var packagePath = Path.GetFullPath(Path.Combine(packageRoot, packageId));
+
+    if (Directory.Exists(packagePath))
+    {
+        Directory.Delete(packagePath, recursive: true);
+    }
+
+    var objectsPath = Path.Combine(packagePath, "objects");
+
+    Directory.CreateDirectory(objectsPath);
+
+    var rawJson = await File.ReadAllTextAsync(legacyScenarioPath);
+    var root = JsonNode.Parse(rawJson)?.AsObject()
+        ?? throw new InvalidOperationException("Legacy scenario JSON root should be an object.");
+
+    var objectsNode = CloneRequiredJsonProperty(root, "objects");
+    var objectivesNode = CloneRequiredJsonProperty(root, "objectives");
+    var judgeNode = CloneOptionalJsonProperty(root, "judge");
+    var faultInjectionsNode = CloneOptionalJsonProperty(root, "faultInjections");
+
+    RemoveJsonPropertyIgnoreCase(root, "objects");
+    RemoveJsonPropertyIgnoreCase(root, "objectives");
+    RemoveJsonPropertyIgnoreCase(root, "judge");
+    RemoveJsonPropertyIgnoreCase(root, "faultInjections");
+
+    await WriteJsonNodeAsync(Path.Combine(packagePath, "scenario.json"), root);
+    await WriteJsonNodeAsync(Path.Combine(objectsPath, "mission_objects.json"), objectsNode);
+    await WriteJsonNodeAsync(Path.Combine(packagePath, "objectives.json"), objectivesNode);
+
+    if (judgeNode is not null)
+    {
+        await WriteJsonNodeAsync(Path.Combine(packagePath, "judge.json"), judgeNode);
+    }
+
+    if (faultInjectionsNode is not null)
+    {
+        await WriteJsonNodeAsync(Path.Combine(packagePath, "fault_injections.json"), faultInjectionsNode);
+    }
+
+    var metadataNode = new JsonObject
+    {
+        ["tags"] = new JsonObject
+        {
+            ["scenario.packageSmoke"] = "true",
+            ["scenario.packageSmokeSource"] = Path.GetFileName(legacyScenarioPath)
+        }
+    };
+
+    await WriteJsonNodeAsync(Path.Combine(packagePath, "metadata.json"), metadataNode);
+
+    return packagePath;
+}
+
+static JsonNode CloneRequiredJsonProperty(JsonObject root, string propertyName)
+{
+    var node = CloneOptionalJsonProperty(root, propertyName);
+
+    if (node is null)
+    {
+        throw new InvalidOperationException($"Required scenario JSON property not found: {propertyName}");
+    }
+
+    return node;
+}
+
+static JsonNode? CloneOptionalJsonProperty(JsonObject root, string propertyName)
+{
+    foreach (var pair in root)
+    {
+        if (string.Equals(pair.Key, propertyName, StringComparison.OrdinalIgnoreCase))
+        {
+            return pair.Value?.DeepClone();
+        }
+    }
+
+    return null;
+}
+
+static void RemoveJsonPropertyIgnoreCase(JsonObject root, string propertyName)
+{
+    var keys = root
+        .Select(x => x.Key)
+        .Where(x => string.Equals(x, propertyName, StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+
+    foreach (var key in keys)
+    {
+        root.Remove(key);
+    }
+}
+
+static async Task WriteJsonNodeAsync(string path, JsonNode node)
+{
+    var directory = Path.GetDirectoryName(path);
+
+    if (!string.IsNullOrWhiteSpace(directory))
+    {
+        Directory.CreateDirectory(directory);
+    }
+
+    await File.WriteAllTextAsync(
+        path,
+        node.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true
+        }));
+}
 static void RunScenarioMissionAdapterSmokeTest(
     Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
 {
