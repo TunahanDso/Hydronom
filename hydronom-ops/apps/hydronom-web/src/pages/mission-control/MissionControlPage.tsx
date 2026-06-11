@@ -27,7 +27,7 @@ type LandmarkLike = {
   points?: LandmarkPoint[];
 };
 
-// Ana operasyon ekranı burada şekillenecek
+// Ana operasyon ekranÃƒâ€Ã‚Â± burada Ãƒâ€¦Ã…Â¸ekillenecek
 export function MissionControlPage() {
   const selectedVehicleId = useFleetStore((state) => state.selectedVehicleId);
 
@@ -80,6 +80,27 @@ export function MissionControlPage() {
   const torqueX = actuator?.wrench?.torqueBody?.x;
   const torqueY = actuator?.wrench?.torqueBody?.y;
   const torqueZ = actuator?.wrench?.torqueBody?.z;
+
+  const vehicleProfile = telemetry?.vehicleProfile ?? null;
+  const vehicleCaps = vehicleProfile?.capabilities ?? null;
+
+  const vehicleProfileMode = vehicleProfile
+    ? vehicleProfile.isMiniRov
+      ? "MINI ROV"
+      : vehicleProfile.isUnderwater
+        ? "UNDERWATER"
+        : "SURFACE"
+    : "UNKNOWN";
+
+  const vehicleCapabilityText = vehicleProfile
+    ? [
+        `REV ${vehicleCaps?.hasReverseAuthority ? "âœ“" : "â€”"}`,
+        `LAT ${vehicleCaps?.canGenerateLateralForce ? "âœ“" : "â€”"}`,
+        `YAW ${vehicleCaps?.canGenerateYawMoment ? "âœ“" : "â€”"}`
+      ].join(" Â· ")
+    : "N/A";
+
+  const vehicleProfileWarnings = buildMissionProfileWarnings(vehicleProfile);
 
   const rawLandmarks = (telemetry?.landmarks ?? []) as LandmarkLike[];
 
@@ -238,7 +259,7 @@ export function MissionControlPage() {
     <section className="space-y-6">
       <PageTitle
         title="Mission Control"
-        description="Ana operasyon ekranı. Harita, telemetri, görev özeti, sensörler, occupancy-grid ve actuator durumu burada birleşecek."
+        description="Ana operasyon ekranÃƒâ€Ã‚Â±. Harita, telemetri, gÃƒÆ’Ã‚Â¶rev ÃƒÆ’Ã‚Â¶zeti, sensÃƒÆ’Ã‚Â¶rler, occupancy-grid ve actuator durumu burada birleÃƒâ€¦Ã…Â¸ecek."
       />
 
       <div className="grid grid-cols-1 gap-6 2xl:grid-cols-12">
@@ -246,22 +267,22 @@ export function MissionControlPage() {
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-panel">
             <PanelTitle
               title="World View"
-              subtitle="2D operasyon haritası. Araç, rota, hedef, trail, lidar, runtime obstacle, occupancy-grid ve EKF/odometry katmanları burada gösteriliyor."
+              subtitle="2D operasyon haritasÃƒâ€Ã‚Â±. AraÃƒÆ’Ã‚Â§, rota, hedef, trail, lidar, runtime obstacle, occupancy-grid ve EKF/odometry katmanlarÃƒâ€Ã‚Â± burada gÃƒÆ’Ã‚Â¶steriliyor."
             />
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
               <MiniStat
-                label="Araç"
-                value={telemetry?.displayName ?? selectedVehicleId ?? "N/A"}
+                label="AraÃƒÆ’Ã‚Â§"
+                value={vehicleProfile?.displayName ?? telemetry?.displayName ?? selectedVehicleId ?? "N/A"}
                 tone="neutral"
               />
               <MiniStat
                 label="Heading"
-                value={`${formatNumber(headingDeg, 1, "0.0")}°`}
+                value={`${formatNumber(headingDeg, 1, "0.0")}Ãƒâ€šÃ‚Â°`}
                 tone="info"
               />
               <MiniStat
-                label="Hız"
+                label="HÃƒâ€Ã‚Â±z"
                 value={`${formatNumber(speed, 2, "0.00")} m/s`}
                 tone="info"
               />
@@ -270,7 +291,17 @@ export function MissionControlPage() {
                 value={String(obsAheadFlag).toUpperCase()}
                 tone={obsAheadFlag ? "warn" : "ok"}
               />
-            </div>
+            
+              <MiniStat
+                label="Profile Mode"
+                value={vehicleProfileMode}
+                tone={vehicleProfile ? "info" : "warn"}
+              />
+              <MiniStat
+                label="Caps"
+                value={vehicleCapabilityText}
+                tone={vehicleProfile ? "ok" : "warn"}
+              /></div>
 
             <div className="mt-4">
               {hasMapData && vehiclePosition ? (
@@ -290,7 +321,7 @@ export function MissionControlPage() {
                 />
               ) : (
                 <Placeholder heightClass="h-[440px]">
-                  Harita verisi henüz hazır değil
+                  Harita verisi henÃƒÆ’Ã‚Â¼z hazÃƒâ€Ã‚Â±r deÃƒâ€Ã…Â¸il
                 </Placeholder>
               )}
             </div>
@@ -320,7 +351,7 @@ export function MissionControlPage() {
         <div className="space-y-6 2xl:col-span-4">
           <PanelCard
             title="Telemetry Summary"
-            subtitle="Heading, hız, pose, mode, arm"
+            subtitle="Heading, hÃƒâ€Ã‚Â±z, pose, mode, arm"
           >
             <InfoRow label="Vehicle" value={telemetry?.displayName ?? "N/A"} />
             <InfoRow
@@ -345,7 +376,7 @@ export function MissionControlPage() {
                 pitch,
                 1,
                 "0.0"
-              )} / ${formatNumber(yaw, 1, "0.0")}°`}
+              )} / ${formatNumber(yaw, 1, "0.0")}Ãƒâ€šÃ‚Â°`}
             />
             <InfoRow
               label="Speed"
@@ -360,11 +391,42 @@ export function MissionControlPage() {
               label="Freshness"
               value={`${telemetry?.freshness?.ageMs ?? 0} ms`}
             />
+          </PanelCard>          <PanelCard
+            title="Vehicle Profile Guidance"
+            subtitle="Profil kabiliyetlerine göre görev davranışı"
+          >
+            <InfoRow
+              label="Profile"
+              value={vehicleProfile?.profileId ?? "N/A"}
+            />
+            <InfoRow
+              label="Platform"
+              value={vehicleProfile?.platformKind ?? "N/A"}
+            />
+            <InfoRow label="Mode" value={vehicleProfileMode} />
+            <InfoRow label="Caps" value={vehicleCapabilityText} />
+            <InfoRow
+              label="Summary"
+              value={vehicleProfile?.capabilitySummary ?? "N/A"}
+            />
+
+            <div className="mt-4 space-y-2">
+              {vehicleProfileWarnings.map((warning) => (
+                <div
+                  key={warning}
+                  className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-200"
+                >
+                  {warning}
+                </div>
+              ))}
+            </div>
           </PanelCard>
+
+
 
           <PanelCard
             title="Mission Summary"
-            subtitle="Görev adımı, hedef, aktif durum"
+            subtitle="GÃƒÆ’Ã‚Â¶rev adÃƒâ€Ã‚Â±mÃƒâ€Ã‚Â±, hedef, aktif durum"
           >
             <InfoRow label="Mission" value={mission?.missionName ?? "N/A"} />
             <InfoRow
@@ -416,7 +478,7 @@ export function MissionControlPage() {
 
           <PanelCard
             title="Actuator Summary"
-            subtitle="Motorlar, thrust, limiter ve wrench özeti"
+            subtitle="Motorlar, thrust, limiter ve wrench ÃƒÆ’Ã‚Â¶zeti"
           >
             <InfoRow
               label="Active Thrusters"
@@ -497,6 +559,52 @@ export function MissionControlPage() {
   );
 }
 
+function buildMissionProfileWarnings(profile: {
+  isMiniRov: boolean;
+  isUnderwater: boolean;
+  profileId: string | null;
+  platformKind: string | null;
+  capabilities: {
+    hasThrusters: boolean;
+    hasReverseAuthority: boolean;
+    canGenerateLateralForce: boolean;
+    canGenerateYawMoment: boolean;
+  };
+} | null): string[] {
+  if (!profile) {
+    return ["Vehicle profile henÃƒÂ¼z gelmedi; gÃƒÂ¶rev davranÃ„Â±Ã…Å¸Ã„Â± generic modda yorumlanÃ„Â±yor."];
+  }
+
+  const warnings: string[] = [];
+  const caps = profile.capabilities;
+
+  if (profile.isMiniRov) {
+    warnings.push("Mini ROV modu: gÃƒÂ¶rev planÃ„Â± daha kompakt, dÃƒÂ¼Ã…Å¸ÃƒÂ¼k ataletli ve yakÃ„Â±n mesafe manevralara gÃƒÂ¶re okunmalÃ„Â±.");
+  }
+
+  if (!profile.isUnderwater) {
+    warnings.push("Surface vessel modu: Z/derinlik davranÃ„Â±Ã…Å¸Ã„Â± yerine yÃƒÂ¼zey seyrine odaklanÃ„Â±lmalÃ„Â±.");
+  }
+
+  if (!caps.hasReverseAuthority) {
+    warnings.push("Reverse authority yok: geri kaÃƒÂ§Ã„Â±Ã…Å¸ veya negatif Fx gerektiren gÃƒÂ¶revlerde dÃƒÂ¶nÃƒÂ¼Ã…Å¸ + ileri akÃ„Â±Ã…Å¸ tercih edilmeli.");
+  }
+
+  if (!caps.canGenerateLateralForce) {
+    warnings.push("Lateral kuvvet yok: slalom/kapÃ„Â± geÃƒÂ§iÃ…Å¸lerinde strafe bekleme; yaw + forward manevra mantÃ„Â±Ã„Å¸Ã„Â± kullanÃ„Â±lmalÃ„Â±.");
+  }
+
+  if (!caps.canGenerateYawMoment) {
+    warnings.push("Yaw moment yok: rota takibi, slalom ve kapÃ„Â± hizalama kabiliyeti kritik Ã…Å¸ekilde sÃ„Â±nÃ„Â±rlÃ„Â± olabilir.");
+  }
+
+  if (warnings.length === 0) {
+    warnings.push("Profil kabiliyetleri gÃƒÂ¶rev davranÃ„Â±Ã…Å¸Ã„Â± iÃƒÂ§in uygun gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼yor.");
+  }
+
+  return warnings;
+}
+
 function formatNumber(
   value: number | null | undefined,
   fractionDigits: number,
@@ -537,7 +645,7 @@ function Placeholder(props: {
         props.heightClass
       ].join(" ")}
     >
-      {props.children ?? "İçerik bu alana gelecek"}
+      {props.children ?? "Ãƒâ€Ã‚Â°ÃƒÆ’Ã‚Â§erik bu alana gelecek"}
     </div>
   );
 }
