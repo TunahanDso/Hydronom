@@ -2,7 +2,7 @@ import { dispatchGatewayMessage } from "./dispatchGatewayMessage";
 import type { GatewayMessage } from "../../shared/types/gateway.types";
 import type { ConnectionState, HealthState } from "../../shared/types/common.types";
 
-// Mock gateway akışını başlatır
+// Mock gateway akÄ±ÅŸÄ±nÄ± baÅŸlatÄ±r
 export function startMockGatewayStream() {
   const vehicleId = "HYD-01";
 
@@ -140,7 +140,7 @@ export function startMockGatewayStream() {
           displayName: "Hydronom-01",
           mode: "mission",
           armState: "armed",
-
+    vehicleProfile: null,
           pose: {
             position: {
               x,
@@ -179,7 +179,7 @@ export function startMockGatewayStream() {
             trail
           },
 
-          // VehicleTelemetry tipi gateway düz alanlarını da bekliyor.
+          // VehicleTelemetry tipi gateway dÃ¼z alanlarÄ±nÄ± da bekliyor.
           x,
           y,
           z,
@@ -268,21 +268,21 @@ export function startMockGatewayStream() {
             {
               id: "step-1",
               title: "Launch",
-              description: "Araç başlatılır ve görev moduna alınır.",
+              description: "AraÃ§ baÅŸlatÄ±lÄ±r ve gÃ¶rev moduna alÄ±nÄ±r.",
               status: "completed",
               order: 1
             },
             {
               id: "step-2",
               title: "Survey Corridor",
-              description: "Belirlenen koridorda tarama görevi yürütülür.",
+              description: "Belirlenen koridorda tarama gÃ¶revi yÃ¼rÃ¼tÃ¼lÃ¼r.",
               status: "active",
               order: 2
             },
             {
               id: "step-3",
               title: "Return Home",
-              description: "Görev tamamlandıktan sonra dönüş rotasına geçilir.",
+              description: "GÃ¶rev tamamlandÄ±ktan sonra dÃ¶nÃ¼ÅŸ rotasÄ±na geÃ§ilir.",
               status: "pending",
               order: 3
             }

@@ -200,7 +200,7 @@ export function dispatchGatewayMessage(message: GatewayMessage) {
     }
 
     default: {
-      console.debug("Bilinmeyen gateway mesajı:", message);
+      console.debug("Bilinmeyen gateway mesajÄ±:", message);
       return;
     }
   }
@@ -804,7 +804,7 @@ function mapRuntimeSummaryToVehicleTelemetry(
 
     mode: "manual" as VehicleTelemetry["mode"],
     armState: "disarmed" as VehicleTelemetry["armState"],
-
+    vehicleProfile: null,
     pose: {
       position: {
         x,

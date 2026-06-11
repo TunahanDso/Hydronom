@@ -8,7 +8,7 @@ import type {
   VehicleId
 } from "../../../shared/types/common.types";
 
-// Araç modu tipleri
+// AraÃƒÂ§ modu tipleri
 export type VehicleMode =
   | "unknown"
   | "manual"
@@ -18,10 +18,10 @@ export type VehicleMode =
   | "return"
   | "failsafe";
 
-// Araç arm durumu
+// AraÃƒÂ§ arm durumu
 export type ArmState = "armed" | "disarmed";
 
-// Runtime obstacle özeti
+// Runtime obstacle ÃƒÂ¶zeti
 export interface VehicleObstacle {
   x: number;
   y: number;
@@ -34,7 +34,7 @@ export interface VehicleLandmarkPoint {
   y: number;
 }
 
-// Gateway landmark özeti
+// Gateway landmark ÃƒÂ¶zeti
 export interface VehicleLandmark {
   id: string;
   type: string;
@@ -42,10 +42,35 @@ export interface VehicleLandmark {
   points: VehicleLandmarkPoint[];
 }
 
-// Gateway'den gelen düz telemetri payload'ı
+export interface VehicleProfileCapabilities {
+  hasThrusters: boolean;
+  hasReverseAuthority: boolean;
+  canGenerateLateralForce: boolean;
+  canGenerateYawMoment: boolean;
+}
+
+export interface VehicleProfileInfo {
+  profileId: string | null;
+  platformKind: string | null;
+  displayName: string | null;
+  active: boolean;
+  isUnderwater: boolean;
+  isMiniRov: boolean;
+  capabilitySummary: string | null;
+  capabilities: VehicleProfileCapabilities;
+}
+
+// Gateway'den gelen dÃƒÂ¼z telemetri payload'Ã„Â±
 export interface GatewayVehicleTelemetryDto {
   timestampUtc: string;
   vehicleId: VehicleId;
+  vehicleProfileId?: string | null;
+  vehiclePlatformKind?: string | null;
+  vehicleDisplayName?: string | null;
+  vehicleProfileActive?: boolean;
+  vehicleIsUnderwater?: boolean;
+  vehicleIsMiniRov?: boolean;
+  vehicleProfile?: VehicleProfileInfo | null;
   x: number;
   y: number;
   z: number;
@@ -72,7 +97,7 @@ export interface GatewayVehicleTelemetryDto {
   freshness: FreshnessInfo | null;
 }
 
-// Araç bağlantı profili
+// AraÃƒÂ§ baÃ„Å¸lantÃ„Â± profili
 export interface VehicleConnectionInfo {
   runtimeConnected: boolean;
   gatewayConnected: boolean;
@@ -80,7 +105,7 @@ export interface VehicleConnectionInfo {
   twinActive: boolean;
 }
 
-// Araç health özeti
+// AraÃƒÂ§ health ÃƒÂ¶zeti
 export interface VehicleHealthInfo {
   overall: HealthState;
   sensors: HealthState;
@@ -89,13 +114,13 @@ export interface VehicleHealthInfo {
   autonomy: HealthState;
 }
 
-// Araç pose bilgisi
+// AraÃƒÂ§ pose bilgisi
 export interface VehiclePose {
   position: Vec3;
   orientation: Rpy;
 }
 
-// Araç hareket bilgisi
+// AraÃƒÂ§ hareket bilgisi
 export interface VehicleMotion {
   linearVelocity: Vec3;
   angularVelocity: Vec3;
@@ -103,25 +128,26 @@ export interface VehicleMotion {
   speed: number;
 }
 
-// Harita odaklı görünüm için sade durum modeli
+// Harita odaklÃ„Â± gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼m iÃƒÂ§in sade durum modeli
 export interface VehicleMapState {
   worldPosition: Vec2;
   headingDeg: number;
   trail: Vec2[];
 }
 
-// Ana araç telemetri modeli
+// Ana araÃƒÂ§ telemetri modeli
 export interface VehicleTelemetry {
   vehicleId: VehicleId;
   displayName: string;
   mode: VehicleMode;
   armState: ArmState;
+  vehicleProfile: VehicleProfileInfo | null;
 
   pose: VehiclePose;
   motion: VehicleMotion;
   map: VehicleMapState;
 
-  // Gateway düz alanlarını da entity içinde tutalım
+  // Gateway dÃƒÂ¼z alanlarÃ„Â±nÃ„Â± da entity iÃƒÂ§inde tutalÃ„Â±m
   x: number;
   y: number;
   z: number;
@@ -149,7 +175,7 @@ export interface VehicleTelemetry {
   connections: VehicleConnectionInfo;
   flags: StatusFlag[];
 
-  // Gateway’den gelen ham alanları da saklayalım
+  // GatewayÃ¢â‚¬â„¢den gelen ham alanlarÃ„Â± da saklayalÃ„Â±m
   raw?: GatewayVehicleTelemetryDto;
 }
 
@@ -202,8 +228,56 @@ function normalizeLandmarks(input: VehicleLandmark[] | undefined): VehicleLandma
       : []
   }));
 }
+function normalizeVehicleProfileInfo(
+  dto: Partial<GatewayVehicleTelemetryDto>,
+  fallbackDisplayName: string
+): VehicleProfileInfo | null {
+  const raw = dto.vehicleProfile;
 
-// Gateway DTO → frontend entity dönüşümü
+  const profileId = raw?.profileId ?? dto.vehicleProfileId ?? null;
+  const platformKind = raw?.platformKind ?? dto.vehiclePlatformKind ?? null;
+  const displayName = raw?.displayName ?? dto.vehicleDisplayName ?? fallbackDisplayName;
+
+  const active = raw?.active ?? Boolean(dto.vehicleProfileActive);
+  const isUnderwater = raw?.isUnderwater ?? Boolean(dto.vehicleIsUnderwater);
+  const isMiniRov = raw?.isMiniRov ?? Boolean(dto.vehicleIsMiniRov);
+
+  const capabilitySummary = raw?.capabilitySummary ?? null;
+
+  const capabilities = {
+    hasThrusters: Boolean(raw?.capabilities?.hasThrusters),
+    hasReverseAuthority: Boolean(raw?.capabilities?.hasReverseAuthority),
+    canGenerateLateralForce: Boolean(raw?.capabilities?.canGenerateLateralForce),
+    canGenerateYawMoment: Boolean(raw?.capabilities?.canGenerateYawMoment)
+  };
+
+  if (
+    !profileId &&
+    !platformKind &&
+    !dto.vehicleProfileId &&
+    !dto.vehiclePlatformKind &&
+    !dto.vehicleProfileActive &&
+    !dto.vehicleIsUnderwater &&
+    !dto.vehicleIsMiniRov &&
+    !raw
+  ) {
+    return null;
+  }
+
+  return {
+    profileId,
+    platformKind,
+    displayName,
+    active,
+    isUnderwater,
+    isMiniRov,
+    capabilitySummary,
+    capabilities
+  };
+}
+
+
+// Gateway DTO Ã¢â€ â€™ frontend entity dÃƒÂ¶nÃƒÂ¼Ã…Å¸ÃƒÂ¼mÃƒÂ¼
 export const mapGatewayVehicleTelemetryToVehicleTelemetry = (
   dto: GatewayVehicleTelemetryDto
 ): VehicleTelemetry => {
@@ -228,6 +302,9 @@ export const mapGatewayVehicleTelemetryToVehicleTelemetry = (
   const obstacleCount = toFiniteNumber(dto.obstacleCount);
   const obstacles = normalizeObstacles(dto.obstacles);
   const landmarks = normalizeLandmarks(dto.landmarks);
+
+  const vehicleProfile = normalizeVehicleProfileInfo(dto, dto.vehicleId);
+  const resolvedDisplayName = vehicleProfile?.displayName ?? dto.vehicleId;
 
   const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
 
@@ -273,9 +350,10 @@ export const mapGatewayVehicleTelemetryToVehicleTelemetry = (
 
   return {
     vehicleId: dto.vehicleId,
-    displayName: dto.vehicleId,
+    displayName: resolvedDisplayName,
     mode: "unknown",
     armState: "disarmed",
+    vehicleProfile,
 
     pose: {
       position: {
@@ -368,7 +446,7 @@ export const mapGatewayVehicleTelemetryToVehicleTelemetry = (
   };
 };
 
-// İsteğe bağlı: başlangıç / boş telemetri üretmek için yardımcı sabitler
+// Ã„Â°steÃ„Å¸e baÃ„Å¸lÃ„Â±: baÃ…Å¸langÃ„Â±ÃƒÂ§ / boÃ…Å¸ telemetri ÃƒÂ¼retmek iÃƒÂ§in yardÃ„Â±mcÃ„Â± sabitler
 export const createEmptyVehicleTelemetry = (
   vehicleId: VehicleId,
   displayName = "Unknown Vehicle"
@@ -377,6 +455,7 @@ export const createEmptyVehicleTelemetry = (
   displayName,
   mode: "unknown",
   armState: "disarmed",
+  vehicleProfile: null,
 
   pose: {
     position: { x: 0, y: 0, z: 0 },
