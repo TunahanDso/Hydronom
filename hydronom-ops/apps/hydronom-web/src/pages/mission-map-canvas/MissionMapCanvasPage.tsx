@@ -5,6 +5,7 @@ import { useVehicleStore } from "../../features/vehicle-state/store/vehicle.stor
 import { useMissionStore } from "../../features/mission-state/store/mission.store";
 import { useActuatorStore } from "../../features/actuator-monitoring/store/actuator.store";
 import { useSensorStore } from "../../features/sensor-visualization/store/sensor.store";
+import { useWorldStore } from "../../features/world-state/store/world.store";
 import { MissionMapCanvas } from "./components/MissionMapCanvas";
 
 type MapPoint = {
@@ -23,8 +24,32 @@ type LandmarkLike = {
   shape?: string;
   points?: LandmarkPoint[];
 };
+type CourseObject2DInput = {
+  id: string;
+  type: string;
+  label?: string | null;
+  position: MapPoint;
+  radius: number;
+  color?: string | null;
+  active?: boolean;
+  completed?: boolean;
+  points?: MapPoint[];
+};
 
-// Yeni canvas tabanlı mission map sayfası
+type WorldObjectWithOptionalPoints = {
+  id: string;
+  type: string;
+  label?: string | null;
+  x: number;
+  y: number;
+  radius: number;
+  color?: string | null;
+  active?: boolean;
+  completed?: boolean;
+  points?: Array<{ x?: number; y?: number; z?: number | null; label?: string | null }> | null;
+};
+
+// Yeni canvas tabanlÃ„Â± mission map sayfasÃ„Â±
 export function MissionMapCanvasPage() {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -46,6 +71,9 @@ export function MissionMapCanvasPage() {
 
   const sensor = useSensorStore((state) =>
     selectedVehicleId ? state.sensorByVehicleId[selectedVehicleId] : undefined
+  );
+  const worldState = useWorldStore((state) =>
+    selectedVehicleId ? state.worldByVehicleId[selectedVehicleId] : undefined
   );
 
   useEffect(() => {
@@ -82,7 +110,7 @@ export function MissionMapCanvasPage() {
         await target.requestFullscreen();
       }
     } catch (error) {
-      console.error("Fullscreen geçişi başarısız:", error);
+      console.error("Fullscreen geÃƒÂ§iÃ…Å¸i baÃ…Å¸arÃ„Â±sÃ„Â±z:", error);
     }
   };
 
@@ -210,6 +238,52 @@ export function MissionMapCanvasPage() {
     }));
   }, [telemetry?.obstacles]);
 
+  const mapCourseObjects = useMemo<CourseObject2DInput[]>(() => {
+    const objects = worldState?.objects ?? [];
+    const supportedTypes = new Set([
+      "guidance_board",
+      "track_stripe",
+      "pipe_entry",
+      "pipe_segment",
+      "clue_marker",
+      "controlled_zone",
+      "no_go_zone",
+      "mini_rov_drop_zone"
+    ]);
+
+    return objects
+      .filter((object) => supportedTypes.has(object.type))
+      .map((object) => {
+        const rich = object as WorldObjectWithOptionalPoints;
+        const points = (rich.points ?? [])
+          .filter(
+            (point) =>
+              typeof point?.x === "number" &&
+              Number.isFinite(point.x) &&
+              typeof point?.y === "number" &&
+              Number.isFinite(point.y)
+          )
+          .map((point) => ({
+            x: point.x as number,
+            y: point.y as number
+          }));
+
+        return {
+          id: object.id,
+          type: object.type,
+          label: object.label,
+          position: {
+            x: object.x,
+            y: object.y
+          },
+          radius: object.radius,
+          color: object.color,
+          active: object.active,
+          completed: object.completed,
+          points
+        };
+      });
+  }, [worldState?.objects]);
   const mapLidarPoints = useMemo(() => {
     return (sensor?.lidarPoints ?? []).map((point) => ({
       x: point.x,
@@ -266,7 +340,7 @@ export function MissionMapCanvasPage() {
     <section className="space-y-6">
       <PageTitle
         title="Mission Map Canvas"
-        description="Canvas tabanlı yeni nesil 2D görev haritası. Araç, rota, hedef, trail, LiDAR, runtime obstacle, occupancy ve EKF/odometry katmanlarını aynı canlı store verisiyle daha güçlü bir render yüzeyinde gösterir."
+        description="Canvas tabanlÃ„Â± yeni nesil 2D gÃƒÂ¶rev haritasÃ„Â±. AraÃƒÂ§, rota, hedef, trail, LiDAR, runtime obstacle, occupancy ve EKF/odometry katmanlarÃ„Â±nÃ„Â± aynÃ„Â± canlÃ„Â± store verisiyle daha gÃƒÂ¼ÃƒÂ§lÃƒÂ¼ bir render yÃƒÂ¼zeyinde gÃƒÂ¶sterir."
       />
 
       <div
@@ -285,22 +359,22 @@ export function MissionMapCanvasPage() {
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-panel">
             <PanelTitle
               title="Canvas World View"
-              subtitle="Harita katmanları tek canvas yüzeyinde işlenir. Görsel kalite ve yoğun veri render davranışı burada test edilir."
+              subtitle="Harita katmanlarÃ„Â± tek canvas yÃƒÂ¼zeyinde iÃ…Å¸lenir. GÃƒÂ¶rsel kalite ve yoÃ„Å¸un veri render davranÃ„Â±Ã…Å¸Ã„Â± burada test edilir."
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <MiniStat
-                label="Araç"
+                label="AraÃƒÂ§"
                 value={telemetry?.displayName ?? selectedVehicleId ?? "N/A"}
                 tone="neutral"
               />
               <MiniStat
                 label="Heading"
-                value={`${formatNumber(headingDeg, 1, "0.0")}°`}
+                value={`${formatNumber(headingDeg, 1, "0.0")}Ã‚Â°`}
                 tone="info"
               />
               <MiniStat
-                label="Hız"
+                label="HÃ„Â±z"
                 value={`${formatNumber(speed, 2, "0.00")} m/s`}
                 tone="info"
               />
@@ -311,7 +385,7 @@ export function MissionMapCanvasPage() {
               />
               <MiniStat
                 label="Render"
-                value={hasMapData ? "AKTİF" : "BEKLİYOR"}
+                value={hasMapData ? "AKTÃ„Â°F" : "BEKLÃ„Â°YOR"}
                 tone={renderHealthTone}
               />
             </div>
@@ -327,8 +401,9 @@ export function MissionMapCanvasPage() {
                 <Tag text={`LiDAR ${lidarCount}`} />
                 <Tag text={`Obstacle ${obstacleCount}`} />
                 <Tag text={`Occ ${mapOccupancyCells.length}`} />
+                <Tag text={`Course ${mapCourseObjects.length}`} />
                 <ControlButton onClick={handleToggleFullscreen}>
-                  {isFullscreen ? "Tam ekrandan çık" : "Tam ekran"}
+                  {isFullscreen ? "Tam ekrandan ÃƒÂ§Ã„Â±k" : "Tam ekran"}
                 </ControlButton>
               </div>
             </div>
@@ -363,7 +438,7 @@ export function MissionMapCanvasPage() {
                 </div>
               ) : (
                 <Placeholder heightClass="h-[520px]">
-                  Harita verisi henüz hazır değil
+                  Harita verisi henÃƒÂ¼z hazÃ„Â±r deÃ„Å¸il
                 </Placeholder>
               )}
             </div>
@@ -393,13 +468,13 @@ export function MissionMapCanvasPage() {
         >
           <PanelCard
             title="Render Summary"
-            subtitle="Canvas yüzeyine giden canlı katman özeti"
+            subtitle="Canvas yÃƒÂ¼zeyine giden canlÃ„Â± katman ÃƒÂ¶zeti"
           >
             <InfoRow label="Vehicle" value={telemetry?.displayName ?? "N/A"} />
             <InfoRow label="Selected Vehicle" value={selectedVehicleId ?? "N/A"} />
             <InfoRow
               label="Heading"
-              value={`${formatNumber(headingDeg, 1, "0.0")}°`}
+              value={`${formatNumber(headingDeg, 1, "0.0")}Ã‚Â°`}
             />
             <InfoRow
               label="Speed"
@@ -440,7 +515,7 @@ export function MissionMapCanvasPage() {
 
           <PanelCard
             title="Force / Torque"
-            subtitle="Actuator katmanından gelen wrench özeti"
+            subtitle="Actuator katmanÃ„Â±ndan gelen wrench ÃƒÂ¶zeti"
           >
             <InfoRow
               label="Force Body"
@@ -475,17 +550,17 @@ export function MissionMapCanvasPage() {
 
           <PanelCard
             title="Map Quality Notes"
-            subtitle="Bu ekranın amacı"
+            subtitle="Bu ekranÃ„Â±n amacÃ„Â±"
           >
             <div className="space-y-3 text-sm leading-6 text-slate-400">
               <p>
-                Bu sayfa mevcut SVG mission paneline dokunmadan, aynı store verisiyle çalışan
-                yeni canvas render yaklaşımını test etmek için ayrılmıştır.
+                Bu sayfa mevcut SVG mission paneline dokunmadan, aynÃ„Â± store verisiyle ÃƒÂ§alÃ„Â±Ã…Å¸an
+                yeni canvas render yaklaÃ…Å¸Ã„Â±mÃ„Â±nÃ„Â± test etmek iÃƒÂ§in ayrÃ„Â±lmÃ„Â±Ã…Å¸tÃ„Â±r.
               </p>
               <p>
-                Buradaki amaç yalnızca veri göstermek değil; occupancy, lidar, obstacle ve
-                rota katmanlarını daha yoğun ve daha okunabilir bir operasyon görünümüne
-                taşımaktır.
+                Buradaki amaÃƒÂ§ yalnÃ„Â±zca veri gÃƒÂ¶stermek deÃ„Å¸il; occupancy, lidar, obstacle ve
+                rota katmanlarÃ„Â±nÃ„Â± daha yoÃ„Å¸un ve daha okunabilir bir operasyon gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼mÃƒÂ¼ne
+                taÃ…Å¸Ã„Â±maktÃ„Â±r.
               </p>
             </div>
           </PanelCard>
@@ -535,7 +610,7 @@ function Placeholder(props: {
         props.heightClass
       ].join(" ")}
     >
-      {props.children ?? "İçerik bu alana gelecek"}
+      {props.children ?? "Ã„Â°ÃƒÂ§erik bu alana gelecek"}
     </div>
   );
 }

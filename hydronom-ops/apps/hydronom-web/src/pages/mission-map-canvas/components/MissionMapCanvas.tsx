@@ -13,6 +13,18 @@ const CANVAS_HEIGHT = 520;
 const MIN_HALF_SPAN = 6;
 const PANEL_PADDING = 24;
 
+interface CourseObject2D {
+  id: string;
+  type: string;
+  label?: string | null;
+  position: Vec2;
+  radius: number;
+  color?: string | null;
+  active?: boolean;
+  completed?: boolean;
+  points?: Vec2[];
+}
+
 interface MissionMapCanvasProps {
   vehiclePosition: Vec2;
   headingDeg: number;
@@ -24,6 +36,7 @@ interface MissionMapCanvasProps {
     position: Vec2;
     radius: number;
   }>;
+  courseObjects?: CourseObject2D[];
   lidarPoints: Vec2[];
   occupancyPreview?: Vec2[];
   occupancyCells?: Vec2[];
@@ -39,7 +52,7 @@ interface MapBounds {
   maxY: number;
 }
 
-// Araç merkezli ama veri alanını da kaçırmayan daha stabil sınırlar üretir
+// AraÃ§ merkezli ama veri alanÄ±nÄ± da kaÃ§Ä±rmayan daha stabil sÄ±nÄ±rlar Ã¼retir
 function buildStableBounds(
   vehiclePosition: Vec2,
   trail: Vec2[],
@@ -132,7 +145,7 @@ function buildStableBounds(
   };
 }
 
-// roundRect desteklenmeyen ortamlarda fallback kullanır
+// roundRect desteklenmeyen ortamlarda fallback kullanÄ±r
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -162,7 +175,7 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
-// Arka planı daha derin operasyon ekranı hissiyle çizer
+// Arka planÄ± daha derin operasyon ekranÄ± hissiyle Ã§izer
 function drawBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const bg = ctx.createLinearGradient(0, 0, 0, height);
   bg.addColorStop(0, "#020617");
@@ -190,7 +203,7 @@ function drawBackground(ctx: CanvasRenderingContext2D, width: number, height: nu
   ctx.restore();
 }
 
-// Daha kaliteli grid görünümü
+// Daha kaliteli grid gÃ¶rÃ¼nÃ¼mÃ¼
 function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number) {
   ctx.save();
 
@@ -236,7 +249,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number) 
   ctx.restore();
 }
 
-// Panel merkezine hafif crosshair çizer
+// Panel merkezine hafif crosshair Ã§izer
 function drawCrosshair(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const cx = width * 0.5;
   const cy = height * 0.5;
@@ -296,7 +309,7 @@ function drawPolyline(
   ctx.restore();
 }
 
-// Occupancy hücrelerini nokta gibi değil gerçek hücre gibi çizer
+// Occupancy hÃ¼crelerini nokta gibi deÄŸil gerÃ§ek hÃ¼cre gibi Ã§izer
 function drawOccupancyCells(
   ctx: CanvasRenderingContext2D,
   points: Vec2[],
@@ -344,7 +357,7 @@ function drawOccupancyCells(
   ctx.restore();
 }
 
-// Preview eğrisini daha sıcak tonlu gösterir
+// Preview eÄŸrisini daha sÄ±cak tonlu gÃ¶sterir
 function drawOccupancyPreview(
   ctx: CanvasRenderingContext2D,
   points: Vec2[],
@@ -355,7 +368,7 @@ function drawOccupancyPreview(
   drawPolyline(ctx, points, bounds, width, height, "#f59e0b", 1.8, 0.95, 8);
 }
 
-// Lidar noktalarını glow + çekirdek nokta olarak çizer
+// Lidar noktalarÄ±nÄ± glow + Ã§ekirdek nokta olarak Ã§izer
 function drawLidarCloud(
   ctx: CanvasRenderingContext2D,
   points: Vec2[],
@@ -452,6 +465,228 @@ function drawObstacles(
   ctx.restore();
 }
 
+function drawCourseObjects(
+  ctx: CanvasRenderingContext2D,
+  courseObjects: CourseObject2D[],
+  bounds: MapBounds,
+  width: number,
+  height: number,
+  pixelsPerUnit: number
+) {
+  if (courseObjects.length === 0) {
+    return;
+  }
+
+  ctx.save();
+
+  for (const object of courseObjects) {
+    if (!isFinitePoint(object.position)) {
+      continue;
+    }
+
+    const color = object.color ?? resolveCourseObjectColor(object.type);
+    const radiusWorld = Number.isFinite(object.radius) ? Math.max(0.08, object.radius) : 0.35;
+    const radiusPx = Math.max(5, Math.min(34, radiusWorld * pixelsPerUnit));
+
+    if (
+      object.points &&
+      object.points.length >= 2 &&
+      (object.type === "guidance_board" ||
+        object.type === "track_stripe" ||
+        object.type === "pipe_segment")
+    ) {
+      drawPolyline(
+        ctx,
+        object.points,
+        bounds,
+        width,
+        height,
+        color,
+        object.type === "track_stripe" ? 2.2 : object.type === "pipe_segment" ? 6.0 : 5.0,
+        object.type === "track_stripe" ? 1.0 : 0.88,
+        object.type === "pipe_segment" ? 8 : 3
+      );
+
+      if (object.type === "pipe_segment") {
+        drawCourseObjectPoint(ctx, object.points[0], bounds, width, height, "#38bdf8", 7);
+        drawCourseObjectPoint(
+          ctx,
+          object.points[object.points.length - 1],
+          bounds,
+          width,
+          height,
+          "#38bdf8",
+          7
+        );
+      }
+
+      continue;
+    }
+
+    if (
+      object.points &&
+      object.points.length >= 3 &&
+      (object.type === "controlled_zone" || object.type === "no_go_zone")
+    ) {
+      drawCoursePolygon(
+        ctx,
+        object.points,
+        bounds,
+        width,
+        height,
+        color,
+        object.type === "no_go_zone" ? "rgba(254, 202, 202, 0.92)" : "rgba(253, 230, 138, 0.92)",
+        object.type === "no_go_zone" ? 0.18 : 0.16
+      );
+      continue;
+    }
+
+    const projected = worldToPanel(object.position, bounds, width, height, PANEL_PADDING);
+
+    if (object.type === "pipe_entry") {
+      ctx.beginPath();
+      ctx.arc(projected.x, projected.y, Math.max(12, radiusPx), 0, Math.PI * 2);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      ctx.shadowColor = "#38bdf8";
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(projected.x, projected.y, Math.max(7, radiusPx * 0.64), 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(226, 232, 240, 0.72)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      continue;
+    }
+
+    if (object.type === "clue_marker") {
+      ctx.beginPath();
+      ctx.arc(projected.x, projected.y, 15, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(250, 204, 21, 0.18)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(projected.x, projected.y - 14);
+      ctx.lineTo(projected.x + 12, projected.y + 10);
+      ctx.lineTo(projected.x - 12, projected.y + 10);
+      ctx.closePath();
+      ctx.fillStyle = "#facc15";
+      ctx.shadowColor = "#facc15";
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      continue;
+    }
+
+    ctx.beginPath();
+    ctx.arc(projected.x, projected.y, radiusPx, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha(color, 0.2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(projected.x, projected.y, Math.max(3, radiusPx * 0.34), 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    if (object.active) {
+      ctx.beginPath();
+      ctx.arc(projected.x, projected.y, radiusPx + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(249, 115, 22, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawCoursePolygon(
+  ctx: CanvasRenderingContext2D,
+  points: Vec2[],
+  bounds: MapBounds,
+  width: number,
+  height: number,
+  fill: string,
+  stroke: string,
+  alpha: number
+) {
+  const valid = points.filter(isFinitePoint);
+  if (valid.length < 3) {
+    return;
+  }
+
+  const first = worldToPanel(valid[0], bounds, width, height, PANEL_PADDING);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+
+  for (let i = 1; i < valid.length; i += 1) {
+    const projected = worldToPanel(valid[i], bounds, width, height, PANEL_PADDING);
+    ctx.lineTo(projected.x, projected.y);
+  }
+
+  ctx.closePath();
+  ctx.fillStyle = withAlpha(fill, alpha);
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCourseObjectPoint(
+  ctx: CanvasRenderingContext2D,
+  point: Vec2,
+  bounds: MapBounds,
+  width: number,
+  height: number,
+  color: string,
+  radius: number
+) {
+  if (!isFinitePoint(point)) {
+    return;
+  }
+
+  const projected = worldToPanel(point, bounds, width, height, PANEL_PADDING);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = withAlpha(color, 0.25);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(projected.x, projected.y, Math.max(2.5, radius * 0.42), 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+function resolveCourseObjectColor(type: string) {
+  if (type === "guidance_board") return "#cc0605";
+  if (type === "track_stripe") return "#0a0a0a";
+  if (type === "pipe_entry" || type === "pipe_segment") return "#111827";
+  if (type === "clue_marker") return "#facc15";
+  if (type === "controlled_zone") return "#f59e0b";
+  if (type === "no_go_zone") return "#ef4444";
+  if (type === "mini_rov_drop_zone") return "#a855f7";
+  return "#38bdf8";
+}
+
+function withAlpha(color: string, alpha: number) {
+  if (!color.startsWith("#") || color.length !== 7) {
+    return color;
+  }
+
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 function drawGoal(
   ctx: CanvasRenderingContext2D,
   goal: Vec2 | null,
@@ -521,7 +756,7 @@ function drawPoseMarker(
   ctx.restore();
 }
 
-// Araç işaretini daha güçlü gövde/yön görünümüyle çizer
+// AraÃ§ iÅŸaretini daha gÃ¼Ã§lÃ¼ gÃ¶vde/yÃ¶n gÃ¶rÃ¼nÃ¼mÃ¼yle Ã§izer
 function drawVehicle(
   ctx: CanvasRenderingContext2D,
   vehiclePosition: Vec2,
@@ -580,7 +815,7 @@ function drawVehicle(
   ctx.restore();
 }
 
-// Sağ üstte operasyon HUD bilgisi
+// SaÄŸ Ã¼stte operasyon HUD bilgisi
 function drawHud(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -611,7 +846,7 @@ function drawHud(
   ctx.font = "12px Inter, system-ui, sans-serif";
   ctx.fillStyle = "rgba(148, 163, 184, 0.95)";
   ctx.fillText(
-    `Heading: ${Number.isFinite(headingDeg) ? headingDeg.toFixed(1) : "0.0"}°`,
+    `Heading: ${Number.isFinite(headingDeg) ? headingDeg.toFixed(1) : "0.0"}Â°`,
     x + 14,
     y + 44
   );
@@ -622,7 +857,7 @@ function drawHud(
   ctx.restore();
 }
 
-// Sol altta küçük ölçek göstergesi
+// Sol altta kÃ¼Ã§Ã¼k Ã¶lÃ§ek gÃ¶stergesi
 function drawScaleBar(
   ctx: CanvasRenderingContext2D,
   bounds: MapBounds,
@@ -672,7 +907,7 @@ function drawScaleBar(
   ctx.restore();
 }
 
-// Kenarlarda hafif vignette ile odak artırılır
+// Kenarlarda hafif vignette ile odak artÄ±rÄ±lÄ±r
 function drawVignette(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const vignette = ctx.createRadialGradient(
     width * 0.5,
@@ -691,7 +926,7 @@ function drawVignette(ctx: CanvasRenderingContext2D, width: number, height: numb
   ctx.restore();
 }
 
-// Canvas tabanlı gelişmiş 2D mission map yüzeyi
+// Canvas tabanlÄ± geliÅŸmiÅŸ 2D mission map yÃ¼zeyi
 export function MissionMapCanvas({
   vehiclePosition,
   headingDeg,
@@ -699,6 +934,7 @@ export function MissionMapCanvas({
   route,
   goal,
   obstacles,
+  courseObjects = [],
   lidarPoints,
   occupancyPreview = [],
   occupancyCells = [],
@@ -754,6 +990,7 @@ export function MissionMapCanvas({
     drawPolyline(ctx, route, bounds, CANVAS_WIDTH, CANVAS_HEIGHT, "#e879f9", 2.3, 0.92, 8);
     drawPolyline(ctx, ekfTrail, bounds, CANVAS_WIDTH, CANVAS_HEIGHT, "#22c55e", 2.1, 0.95, 8);
 
+    drawCourseObjects(ctx, courseObjects, bounds, CANVAS_WIDTH, CANVAS_HEIGHT, pixelsPerUnit);
     drawObstacles(ctx, obstacles, bounds, CANVAS_WIDTH, CANVAS_HEIGHT, pixelsPerUnit);
     drawGoal(ctx, goal, bounds, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -796,6 +1033,7 @@ export function MissionMapCanvas({
     route,
     goal,
     obstacles,
+    courseObjects = [],
     lidarPoints,
     occupancyPreview,
     occupancyCells,
