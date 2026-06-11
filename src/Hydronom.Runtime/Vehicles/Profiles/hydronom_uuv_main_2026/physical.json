@@ -1,0 +1,63 @@
+{
+  "lengthM": 0.75,
+  "widthM": 0.48,
+  "heightM": 0.32,
+  "collisionRadiusM": 0.48,
+  "mass": {
+    "massKg": 13.5,
+    "centerOfMassM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.03
+    },
+    "inertiaKgM2": {
+      "x": 0.55,
+      "y": 0.85,
+      "z": 0.95
+    }
+  },
+  "buoyancy": {
+    "enabled": true,
+    "displacedVolumeM3": 0.0137,
+    "centerOfBuoyancyM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
+    },
+    "fluidDensityKgM3": 997.0,
+    "neutralBuoyancyErrorKg": 0.15,
+    "isApproximatelyNeutrallyBuoyant": true
+  },
+  "hydrodynamics": {
+    "enabled": true,
+    "linearDrag": {
+      "x": 8.0,
+      "y": 12.0,
+      "z": 14.0
+    },
+    "quadraticDrag": {
+      "x": 18.0,
+      "y": 24.0,
+      "z": 28.0
+    },
+    "angularLinearDrag": {
+      "x": 2.5,
+      "y": 3.0,
+      "z": 3.5
+    },
+    "angularQuadraticDrag": {
+      "x": 5.0,
+      "y": 6.0,
+      "z": 7.0
+    },
+    "addedMassSurgeKg": 2.0,
+    "addedMassSwayKg": 3.0,
+    "addedMassHeaveKg": 3.5
+  },
+  "tags": {
+    "sizeClass": "competition_uuv",
+    "dimensionsSource": "representative",
+    "massSource": "representative",
+    "coordinateFrame": "body_x_forward_y_right_z_up"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "enabled": true,
+  "hasRudder": false,
+  "hasDifferentialThrust": true,
+  "hasVectoring": false,
+  "thrusters": [
+    {
+      "id": "surface_left_prop",
+      "name": "Left Surface Propeller",
+      "kind": "Propeller",
+      "positionM": {
+        "x": -0.45,
+        "y": -0.18,
+        "z": -0.05
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 22.0,
+      "maxReverseThrustN": 0.0,
+      "canReverse": false,
+      "isEnabled": true,
+      "channel": "pwm_left",
+      "tags": {
+        "axis": "surge",
+        "side": "left",
+        "legacy": "true"
+      }
+    },
+    {
+      "id": "surface_right_prop",
+      "name": "Right Surface Propeller",
+      "kind": "Propeller",
+      "positionM": {
+        "x": -0.45,
+        "y": 0.18,
+        "z": -0.05
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 22.0,
+      "maxReverseThrustN": 0.0,
+      "canReverse": false,
+      "isEnabled": true,
+      "channel": "pwm_right",
+      "tags": {
+        "axis": "surge",
+        "side": "right",
+        "legacy": "true"
+      }
+    }
+  ],
+  "tags": {
+    "layout": "dual_surface_propeller",
+    "supportsSurge": "true",
+    "supportsSway": "false",
+    "supportsHeave": "false",
+    "supportsYaw": "true",
+    "underactuated": "true",
+    "reverseAuthority": "false"
+  }
+}

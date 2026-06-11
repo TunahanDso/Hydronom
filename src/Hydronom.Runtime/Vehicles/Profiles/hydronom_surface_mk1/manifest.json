@@ -1,0 +1,24 @@
+{
+  "schema": "hydronom.vehicle-profile.v1",
+  "profileId": "hydronom_surface_mk1",
+  "name": "Hydronom Surface MK1",
+  "version": "1.0.0",
+  "platformKind": "SurfaceVessel",
+  "includes": [
+    "identity.json",
+    "physical.json",
+    "actuation.json",
+    "sensors.json",
+    "simulation.json",
+    "communication.json",
+    "safety.json",
+    "fleet.json"
+  ],
+  "tags": {
+    "domain": "surface_water",
+    "platform": "boat",
+    "role": "surface_vessel",
+    "package": "vehicle_profile",
+    "legacyCompatibility": "true"
+  }
+}

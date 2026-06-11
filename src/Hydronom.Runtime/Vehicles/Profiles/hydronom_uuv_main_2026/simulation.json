@@ -1,0 +1,12 @@
+{
+  "medium": "Underwater",
+  "physicsModel": "underwater_6dof_basic_v1",
+  "defaultTimeStepSeconds": 0.02,
+  "maxSimulationSpeedMps": 1.2,
+  "maxSimulationAngularSpeedDegps": 120.0,
+  "enableGravity": true,
+  "enableBuoyancy": true,
+  "enableHydrodynamicDrag": true,
+  "enableCollision": true,
+  "enableTetherSimulation": false
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "hydronom.vehicle-profile.v1",
+  "profileId": "hydronom_mini_rov_2026",
+  "name": "Hydronom Mini ROV 2026",
+  "version": "1.0.0",
+  "platformKind": "MiniRov",
+  "includes": [
+    "identity.json",
+    "physical.json",
+    "buoyancy.json",
+    "hydrodynamics.json",
+    "actuation.json",
+    "sensors.json",
+    "simulation.json",
+    "communication.json",
+    "tether.json",
+    "safety.json",
+    "fleet.json"
+  ],
+  "tags": {
+    "domain": "underwater",
+    "competition": "TEKNOFEST 2026",
+    "category": "advanced",
+    "role": "mini_rov",
+    "parentVehicle": "hydronom-uuv-main",
+    "package": "vehicle_profile"
+  }
+}

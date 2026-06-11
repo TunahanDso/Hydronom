@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "linearDrag": {
+    "x": 3.0,
+    "y": 4.0,
+    "z": 5.0
+  },
+  "quadraticDrag": {
+    "x": 7.0,
+    "y": 9.0,
+    "z": 11.0
+  },
+  "angularLinearDrag": {
+    "x": 0.6,
+    "y": 0.8,
+    "z": 0.9
+  },
+  "angularQuadraticDrag": {
+    "x": 1.2,
+    "y": 1.5,
+    "z": 1.8
+  },
+  "addedMassSurgeKg": 0.4,
+  "addedMassSwayKg": 0.5,
+  "addedMassHeaveKg": 0.6
+}

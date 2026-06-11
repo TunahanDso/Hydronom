@@ -1,0 +1,11 @@
+{
+  "profileId": "hydronom_uuv_main_2026",
+  "vehicleId": "hydronom-uuv-main",
+  "displayName": "Hydronom UUV Main 2026",
+  "manufacturer": "YTU Stars of Hydro / Hydronom",
+  "model": "UUV Main",
+  "revision": "2026.1",
+  "platformKind": "UnderwaterVehicle",
+  "role": "main_uuv",
+  "description": "TEKNOFEST 2026 ileri kategori için ana su altı aracı. Hat takibi yapar, Mini ROV bırakma bölgesine gider ve Mini ROV operasyonunu taşır."
+}

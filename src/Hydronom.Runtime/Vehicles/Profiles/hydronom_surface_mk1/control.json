@@ -1,0 +1,22 @@
+{
+  "schema": "hydronom.vehicle-control.v1",
+  "vehicleId": "hydronom-surface-mk1",
+  "controlModel": "underactuated_surface_boat_v1",
+  "navigation": {
+    "allowReverse": false,
+    "preferForwardArcTurns": true,
+    "minimumForwardFlowInBypass": true,
+    "maxDesiredSpeedMps": 1.2,
+    "defaultDesiredSpeedMps": 0.65,
+    "arrivalToleranceM": 1.0
+  },
+  "heading": {
+    "kp": 0.028,
+    "kd": 0.010,
+    "maxYawCommandNorm": 1.0
+  },
+  "notes": [
+    "Bu dosya şimdilik typed modele bağlanmıyor.",
+    "PlatformControlModule ayarları ileride profile-driven hale getirilecek."
+  ]
+}

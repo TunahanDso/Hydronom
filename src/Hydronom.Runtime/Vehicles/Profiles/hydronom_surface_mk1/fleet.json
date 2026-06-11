@@ -1,0 +1,20 @@
+{
+  "role": "surface_vessel",
+  "canLeadMission": true,
+  "canReceiveMission": true,
+  "canRelayMessages": false,
+  "canCarryChildVehicle": false,
+  "canBeCarriedByParent": false,
+  "priority": 80,
+  "supportedMissionTypes": [
+    "surface_navigation",
+    "teknofest_surface_slalom",
+    "teknofest_surface_obstacle_avoidance",
+    "gps_waypoint_navigation"
+  ],
+  "tags": {
+    "fleetRole": "standalone",
+    "platform": "surface",
+    "legacyCompatibility": "true"
+  }
+}

@@ -13,6 +13,7 @@ using Hydronom.Core.Modules.Control;
 using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Scheduling;
 using Hydronom.Runtime.Tuning;
+using Hydronom.Runtime.Vehicles;
 using Hydronom.Runtime.Twin;
 using Hydronom.Runtime.World.Runtime;
 
@@ -38,7 +39,13 @@ partial class Program
             e.Cancel = true;
             cts.Cancel();
         };
+        var vehicleProfileBinding = VehicleProfileRuntimeBootstrapper.Bootstrap(
+            config,
+            AppContext.BaseDirectory);
 
+        var activeVehicleContext = vehicleProfileBinding.ActiveContext;
+
+        Console.WriteLine(vehicleProfileBinding.BuildSummary());
         var runtimeWorldModel = new RuntimeWorldModel();
 
         Process? pythonProc = null;
@@ -73,9 +80,16 @@ partial class Program
         var actuatorManager = actuatorSystem.Manager;
         var actuatorBus = actuatorSystem.Bus;
 
-        controlModule.SetCapabilityProfile(actuatorManager.CapabilityProfile);
+        var controlCapability = activeVehicleContext.HasProfile
+            ? activeVehicleContext.CapabilityProfile
+            : actuatorManager.CapabilityProfile;
 
-        Console.WriteLine($"[CFG] PlatformControl capability bind → {controlModule.CapabilityProfile.Summary}");
+        controlModule.SetCapabilityProfile(controlCapability);
+
+        Console.WriteLine(
+            activeVehicleContext.HasProfile
+                ? $"[CFG] PlatformControl capability bind → vehicle-profile {controlModule.CapabilityProfile.Summary}"
+                : $"[CFG] PlatformControl capability bind → actuator-manager {controlModule.CapabilityProfile.Summary}");
 
         var limiter = CreateSafetyLimiter(config);
 
@@ -175,7 +189,8 @@ partial class Program
         var runtimeScenarioController = new RuntimeScenarioController(
             config,
             tasks,
-            runtimeWorldModel);
+            runtimeWorldModel,
+            activeVehicleContext);
 
         await runtimeScenarioController.AutoStartFromConfigAsync(
             state,
@@ -684,7 +699,7 @@ partial class Program
                     ? intentSnapshot.Intent
                     : ControlIntent.Idle;
 
-                controlModule.SetCapabilityProfile(actuatorManager.CapabilityProfile);
+                controlModule.SetCapabilityProfile(controlCapability);
 
                 var controlOutput = controlModule.Update(
                     intent,

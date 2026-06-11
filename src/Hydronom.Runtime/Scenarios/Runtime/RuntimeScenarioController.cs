@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,7 @@ using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Core.Scenarios.Models;
 using Hydronom.Runtime.Scenarios.Mission;
+using Hydronom.Runtime.Vehicles;
 using Hydronom.Runtime.World.Runtime;
 using Microsoft.Extensions.Configuration;
 
@@ -19,6 +21,7 @@ public sealed partial class RuntimeScenarioController
     private readonly IConfiguration _config;
     private readonly ITaskManager _taskManager;
     private readonly RuntimeWorldModel? _runtimeWorld;
+    private readonly ActiveVehicleContext? _activeVehicleContext;
     private readonly object _gate = new();
 
     private RuntimeScenarioExecutionHost? _host;
@@ -35,11 +38,13 @@ public sealed partial class RuntimeScenarioController
     public RuntimeScenarioController(
         IConfiguration config,
         ITaskManager taskManager,
-        RuntimeWorldModel? runtimeWorld = null)
+        RuntimeWorldModel? runtimeWorld = null,
+        ActiveVehicleContext? activeVehicleContext = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
         _runtimeWorld = runtimeWorld;
+        _activeVehicleContext = activeVehicleContext;
     }
 
     public bool IsRunning
@@ -126,6 +131,8 @@ public sealed partial class RuntimeScenarioController
             $"[SCN-RUNTIME] Started by={requestedBy} scenario={plan.ScenarioId}, " +
             $"scenarioVehicle={NormalizeText(plan.VehicleId, "none")}, " +
             $"runtimeVehicle={ResolveRuntimeVehicleId()}, " +
+            $"vehicleProfile={NormalizeText(_activeVehicleContext?.ProfileId, "none")}, " +
+            $"platform={NormalizeText(_activeVehicleContext?.PlatformKind.ToString(), "none")}, " +
             $"targets={plan.Targets.Count}, state={startResult.SessionState}, " +
             $"objective={startResult.CurrentObjectiveId ?? "none"}, " +
             $"appliedTask={startResult.AppliedNewTask}"
@@ -249,6 +256,7 @@ public sealed partial class RuntimeScenarioController
     {
         var currentTarget = ResolveCurrentTargetUnsafe();
         var runtimeVehicleId = ResolveRuntimeVehicleId();
+        var capability = _activeVehicleContext?.CapabilityProfile;
 
         return new RuntimeScenarioSnapshot
         {
@@ -264,6 +272,23 @@ public sealed partial class RuntimeScenarioController
             // fakat runtime telemetry/world/mission identity olarak kullanılmaz.
             VehicleId = runtimeVehicleId,
             ScenarioVehicleId = _plan?.VehicleId,
+
+            // Vehicle Profile binding:
+            // Runtime başlangıcında seçilen aktif araç profili snapshot içine taşınır.
+            // Ops/Gateway/diagnostics tarafı artık sadece vehicleId değil,
+            // platform ve capability bilgisini de görebilir.
+            VehicleProfileId = _activeVehicleContext?.ProfileId,
+            VehiclePlatformKind = _activeVehicleContext?.PlatformKind.ToString(),
+            VehicleDisplayName = _activeVehicleContext?.Profile?.DisplayName,
+            VehicleProfileActive = _activeVehicleContext?.HasProfile == true,
+            VehicleIsUnderwater = _activeVehicleContext?.IsUnderwater == true,
+            VehicleIsMiniRov = _activeVehicleContext?.IsMiniRov == true,
+
+            VehicleHasThrusters = capability?.HasAnyThruster == true,
+            VehicleHasReverseAuthority = capability?.HasReverseAuthority == true,
+            VehicleCanGenerateLateralForce = capability?.CanGenerateLateralForce == true,
+            VehicleCanGenerateYawMoment = capability?.CanGenerateYawMoment == true,
+            VehicleCapabilitySummary = capability?.Summary,
 
             State = _session?.State.ToString() ?? "None",
             RunId = _session?.RunId,

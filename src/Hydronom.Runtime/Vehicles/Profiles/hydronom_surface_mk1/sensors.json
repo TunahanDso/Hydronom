@@ -1,0 +1,113 @@
+{
+  "enabled": true,
+  "sensors": [
+    {
+      "id": "surface_gps",
+      "name": "Surface GPS",
+      "kind": "Gps",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.20
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 5.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "gps.primary",
+      "tags": {
+        "sensor": "gps",
+        "requiredFor": "surface_navigation"
+      }
+    },
+    {
+      "id": "surface_imu",
+      "name": "Surface IMU",
+      "kind": "Imu",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.05
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 50.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "imu.primary",
+      "tags": {
+        "sensor": "imu",
+        "requiredFor": "heading_control"
+      }
+    },
+    {
+      "id": "surface_front_camera",
+      "name": "Surface Front Camera",
+      "kind": "Camera",
+      "positionM": {
+        "x": 0.45,
+        "y": 0.0,
+        "z": 0.18
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 90.0,
+      "rangeM": 12.0,
+      "updateRateHz": 30.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "camera.front",
+      "tags": {
+        "use": "visual_detection",
+        "medium": "surface"
+      }
+    },
+    {
+      "id": "surface_battery_monitor",
+      "name": "Surface Battery Monitor",
+      "kind": "BatteryMonitor",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 2.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "power.battery",
+      "tags": {
+        "requiredFor": "mission_safety"
+      }
+    }
+  ],
+  "tags": {
+    "sensorSet": "surface_basic",
+    "supportsGpsNavigation": "true",
+    "supportsHeadingControl": "true"
+  }
+}

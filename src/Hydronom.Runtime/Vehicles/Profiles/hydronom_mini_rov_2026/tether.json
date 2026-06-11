@@ -1,0 +1,16 @@
+{
+  "parentVehicleId": "hydronom-uuv-main",
+  "childVehicleId": "hydronom-mini-rov",
+  "linkType": "tethered_child_vehicle",
+  "isDeployable": true,
+  "requiresParentOnline": true,
+  "routesCommunicationThroughParent": true,
+  "maxSeparationM": 3.0,
+  "tetherLengthM": 3.5,
+  "tags": {
+    "deployment": "from_main_uuv",
+    "communication": "parent_relay",
+    "mission": "pipe_inspection",
+    "parentProfileId": "hydronom_uuv_main_2026"
+  }
+}

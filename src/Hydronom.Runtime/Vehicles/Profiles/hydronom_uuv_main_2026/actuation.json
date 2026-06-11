@@ -1,0 +1,159 @@
+{
+  "enabled": true,
+  "hasRudder": false,
+  "hasDifferentialThrust": true,
+  "hasVectoring": false,
+  "thrusters": [
+    {
+      "id": "thruster_surge_left",
+      "name": "Left Surge Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.18,
+        "y": -0.18,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 18.0,
+      "maxReverseThrustN": 12.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_1",
+      "tags": {
+        "axis": "surge",
+        "side": "left"
+      }
+    },
+    {
+      "id": "thruster_surge_right",
+      "name": "Right Surge Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.18,
+        "y": 0.18,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 18.0,
+      "maxReverseThrustN": 12.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_2",
+      "tags": {
+        "axis": "surge",
+        "side": "right"
+      }
+    },
+    {
+      "id": "thruster_heave_front",
+      "name": "Front Vertical Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": 0.22,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "maxForwardThrustN": 14.0,
+      "maxReverseThrustN": 10.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_3",
+      "tags": {
+        "axis": "heave",
+        "position": "front"
+      }
+    },
+    {
+      "id": "thruster_heave_rear",
+      "name": "Rear Vertical Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.22,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "maxForwardThrustN": 14.0,
+      "maxReverseThrustN": 10.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_4",
+      "tags": {
+        "axis": "heave",
+        "position": "rear"
+      }
+    },
+    {
+      "id": "thruster_sway_front",
+      "name": "Front Lateral Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": 0.20,
+        "y": 0.0,
+        "z": -0.02
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 10.0,
+      "maxReverseThrustN": 8.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_5",
+      "tags": {
+        "axis": "sway",
+        "position": "front"
+      }
+    },
+    {
+      "id": "thruster_sway_rear",
+      "name": "Rear Lateral Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.20,
+        "y": 0.0,
+        "z": -0.02
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 10.0,
+      "maxReverseThrustN": 8.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "pwm_6",
+      "tags": {
+        "axis": "sway",
+        "position": "rear"
+      }
+    }
+  ],
+  "tags": {
+    "layout": "six_thruster_uuv",
+    "supportsSurge": "true",
+    "supportsSway": "true",
+    "supportsHeave": "true",
+    "supportsYaw": "true"
+  }
+}

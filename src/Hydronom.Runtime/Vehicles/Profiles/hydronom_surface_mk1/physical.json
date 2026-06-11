@@ -1,0 +1,64 @@
+{
+  "lengthM": 1.20,
+  "widthM": 0.55,
+  "heightM": 0.32,
+  "collisionRadiusM": 0.70,
+  "mass": {
+    "massKg": 12.0,
+    "centerOfMassM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.04
+    },
+    "inertiaKgM2": {
+      "x": 0.75,
+      "y": 1.35,
+      "z": 1.60
+    }
+  },
+  "buoyancy": {
+    "enabled": true,
+    "displacedVolumeM3": 0.0125,
+    "centerOfBuoyancyM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
+    },
+    "fluidDensityKgM3": 997.0,
+    "neutralBuoyancyErrorKg": -0.05,
+    "isApproximatelyNeutrallyBuoyant": false
+  },
+  "hydrodynamics": {
+    "enabled": true,
+    "linearDrag": {
+      "x": 5.0,
+      "y": 16.0,
+      "z": 0.0
+    },
+    "quadraticDrag": {
+      "x": 10.0,
+      "y": 32.0,
+      "z": 0.0
+    },
+    "angularLinearDrag": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 2.8
+    },
+    "angularQuadraticDrag": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 5.5
+    },
+    "addedMassSurgeKg": 1.5,
+    "addedMassSwayKg": 4.0,
+    "addedMassHeaveKg": 0.0
+  },
+  "tags": {
+    "sizeClass": "surface_competition_boat",
+    "dimensionsSource": "representative",
+    "massSource": "representative",
+    "coordinateFrame": "body_x_forward_y_right_z_up",
+    "legacyBoat": "true"
+  }
+}

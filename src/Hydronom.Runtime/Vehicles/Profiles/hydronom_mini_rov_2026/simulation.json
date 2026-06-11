@@ -1,0 +1,12 @@
+{
+  "medium": "Underwater",
+  "physicsModel": "mini_rov_underwater_basic_v1",
+  "defaultTimeStepSeconds": 0.02,
+  "maxSimulationSpeedMps": 0.45,
+  "maxSimulationAngularSpeedDegps": 75.0,
+  "enableGravity": true,
+  "enableBuoyancy": true,
+  "enableHydrodynamicDrag": true,
+  "enableCollision": true,
+  "enableTetherSimulation": true
+}

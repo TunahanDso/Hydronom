@@ -1,0 +1,22 @@
+{
+  "schema": "hydronom.vehicle-communication.v1",
+  "vehicleId": "hydronom-mini-rov",
+  "links": [
+    {
+      "id": "mini_rov_parent_tether",
+      "kind": "Tether",
+      "displayName": "Mini ROV Parent Tether",
+      "isPrimary": true,
+      "supportsVideo": true,
+      "supportsTelemetry": true,
+      "supportsCommand": true,
+      "maxPayloadBytes": 8192,
+      "expectedLatencyMs": 60
+    }
+  ],
+  "routing": {
+    "requiresParentRelay": true,
+    "parentVehicleId": "hydronom-uuv-main",
+    "directGroundCommunication": false
+  }
+}

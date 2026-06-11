@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "requiresEmergencyStop": true,
+  "requiresLeakSensor": false,
+  "requiresDepthSensor": false,
+  "requiresBatteryMonitor": true,
+  "stopThrustersOnCommsLoss": true,
+  "surfaceOnCommsLoss": false,
+  "holdPositionOnCommsLoss": false,
+  "commsLossTimeoutSeconds": 2.0,
+  "operationalLimits": {
+    "maxForwardSpeedMps": 1.2,
+    "maxReverseSpeedMps": 0.0,
+    "maxLateralSpeedMps": 0.0,
+    "maxVerticalSpeedMps": 0.0,
+    "maxYawRateDegps": 90.0,
+    "maxRollDeg": 25.0,
+    "maxPitchDeg": 25.0,
+    "maxDepthM": 0.0,
+    "minDepthM": 0.0,
+    "maxOperatingTimeSeconds": 600.0,
+    "minBatteryPercent": 20.0
+  },
+  "tags": {
+    "platform": "surface",
+    "failsafe": "stop_thrusters",
+    "underactuated": "true",
+    "reverseAuthority": "false"
+  }
+}

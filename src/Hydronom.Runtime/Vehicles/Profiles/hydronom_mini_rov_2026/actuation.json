@@ -1,0 +1,112 @@
+{
+  "enabled": true,
+  "hasRudder": false,
+  "hasDifferentialThrust": true,
+  "hasVectoring": false,
+  "thrusters": [
+    {
+      "id": "mini_surge_left",
+      "name": "Mini Left Surge Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.06,
+        "y": -0.075,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 5.0,
+      "maxReverseThrustN": 3.5,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "mini_pwm_1",
+      "tags": {
+        "axis": "surge",
+        "side": "left"
+      }
+    },
+    {
+      "id": "mini_surge_right",
+      "name": "Mini Right Surge Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.06,
+        "y": 0.075,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "maxForwardThrustN": 5.0,
+      "maxReverseThrustN": 3.5,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "mini_pwm_2",
+      "tags": {
+        "axis": "surge",
+        "side": "right"
+      }
+    },
+    {
+      "id": "mini_heave_front",
+      "name": "Mini Front Vertical Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": 0.08,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "maxForwardThrustN": 4.0,
+      "maxReverseThrustN": 3.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "mini_pwm_3",
+      "tags": {
+        "axis": "heave",
+        "position": "front"
+      }
+    },
+    {
+      "id": "mini_heave_rear",
+      "name": "Mini Rear Vertical Thruster",
+      "kind": "Thruster",
+      "positionM": {
+        "x": -0.08,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "direction": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "maxForwardThrustN": 4.0,
+      "maxReverseThrustN": 3.0,
+      "canReverse": true,
+      "isEnabled": true,
+      "channel": "mini_pwm_4",
+      "tags": {
+        "axis": "heave",
+        "position": "rear"
+      }
+    }
+  ],
+  "tags": {
+    "layout": "four_thruster_mini_rov",
+    "supportsSurge": "true",
+    "supportsSway": "false",
+    "supportsHeave": "true",
+    "supportsYaw": "true",
+    "pipeNavigation": "true"
+  }
+}

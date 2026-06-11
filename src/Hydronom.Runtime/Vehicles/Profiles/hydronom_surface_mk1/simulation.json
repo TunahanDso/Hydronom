@@ -1,0 +1,12 @@
+{
+  "medium": "SurfaceWater",
+  "physicsModel": "surface_boat_2d_underactuated_v1",
+  "defaultTimeStepSeconds": 0.02,
+  "maxSimulationSpeedMps": 1.5,
+  "maxSimulationAngularSpeedDegps": 120.0,
+  "enableGravity": true,
+  "enableBuoyancy": true,
+  "enableHydrodynamicDrag": true,
+  "enableCollision": true,
+  "enableTetherSimulation": false
+}

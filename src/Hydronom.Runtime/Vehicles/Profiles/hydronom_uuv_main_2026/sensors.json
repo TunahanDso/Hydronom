@@ -1,0 +1,137 @@
+{
+  "enabled": true,
+  "sensors": [
+    {
+      "id": "imu_primary",
+      "name": "Primary IMU",
+      "kind": "Imu",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.02
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 100.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "imu.primary",
+      "tags": {
+        "sensor": "bno085_or_equivalent"
+      }
+    },
+    {
+      "id": "depth_primary",
+      "name": "Primary Depth Sensor",
+      "kind": "DepthSensor",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.05
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 20.0,
+      "updateRateHz": 30.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "depth.primary",
+      "tags": {
+        "sensor": "pressure_depth",
+        "requiredFor": "hold_depth"
+      }
+    },
+    {
+      "id": "front_camera",
+      "name": "Front Camera",
+      "kind": "Camera",
+      "positionM": {
+        "x": 0.34,
+        "y": 0.0,
+        "z": 0.02
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 90.0,
+      "rangeM": 6.0,
+      "updateRateHz": 30.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "camera.front",
+      "tags": {
+        "use": "line_following",
+        "medium": "underwater"
+      }
+    },
+    {
+      "id": "leak_sensor",
+      "name": "Leak Sensor",
+      "kind": "LeakSensor",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.12
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 5.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "safety.leak",
+      "tags": {
+        "requiredFor": "safety"
+      }
+    },
+    {
+      "id": "battery_monitor",
+      "name": "Battery Monitor",
+      "kind": "BatteryMonitor",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 2.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "power.battery",
+      "tags": {
+        "requiredFor": "mission_safety"
+      }
+    }
+  ],
+  "tags": {
+    "sensorSet": "uuv_main_basic",
+    "supportsLineFollowing": "true",
+    "supportsDepthHold": "true"
+  }
+}

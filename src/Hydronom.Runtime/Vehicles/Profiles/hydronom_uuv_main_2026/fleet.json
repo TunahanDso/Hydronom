@@ -1,0 +1,20 @@
+{
+  "role": "main_uuv",
+  "canLeadMission": true,
+  "canReceiveMission": true,
+  "canRelayMessages": true,
+  "canCarryChildVehicle": true,
+  "canBeCarriedByParent": false,
+  "priority": 100,
+  "supportedMissionTypes": [
+    "underwater_line_following",
+    "mini_rov_deployment",
+    "pipe_inspection_support",
+    "advanced_uuv_navigation"
+  ],
+  "tags": {
+    "fleetRole": "parent",
+    "childVehicle": "hydronom-mini-rov",
+    "competitionCategory": "advanced"
+  }
+}

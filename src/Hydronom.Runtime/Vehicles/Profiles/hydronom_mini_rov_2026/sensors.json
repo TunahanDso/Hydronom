@@ -1,0 +1,112 @@
+{
+  "enabled": true,
+  "sensors": [
+    {
+      "id": "mini_imu",
+      "name": "Mini ROV IMU",
+      "kind": "Imu",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.01
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 50.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "mini.imu",
+      "tags": {
+        "sensor": "small_imu"
+      }
+    },
+    {
+      "id": "mini_depth",
+      "name": "Mini ROV Depth Sensor",
+      "kind": "DepthSensor",
+      "positionM": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.03
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 20.0,
+      "updateRateHz": 20.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "mini.depth",
+      "tags": {
+        "requiredFor": "mini_depth_hold"
+      }
+    },
+    {
+      "id": "mini_front_camera",
+      "name": "Mini ROV Front Camera",
+      "kind": "Camera",
+      "positionM": {
+        "x": 0.13,
+        "y": 0.0,
+        "z": 0.02
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 100.0,
+      "rangeM": 3.0,
+      "updateRateHz": 30.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": true,
+      "isEnabled": true,
+      "sourceName": "mini.camera.front",
+      "tags": {
+        "use": "pipe_inspection",
+        "medium": "underwater"
+      }
+    },
+    {
+      "id": "mini_tether_status",
+      "name": "Mini ROV Tether Status Sensor",
+      "kind": "Custom",
+      "positionM": {
+        "x": -0.14,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotationDeg": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "fieldOfViewDeg": 0.0,
+      "rangeM": 0.0,
+      "updateRateHz": 5.0,
+      "isPrimary": true,
+      "isRequiredForAutonomy": false,
+      "isEnabled": true,
+      "sourceName": "mini.tether.status",
+      "tags": {
+        "sensor": "tether_status",
+        "requiredFor": "parent_child_link"
+      }
+    }
+  ],
+  "tags": {
+    "sensorSet": "mini_rov_pipe_inspection",
+    "supportsPipeInspection": "true",
+    "supportsHintDetection": "true"
+  }
+}

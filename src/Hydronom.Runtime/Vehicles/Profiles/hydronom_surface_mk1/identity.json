@@ -1,0 +1,11 @@
+{
+  "profileId": "hydronom_surface_mk1",
+  "vehicleId": "hydronom-surface-mk1",
+  "displayName": "Hydronom Surface MK1",
+  "manufacturer": "YTU Stars of Hydro / Hydronom",
+  "model": "Surface Vessel",
+  "revision": "2026.1",
+  "platformKind": "SurfaceVessel",
+  "role": "surface_vessel",
+  "description": "Hydronom'un mevcut su üstü tekne platformu için temsilî araç profili. Teknofest su üstü parkurları ve mevcut sim davranışlarıyla uyumlu underactuated yüzey aracı."
+}

@@ -1,0 +1,64 @@
+{
+  "lengthM": 0.28,
+  "widthM": 0.22,
+  "heightM": 0.18,
+  "collisionRadiusM": 0.20,
+  "mass": {
+    "massKg": 2.4,
+    "centerOfMassM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.015
+    },
+    "inertiaKgM2": {
+      "x": 0.035,
+      "y": 0.045,
+      "z": 0.055
+    }
+  },
+  "buoyancy": {
+    "enabled": true,
+    "displacedVolumeM3": 0.00242,
+    "centerOfBuoyancyM": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.015
+    },
+    "fluidDensityKgM3": 997.0,
+    "neutralBuoyancyErrorKg": 0.03,
+    "isApproximatelyNeutrallyBuoyant": true
+  },
+  "hydrodynamics": {
+    "enabled": true,
+    "linearDrag": {
+      "x": 3.0,
+      "y": 4.0,
+      "z": 5.0
+    },
+    "quadraticDrag": {
+      "x": 7.0,
+      "y": 9.0,
+      "z": 11.0
+    },
+    "angularLinearDrag": {
+      "x": 0.6,
+      "y": 0.8,
+      "z": 0.9
+    },
+    "angularQuadraticDrag": {
+      "x": 1.2,
+      "y": 1.5,
+      "z": 1.8
+    },
+    "addedMassSurgeKg": 0.4,
+    "addedMassSwayKg": 0.5,
+    "addedMassHeaveKg": 0.6
+  },
+  "tags": {
+    "sizeClass": "mini_rov",
+    "pipeCompatible": "true",
+    "dimensionsSource": "representative",
+    "massSource": "representative",
+    "coordinateFrame": "body_x_forward_y_right_z_up"
+  }
+}

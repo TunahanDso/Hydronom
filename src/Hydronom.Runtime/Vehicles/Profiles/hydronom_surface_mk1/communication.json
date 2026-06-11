@@ -1,0 +1,32 @@
+{
+  "schema": "hydronom.vehicle-communication.v1",
+  "vehicleId": "hydronom-surface-mk1",
+  "links": [
+    {
+      "id": "surface_wifi",
+      "kind": "WiFi",
+      "displayName": "Surface Wi-Fi Link",
+      "isPrimary": true,
+      "supportsVideo": true,
+      "supportsTelemetry": true,
+      "supportsCommand": true,
+      "maxPayloadBytes": 65535,
+      "expectedLatencyMs": 30
+    },
+    {
+      "id": "surface_rf_backup",
+      "kind": "RfModem",
+      "displayName": "Surface RF Backup Link",
+      "isPrimary": false,
+      "supportsVideo": false,
+      "supportsTelemetry": true,
+      "supportsCommand": true,
+      "maxPayloadBytes": 240,
+      "expectedLatencyMs": 120
+    }
+  ],
+  "routing": {
+    "canRelayChildVehicle": false,
+    "childVehicleIds": []
+  }
+}

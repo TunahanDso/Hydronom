@@ -1,0 +1,11 @@
+{
+  "profileId": "hydronom_mini_rov_2026",
+  "vehicleId": "hydronom-mini-rov",
+  "displayName": "Hydronom Mini ROV 2026",
+  "manufacturer": "YTU Stars of Hydro / Hydronom",
+  "model": "Mini ROV",
+  "revision": "2026.1",
+  "platformKind": "MiniRov",
+  "role": "mini_rov",
+  "description": "TEKNOFEST 2026 ileri kategori için ana UUV üzerinden bırakılan Mini ROV. Boru hattı içerisine girerek kamera ile ipucu görüntüleme görevi yapar."
+}

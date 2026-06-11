@@ -1,0 +1,29 @@
+{
+  "enabled": true,
+  "requiresEmergencyStop": true,
+  "requiresLeakSensor": true,
+  "requiresDepthSensor": true,
+  "requiresBatteryMonitor": true,
+  "stopThrustersOnCommsLoss": true,
+  "surfaceOnCommsLoss": false,
+  "holdPositionOnCommsLoss": true,
+  "commsLossTimeoutSeconds": 2.0,
+  "operationalLimits": {
+    "maxForwardSpeedMps": 0.8,
+    "maxReverseSpeedMps": 0.35,
+    "maxLateralSpeedMps": 0.35,
+    "maxVerticalSpeedMps": 0.25,
+    "maxYawRateDegps": 90.0,
+    "maxRollDeg": 20.0,
+    "maxPitchDeg": 20.0,
+    "maxDepthM": 20.0,
+    "minDepthM": 0.2,
+    "maxOperatingTimeSeconds": 300.0,
+    "minBatteryPercent": 20.0
+  },
+  "tags": {
+    "competition": "TEKNOFEST 2026",
+    "failsafe": "hold_or_stop",
+    "requiresHumanSafetyCheck": "true"
+  }
+}

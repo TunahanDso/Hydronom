@@ -23,6 +23,63 @@ public sealed class RuntimeScenarioSnapshot
     /// </summary>
     public string? ScenarioVehicleId { get; set; }
 
+    /// <summary>
+    /// Runtime tarafından seçilmiş Vehicle Profile id.
+    /// Örn: hydronom_surface_mk1, hydronom_uuv_main_2026, hydronom_mini_rov_2026.
+    /// </summary>
+    public string? VehicleProfileId { get; set; }
+
+    /// <summary>
+    /// Aktif profile göre platform tipi.
+    /// Örn: SurfaceVessel, UnderwaterVehicle, MiniRov.
+    /// </summary>
+    public string? VehiclePlatformKind { get; set; }
+
+    /// <summary>
+    /// Aktif Vehicle Profile görünen adı.
+    /// </summary>
+    public string? VehicleDisplayName { get; set; }
+
+    /// <summary>
+    /// Runtime içinde aktif VehicleProfile seçilmiş mi?
+    /// </summary>
+    public bool VehicleProfileActive { get; set; }
+
+    /// <summary>
+    /// Aktif vehicle profile su altı aracı mı?
+    /// </summary>
+    public bool VehicleIsUnderwater { get; set; }
+
+    /// <summary>
+    /// Aktif vehicle profile Mini ROV mu?
+    /// </summary>
+    public bool VehicleIsMiniRov { get; set; }
+
+    /// <summary>
+    /// Aktif araçta profil üzerinden türetilmiş aktif thruster kabiliyeti var mı?
+    /// </summary>
+    public bool VehicleHasThrusters { get; set; }
+
+    /// <summary>
+    /// Aktif araç ters itki / reverse authority üretebilir mi?
+    /// </summary>
+    public bool VehicleHasReverseAuthority { get; set; }
+
+    /// <summary>
+    /// Aktif araç doğrudan yanal kuvvet üretebilir mi?
+    /// </summary>
+    public bool VehicleCanGenerateLateralForce { get; set; }
+
+    /// <summary>
+    /// Aktif araç yaw moment üretebilir mi?
+    /// </summary>
+    public bool VehicleCanGenerateYawMoment { get; set; }
+
+    /// <summary>
+    /// VehicleCapabilityProfile tarafından üretilen okunabilir kabiliyet özeti.
+    /// </summary>
+    public string? VehicleCapabilitySummary { get; set; }
+
     public string State { get; set; } = "None";
     public string? RunId { get; set; }
     public string? CurrentObjectiveId { get; set; }

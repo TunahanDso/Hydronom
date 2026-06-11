@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "displacedVolumeM3": 0.0137,
+  "centerOfBuoyancyM": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.02
+  },
+  "fluidDensityKgM3": 997.0,
+  "neutralBuoyancyErrorKg": 0.15,
+  "isApproximatelyNeutrallyBuoyant": true
+}

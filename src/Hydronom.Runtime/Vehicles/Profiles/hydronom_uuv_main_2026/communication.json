@@ -1,0 +1,23 @@
+{
+  "schema": "hydronom.vehicle-communication.v1",
+  "vehicleId": "hydronom-uuv-main",
+  "links": [
+    {
+      "id": "main_tether_ethernet",
+      "kind": "Ethernet",
+      "displayName": "Main Tether Ethernet",
+      "isPrimary": true,
+      "supportsVideo": true,
+      "supportsTelemetry": true,
+      "supportsCommand": true,
+      "maxPayloadBytes": 65535,
+      "expectedLatencyMs": 30
+    }
+  ],
+  "routing": {
+    "canRelayChildVehicle": true,
+    "childVehicleIds": [
+      "hydronom-mini-rov"
+    ]
+  }
+}
