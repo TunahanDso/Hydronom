@@ -45,5 +45,8 @@
                      "DefaultAcceptanceRadiusMeters":  1.15,
                      "DesiredCruiseSpeedMps":  0.75,
                      "DesiredArrivalSpeedMps":  0.28
-                 }
+                 },
+    "ScenarioRuntime":  {
+
+                        }
 }

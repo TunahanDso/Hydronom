@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hydronom.Core.Domain;
@@ -11,19 +11,19 @@ namespace Hydronom.Core.Planning.Planners
     /// <summary>
     /// Hydronom Autonomous Navigation Core - CorridorLocalPlanner.
     ///
-    /// Paket-7A.4:
-    /// Local detour noktaları artık parkur/boundary çizgisinin dışına taşamaz.
+    /// Paket-8G:
+    /// Critical physical obstacle varken direct/world-corridor candidate artık havuza alınmaz.
     ///
     /// Kök problem:
-    /// Slalomda planner engelden kaçarken local-detour@(45.2,8.3) gibi
-    /// boundary arkasına taşan nokta üretebiliyordu. Sonra trajectory bu noktaya bakıyor,
-    /// GEOM-AUTH / risk zinciri safe=false / planRisk=0.95 tarafına düşüyordu.
+    /// Sistem start-target hattına basit bir direct path çiziyor, sonra obstacle riskini
+    /// scoring/fallback ile çözmeye çalışıyordu. Bu da slalomda dubaya kafa atmaya sebep oluyordu.
     ///
     /// Yeni davranış:
-    /// - WorldObjects içindeki left_boundary/right_boundary objelerinden yerel Y bandı çözülür.
-    /// - Detour noktası bu bandın içine, araç yarıçapı payıyla clamp edilir.
-    /// - Clamp edilen aday summary/tag içinde görünür.
-    /// - Boundary bulunamazsa eski davranış korunur.
+    /// - Start-target hattında critical route obstacle varsa:
+    ///   direct candidate ve world-corridor candidate normal candidate havuzuna alınmaz.
+    ///   Planner yalnızca obstacle-centered bypass/fallback detour adaylarını değerlendirir.
+    /// - Critical obstacle yoksa eski direct/corridor davranışı korunur.
+    /// - Hiç bypass candidate üretilemezse direct risk ile RequiresReplan döner.
     /// </summary>
     public sealed partial class CorridorLocalPlanner : ILocalPlanner
     {
@@ -64,6 +64,48 @@ namespace Hydronom.Core.Planning.Planners
             var target = global.LastPoint?.Position ?? safe.Goal.TargetPosition.Sanitized();
             var blocking = safe.BlockingObjects();
 
+            /*
+             * Paket-8G critical obstacle gate:
+             *
+             * Direct/world-corridor candidate üretmeden önce start-target hattını fiziksel
+             * obstacle açısından kontrol ediyoruz.
+             *
+             * Eğer burada critical obstacle varsa direct/corridor seçeneği aday havuzuna bile
+             * alınmaz. Çünkü "scoring belki eler" yaklaşımı pratikte dubaya kafa atmaya sebep oldu.
+             */
+            var allWorldObjects =
+                safe.WorldObjects is { Count: > 0 }
+                    ? safe.WorldObjects
+                    : blocking;
+
+            var classified = WorldObjectPlanningClassifier.Classify(
+                allWorldObjects,
+                safe.VehicleRadiusMeters,
+                safe.SafetyMarginMeters,
+                source: "planner-critical-gate");
+
+            var planningBlockers = classified
+                .Where(x => x.CanBlockRoute)
+                .ToArray();
+
+            var criticalRouteObstacles = CriticalRouteObstacleDetector.Detect(
+                    start,
+                    target,
+                    planningBlockers,
+                    safe.VehicleRadiusMeters,
+                    safe.SafetyMarginMeters,
+                    safe.MaxPlanSpeedMps,
+                    maxResults: 6)
+                .ToArray();
+
+            var hasCriticalRouteObstacle = criticalRouteObstacles
+                .Any(x => x.RequiresBypass);
+
+            var criticalSummary = BuildCriticalGateSummary(
+                hasCriticalRouteObstacle,
+                planningBlockers.Length,
+                criticalRouteObstacles);
+
             var candidates = new List<LocalPathCandidate>();
 
             var directCandidate = BuildDirectCandidate(
@@ -73,26 +115,33 @@ namespace Hydronom.Core.Planning.Planners
                 target,
                 blocking);
 
-            candidates.Add(directCandidate);
-
-            var corridor = BuildWorldCorridor(
-                safe,
-                start,
-                target);
-
-            if (corridor.Count > 0)
+            /*
+             * Critical route obstacle yoksa eski direct/corridor seçenekleri korunur.
+             * Critical varsa bu ikisi candidate havuzuna GİRMEZ.
+             */
+            if (!hasCriticalRouteObstacle)
             {
-                var corridorCandidate = BuildWorldCorridorCandidate(
+                candidates.Add(directCandidate);
+
+                var corridor = BuildWorldCorridor(
                     safe,
                     start,
-                    target,
-                    corridor,
-                    blocking);
+                    target);
 
-                candidates.Add(corridorCandidate);
+                if (corridor.Count > 0)
+                {
+                    var corridorCandidate = BuildWorldCorridorCandidate(
+                        safe,
+                        start,
+                        target,
+                        corridor,
+                        blocking);
+
+                    candidates.Add(corridorCandidate);
+                }
             }
 
-            var detourCandidates = BuildDetourCandidates(
+            var detourCandidates = BuildWorldAwareDetourCandidates(
                 safe,
                 start,
                 target,
@@ -109,7 +158,11 @@ namespace Hydronom.Core.Planning.Planners
                     Risk = directCandidate.Path.Risk,
                     RequiresReplan = true,
                     Source = nameof(CorridorLocalPlanner),
-                    Summary = "LOCAL_NO_CANDIDATE_FALLBACK " + directCandidate.Diagnostics
+                    Summary =
+                        "LOCAL_NO_CANDIDATE_FALLBACK " +
+                        criticalSummary +
+                        " " +
+                        directCandidate.Diagnostics
                 };
             }
 
@@ -123,8 +176,42 @@ namespace Hydronom.Core.Planning.Planners
                     $"progress={best.Progress:F2} " +
                     $"length={best.PathLengthMeters:F2}m " +
                     $"risk={best.Path.Risk.RiskScore:F2} " +
+                    criticalSummary +
+                    " " +
                     best.Diagnostics
             };
+        }
+
+        private static string BuildCriticalGateSummary(
+            bool hasCriticalRouteObstacle,
+            int planningBlockerCount,
+            IReadOnlyList<CriticalRouteObstacle> criticalRouteObstacles)
+        {
+            if (!hasCriticalRouteObstacle || criticalRouteObstacles.Count == 0)
+            {
+                return
+                    $"CRITICAL_GATE clear " +
+                    $"blockers={planningBlockerCount} " +
+                    $"critical=0";
+            }
+
+            var top = criticalRouteObstacles
+                .OrderByDescending(x => x.Severity)
+                .First();
+
+            return
+                $"CRITICAL_GATE active " +
+                $"blockers={planningBlockerCount} " +
+                $"critical={criticalRouteObstacles.Count} " +
+                $"top={top.ObstacleId} " +
+                $"reason={top.Reason} " +
+                $"t={top.ProjectionT:F2} " +
+                $"pClear={top.PhysicalClearanceMeters:F2} " +
+                $"sClear={top.SafetyClearanceMeters:F2} " +
+                $"req={top.RequiredPhysicalClearanceMeters:F2} " +
+                $"severity={top.Severity:F2} " +
+                $"directSuppressed=True " +
+                $"corridorSuppressed=True";
         }
 
         private static LocalPathCandidate BuildDirectCandidate(
@@ -193,8 +280,25 @@ namespace Hydronom.Core.Planning.Planners
             Vec3 target,
             IReadOnlyList<HydronomWorldObject> blocking)
         {
+            /*
+             * Paket-7C.1 - Obstacle-centered bypass generation.
+             *
+             * The previous generic detour fan used route fractions and lateral offsets.
+             * That is not enough for real autonomy. If an obstacle intersects the
+             * start-target corridor, the bypass candidates must be generated from
+             * the obstacle geometry itself.
+             *
+             * This method now:
+             *  - detects critical blockers on the current route segment,
+             *  - creates left/right bypass points around each blocker,
+             *  - scores them with the existing risk/scoring pipeline,
+             *  - keeps the old generic detour fan only as fallback coverage.
+             */
             var nonCorridorBlocking = blocking
+                .Where(x => x.IsActive)
                 .Where(x => !IsCorridorMarker(x))
+                .Where(x => !IsBoundaryLike(x))
+                .Where(x => double.IsFinite(x.X) && double.IsFinite(x.Y))
                 .ToArray();
 
             if (nonCorridorBlocking.Length == 0)
@@ -213,13 +317,14 @@ namespace Hydronom.Core.Planning.Planners
             var nx = -uy;
             var ny = ux;
 
-            var baseOffset = Math.Max(
-                context.VehicleRadiusMeters + context.SafetyMarginMeters + 1.0,
-                2.2);
+            var vehicleRadius = Math.Max(0.0, context.VehicleRadiusMeters);
+            var safetyMargin = Math.Max(0.0, context.SafetyMarginMeters);
+            var speedBuffer = Math.Clamp(context.MaxPlanSpeedMps * 0.22, 0.0, 0.75);
 
-            var fractions = new[] { 0.25, 0.38, 0.50, 0.62, 0.76 };
-            var multipliers = new[] { 0.85, 1.15, 1.55, 2.05, 2.65 };
-            var signs = new[] { 1.0, -1.0 };
+            var preferredPhysicalClearance = Math.Clamp(
+                safetyMargin + 0.85 + speedBuffer,
+                1.05,
+                2.40);
 
             var boundaryBand = TryResolveLocalBoundaryBand(
                 context,
@@ -228,6 +333,185 @@ namespace Hydronom.Core.Planning.Planners
 
             var candidates = new List<LocalPathCandidate>();
 
+            double ProjectRouteT(Vec3 point)
+            {
+                var px = point.X - start.X;
+                var py = point.Y - start.Y;
+
+                return (px * ux + py * uy) / len;
+            }
+
+            void AddCandidate(Vec3 rawDetour, string tag)
+            {
+                var rawT = ProjectRouteT(rawDetour);
+
+                /*
+                 * The bypass point must be roughly in the local route window.
+                 * Large negative points are behind the vehicle and cause corner-cutting
+                 * / reverse-looking behavior.
+                 */
+                if (rawT < -0.08 || rawT > 1.20)
+                    return;
+
+                var detour = ClampDetourToBoundaryBand(
+                    rawDetour,
+                    boundaryBand,
+                    out var boundaryTag);
+
+                /*
+                 * Clamp may move a valid raw bypass point onto a boundary line behind
+                 * the vehicle. Such a point must never become local-detour; otherwise
+                 * trajectory sticks to a past point and the boat cuts into the obstacle.
+                 */
+                var clampedT = ProjectRouteT(detour);
+                if (clampedT < 0.06 || clampedT > 1.20)
+                    return;
+
+                var toDetourX = detour.X - start.X;
+                var toDetourY = detour.Y - start.Y;
+                var forwardDot = toDetourX * ux + toDetourY * uy;
+
+                if (forwardDot < 0.25)
+                    return;
+
+                if (Distance2D(start, detour) < 0.60)
+                    return;
+
+                if (Distance2D(detour, target) < 0.60)
+                    return;
+
+                if (candidates.Any(x =>
+                        x.Path.Points.Count >= 2 &&
+                        Distance2D(x.Path.Points[1].Position, detour) < DuplicatePointDistanceMeters))
+                {
+                    return;
+                }
+
+                var candidatePath = BuildDetourPath(
+                    context,
+                    start,
+                    detour,
+                    target,
+                    blocking,
+                    tag: tag + boundaryTag);
+
+                candidates.Add(
+                    ScorePathCandidate(
+                        kind: "detour",
+                        context: context,
+                        start: start,
+                        target: target,
+                        path: candidatePath,
+                        diagnostics: candidatePath.Summary));
+            }
+
+            var criticalObstacles = nonCorridorBlocking
+                .Select(obj =>
+                {
+                    var center = new Vec3(obj.X, obj.Y, obj.Z);
+                    var rawT = ProjectRouteT(center);
+                    var clampedT = Math.Clamp(rawT, 0.0, 1.0);
+
+                    var closest = new Vec3(
+                        start.X + ux * len * clampedT,
+                        start.Y + uy * len * clampedT,
+                        start.Z + (target.Z - start.Z) * clampedT);
+
+                    var distanceToRoute = Distance2D(center, closest);
+                    var obstacleRadius = Math.Max(0.0, obj.Radius);
+                    var physicalClearance = distanceToRoute - obstacleRadius - vehicleRadius;
+                    var safetyClearance = physicalClearance - safetyMargin;
+
+                    var isInRouteWindow = rawT >= -0.10 && rawT <= 1.15;
+                    var isCritical =
+                        isInRouteWindow &&
+                        physicalClearance < preferredPhysicalClearance;
+
+                    return new
+                    {
+                        Obj = obj,
+                        Center = center,
+                        RawT = rawT,
+                        ClampedT = clampedT,
+                        Closest = closest,
+                        ObstacleRadius = obstacleRadius,
+                        PhysicalClearance = physicalClearance,
+                        SafetyClearance = safetyClearance,
+                        IsCritical = isCritical
+                    };
+                })
+                .Where(x => x.IsCritical)
+                .OrderBy(x => x.SafetyClearance)
+                .ThenBy(x => x.RawT)
+                .Take(4)
+                .ToArray();
+
+            /*
+             * 1) Obstacle-centered candidates.
+             * These are the serious candidates. They are generated from the blocker
+             * geometry, not from arbitrary route fractions.
+             */
+            foreach (var blocker in criticalObstacles)
+            {
+                var baseClearance = Math.Clamp(
+                    blocker.ObstacleRadius + vehicleRadius + safetyMargin + 0.75 + speedBuffer,
+                    1.75,
+                    5.00);
+
+                var forwardBias = Math.Clamp(
+                    blocker.ObstacleRadius + vehicleRadius * 0.50 + 0.85,
+                    0.80,
+                    2.40);
+
+                var clearanceMultipliers = new[] { 0.95, 1.15, 1.45 };
+                var signs = new[] { 1.0, -1.0 };
+
+                foreach (var sign in signs)
+                {
+                    foreach (var multiplier in clearanceMultipliers)
+                    {
+                        var lateralOffset = baseClearance * multiplier;
+
+                        /*
+                         * Bypass point is placed around the obstacle itself and pushed
+                         * slightly forward along the route. This prevents the planner from
+                         * producing a detour point behind the vehicle after the boat has
+                         * already approached the obstacle.
+                         */
+                        var rawDetour = new Vec3(
+                            blocker.Center.X + nx * sign * lateralOffset + ux * forwardBias,
+                            blocker.Center.Y + ny * sign * lateralOffset + uy * forwardBias,
+                            blocker.Center.Z);
+
+                        AddCandidate(
+                            rawDetour,
+                            tag:
+                                $"obstacle={blocker.Obj.Id}," +
+                                $"side={(sign > 0.0 ? "L" : "R")}," +
+                                $"mode=obstacle-centered," +
+                                $"t={blocker.RawT:F2}," +
+                                $"obsR={blocker.ObstacleRadius:F2}," +
+                                $"pClear={blocker.PhysicalClearance:F2}," +
+                                $"sClear={blocker.SafetyClearance:F2}," +
+                                $"lat={lateralOffset:F2}," +
+                                $"fwd={forwardBias:F2}");
+                    }
+                }
+            }
+
+            /*
+             * 2) Generic fallback fan.
+             * This remains as coverage for cases where there is no single dominant
+             * blocker, but it is no longer the primary obstacle avoidance strategy.
+             */
+            var baseOffset = Math.Max(
+                vehicleRadius + safetyMargin + 1.0,
+                2.2);
+
+            var fractions = new[] { 0.25, 0.38, 0.50, 0.62, 0.76 };
+            var multipliers = new[] { 0.85, 1.15, 1.55, 2.05, 2.65 };
+            var genericSigns = new[] { 1.0, -1.0 };
+
             foreach (var fraction in fractions)
             {
                 var anchor = new Vec3(
@@ -235,7 +519,7 @@ namespace Hydronom.Core.Planning.Planners
                     start.Y + dy * fraction,
                     start.Z + (target.Z - start.Z) * fraction);
 
-                foreach (var sign in signs)
+                foreach (var sign in genericSigns)
                 {
                     foreach (var multiplier in multipliers)
                     {
@@ -246,33 +530,13 @@ namespace Hydronom.Core.Planning.Planners
                             anchor.Y + ny * sign * offset,
                             anchor.Z);
 
-                        var detour = ClampDetourToBoundaryBand(
+                        AddCandidate(
                             rawDetour,
-                            boundaryBand,
-                            out var boundaryTag);
-
-                        var tag =
-                            $"f={fraction:F2}," +
-                            $"side={(sign > 0 ? "L" : "R")}," +
-                            $"off={offset:F2}" +
-                            boundaryTag;
-
-                        var candidatePath = BuildDetourPath(
-                            context,
-                            start,
-                            detour,
-                            target,
-                            blocking,
-                            tag: tag);
-
-                        candidates.Add(
-                            ScorePathCandidate(
-                                kind: "detour",
-                                context: context,
-                                start: start,
-                                target: target,
-                                path: candidatePath,
-                                diagnostics: candidatePath.Summary));
+                            tag:
+                                $"mode=generic-fallback," +
+                                $"f={fraction:F2}," +
+                                $"side={(sign > 0 ? "L" : "R")}," +
+                                $"off={offset:F2}");
                     }
                 }
             }

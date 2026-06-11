@@ -3,13 +3,18 @@
 namespace Hydronom.Core.Modules
 {
     /// <summary>
-    /// Converts AdvancedAnalysisReport into operational risk and decision advice.
+    /// AdvancedAnalysisReport iÃ§inden operasyonel risk ve decision advice Ã¼retir.
     ///
-    /// Safety priority is strict:
-    /// 1) Contact / near-contact always wins.
-    /// 2) Critical-close obstacle always wins over passable corridor.
-    /// 3) Passable corridor is guidance only while clearance is still safe enough.
-    /// 4) Obstacle-ahead recovery must stay alive; it must not be suppressed too early.
+    /// Bu sÄ±nÄ±f Analysis â†’ Decision kÃ¶prÃ¼sÃ¼dÃ¼r.
+    /// Obstacle/clearance/sector analizinden karar Ã¶nerisi Ã§Ä±karÄ±r.
+    ///
+    /// Yeni prensip:
+    /// GÃ¼venlik katmanÄ± aracÄ± Ã¶ldÃ¼ren bir duvar deÄŸildir.
+    /// Ã–ncelik sÄ±rasÄ±:
+    ///
+    /// 1) GeÃ§ilebilir koridor varsa kontrollÃ¼ geÃ§.
+    /// 2) YakÄ±n engel varsa recovery/avoidance ile canlÄ± kal.
+    /// 3) Sadece temas/kaÃ§Ä±nÄ±lmaz Ã§arpÄ±ÅŸma gibi son Ã§are durumunda dur.
     /// </summary>
     public static class OperationalRiskAnalyzer
     {
@@ -36,10 +41,24 @@ namespace Hydronom.Core.Modules
             double obstacleRisk)
         {
             /*
-             * 1) REAL CONTACT / LAST RESORT.
+             * 1) KORÄ°DOR VARSA PANÄ°K YOK.
              *
-             * Passable corridor can never suppress contact handling.
-             * If we are already almost touching the object, recovery/escape is mandatory.
+             * Engel Ã¶nde olabilir, duba yakÄ±n olabilir, risk yÃ¼kselmiÅŸ olabilir.
+             * Ama analiz modÃ¼lÃ¼ "geÃ§ilebilir koridor var" diyorsa bu bir durma sebebi deÄŸil,
+             * kontrollÃ¼ geÃ§iÅŸ sebebidir.
+             */
+            if (report.HasPassableCorridor &&
+                report.CorridorConfidence >= PassableCorridorMinConfidence)
+            {
+                return BuildPassableCorridorAdvice(report, obstacleRisk);
+            }
+
+            /*
+             * 2) GERÃ‡EK TEMAS / SON Ã‡ARE.
+             *
+             * BurayÄ± Ã¶zellikle Ã§ok dÃ¼ÅŸÃ¼k tuttuk.
+             * Ã‡Ã¼nkÃ¼ "yakÄ±n engel" ile "durmak zorundayÄ±m" aynÄ± ÅŸey deÄŸildir.
+             * Bu profil sadece gerÃ§ekten objeye bindik gibi aÅŸÄ±rÄ± durumda devreye girer.
              */
             if (IsLastResortContact(report))
             {
@@ -68,11 +87,12 @@ namespace Hydronom.Core.Modules
             }
 
             /*
-             * 2) CRITICAL CLOSE OBSTACLE.
+             * 3) YAKIN ENGEL AMA KORÄ°DOR YOK.
              *
-             * This must be evaluated before passable corridor.
-             * A passable corridor is not allowed to say "panic yok" when the hull is
-             * already inside the critical close band.
+             * Eski sistem burada ForceCoast + Hold yapÄ±yordu.
+             * Yeni sistem "dur" demiyor; recovery/avoidance davranÄ±ÅŸÄ±nÄ± canlÄ± tutuyor.
+             * Decision katmanÄ± yaw/heading tarafÄ±nda kaÃ§Ä±nma Ã¼retebilsin diye
+             * gaz ve hareket tamamen Ã¶ldÃ¼rÃ¼lmez.
              */
             if (IsCriticalClose(report))
             {
@@ -81,17 +101,17 @@ namespace Hydronom.Core.Modules
                     CriticalCloseDistanceM);
 
                 double urgency = Math.Clamp(
-                    Math.Max(obstacleRisk, 0.72 + closeness * 0.24),
-                    0.72,
-                    0.96);
+                    Math.Max(obstacleRisk, 0.70 + closeness * 0.20),
+                    0.70,
+                    0.92);
 
                 return new DecisionAdviceProfile(
-                    MaxSpeedScale: Math.Clamp(0.46 - urgency * 0.14, 0.28, 0.46),
-                    ThrottleScale: Math.Clamp(0.42 - urgency * 0.12, 0.24, 0.42),
-                    YawAggressionScale: Math.Clamp(1.35 + urgency * 0.65, 1.55, 2.00),
-                    ArrivalCautionScale: Math.Clamp(1.55 + urgency * 0.55, 1.75, 2.25),
+                    MaxSpeedScale: Math.Clamp(0.48 - urgency * 0.12, 0.34, 0.48),
+                    ThrottleScale: Math.Clamp(0.46 - urgency * 0.10, 0.32, 0.46),
+                    YawAggressionScale: Math.Clamp(1.25 + urgency * 0.55, 1.45, 1.85),
+                    ArrivalCautionScale: Math.Clamp(1.45 + urgency * 0.45, 1.60, 2.10),
                     ObstacleAvoidanceUrgency: urgency,
-                    HoldPreference: Math.Clamp(0.16 + urgency * 0.24, 0.26, 0.46),
+                    HoldPreference: Math.Clamp(0.20 + urgency * 0.25, 0.30, 0.50),
                     ForceCoast: false,
                     PreferSafeHeading: true,
                     RequireSlowMode: true,
@@ -110,21 +130,11 @@ namespace Hydronom.Core.Modules
             }
 
             /*
-             * 3) PASSABLE CORRIDOR GUIDANCE.
+             * 4) Ã–NDE ENGEL VAR.
              *
-             * This is allowed only after contact and critical-close checks.
-             * Near obstacle band disables panic suppression even if corridor exists.
-             */
-            if (report.HasPassableCorridor &&
-                report.CorridorConfidence >= PassableCorridorMinConfidence)
-            {
-                return BuildPassableCorridorAdvice(report, obstacleRisk);
-            }
-
-            /*
-             * 4) OBSTACLE AHEAD.
-             *
-             * Not a stop command. It keeps avoidance alive early enough.
+             * Bu artÄ±k panik/Ã¶lÃ¼m modu deÄŸil.
+             * AraÃ§ hÄ±zÄ±nÄ± dÃ¼ÅŸÃ¼rÃ¼r, yaw kabiliyetini artÄ±rÄ±r, gÃ¼venli heading ister,
+             * fakat throttle'Ä± tamamen Ã¶ldÃ¼rmez.
              */
             if (report.HasObstacleAhead || report.FrontRiskScore >= 1.15)
             {
@@ -158,7 +168,7 @@ namespace Hydronom.Core.Modules
             }
 
             /*
-             * 5) ELEVATED RISK, NO PANIC.
+             * 5) RÄ°SK YÃœKSELMÄ°Å AMA PANÄ°K YOK.
              */
             if (obstacleRisk >= 0.30)
             {
@@ -200,12 +210,11 @@ namespace Hydronom.Core.Modules
         {
             double confidence = Math.Clamp(report.CorridorConfidence, 0.0, 1.0);
 
-            double closest = report.ClosestSurfaceDistanceM;
-            bool nearObstacle =
-                double.IsFinite(closest) &&
-                closest > 0.0 &&
-                closest <= CloseDistanceM;
-
+            /*
+             * Koridor varsa dÃ¼ÅŸÃ¼k gÃ¼ven bile tamamen yavaÅŸlatma sebebi deÄŸil.
+             * DÃ¼ÅŸÃ¼k gÃ¼ven: dikkatli ama canlÄ±.
+             * YÃ¼ksek gÃ¼ven: atik ve koridor merkezli.
+             */
             double speedScale = Math.Clamp(
                 0.68 + confidence * 0.22 - obstacleRisk * 0.10,
                 0.58,
@@ -240,8 +249,8 @@ namespace Hydronom.Core.Modules
                 CorridorWidthMeters: report.CorridorWidthMeters,
                 CorridorClearanceMeters: report.CorridorClearanceMeters,
                 CorridorConfidence: report.CorridorConfidence,
-                SuppressObstaclePanic: !nearObstacle,
-                PreferCorridorHeading: !nearObstacle
+                SuppressObstaclePanic: true,
+                PreferCorridorHeading: true
             ).Sanitized();
         }
 
@@ -286,9 +295,17 @@ namespace Hydronom.Core.Modules
                 clearanceRisk * 0.20 +
                 densityRisk * 0.15;
 
+            /*
+             * HasObstacleAhead tek baÅŸÄ±na panik sebebi deÄŸil.
+             * Sadece minimum dikkat seviyesi verir.
+             */
             if (report.HasObstacleAhead)
                 risk = Math.Max(risk, 0.32);
 
+            /*
+             * GeÃ§ilebilir koridor riskin anlamÄ±nÄ± deÄŸiÅŸtirir.
+             * Risk hÃ¢lÃ¢ vardÄ±r ama "dur" deÄŸil "kÄ±lavuzlu geÃ§" riskidir.
+             */
             if (report.HasPassableCorridor)
             {
                 double corridorRelief = Math.Clamp(
@@ -299,6 +316,10 @@ namespace Hydronom.Core.Modules
                 risk = Math.Max(0.08, risk - corridorRelief);
             }
 
+            /*
+             * GerÃ§ekten Ã§ok yakÄ±n temas varsa risk yÃ¼kselir,
+             * ama davranÄ±ÅŸ yine BuildObstacleAdvice iÃ§inde son Ã§areye ayrÄ±lÄ±r.
+             */
             if (IsCriticalClose(report))
             {
                 double closeness = ComputeCloseness01(
@@ -319,7 +340,8 @@ namespace Hydronom.Core.Modules
         {
             return report.ClosestSurfaceDistanceM > 0.0 &&
                    double.IsFinite(report.ClosestSurfaceDistanceM) &&
-                   report.ClosestSurfaceDistanceM <= ContactDistanceM;
+                   report.ClosestSurfaceDistanceM <= ContactDistanceM &&
+                   !report.HasPassableCorridor;
         }
 
         private static bool IsCriticalClose(

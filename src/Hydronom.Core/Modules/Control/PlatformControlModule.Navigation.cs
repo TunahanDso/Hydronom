@@ -1,3 +1,4 @@
+using System;
 using Hydronom.Core.Control;
 using Hydronom.Core.Domain;
 
@@ -8,18 +9,21 @@ namespace Hydronom.Core.Modules.Control
         /*
          * Trajectory-aware navigation control.
          *
-         * Stabil rollback / compile-fix sürümü:
-         * - 7A.3 liveScenarioFlow patch'i YOK.
-         * - Boundary clamp YOK.
-         * - Eski navigation davranışı korunur.
-         * - Sadece yeni capability-aware PlatformControlModule.cs çağrılarına uyumlu imza vardır.
+         * Paket-8H:
+         * Obstacle-bypass / local-detour takip davranışı tekne kinematiğine göre şekillendirildi.
          *
-         * PlatformControlModule.cs artık şunu çağırıyor:
-         * Navigate(intent, state, dt, avoidanceMode, capability)
-         * HoldPosition(intent, state, dt, capability)
+         * Kök problem:
+         * Planner artık doğru şekilde obstacle-bypass path seçiyor fakat control katmanı
+         * lookahead/local-detour noktasını takip ederken speed-error yüzünden negatif Fx üretiyordu.
+         * Tekne bu yüzden bypass noktasına ileri yay çizerek gitmek yerine, fren/geri/yan/yaw
+         * karışımıyla dubanın yanında sürünüyordu.
          *
-         * Bu dosya capability parametresini kabul eder ama eski stabil davranışı bozmamak için
-         * navigation matematiğinde agresif yeni müdahale yapmaz.
+         * Yeni davranış:
+         * - obstacle-bypass / local-detour / detour reason görülürse bypass-follow mode açılır.
+         * - bypass-follow modunda reverse surge yasaklanır.
+         * - yüksek heading error olsa bile küçük pozitif forward-flow korunur.
+         * - lateral Fy sınırlandırılır; tekne yanlamasına hedef kovalamaz.
+         * - yaw moment saturasyona daha az gider; araç önce akışla dönerek bypass noktasına yaklaşır.
          */
         private ControlOutput Navigate(
             ControlIntent intent,
@@ -55,64 +59,111 @@ namespace Hydronom.Core.Modules.Control
             var absHeadingError = Math.Abs(headingErrorDeg);
             var absYawRate = Math.Abs(yawRateDeg);
 
-            var desiredSpeed = ResolveTrajectoryDesiredSpeed(
+            var bypassFollowMode = IsBypassFollowIntent(
                 intent,
                 avoidanceMode);
+
+            var desiredSpeed = ResolveTrajectoryDesiredSpeed(
+                intent,
+                avoidanceMode,
+                bypassFollowMode);
 
             var speedLimit = ComputeOptimalSpeedLimit(
                 intent,
                 distance,
                 absHeadingError,
                 absYawRate,
-                avoidanceMode);
+                avoidanceMode,
+                bypassFollowMode);
 
             /*
-             * Constraint-optimal speed policy:
+             * Paket-8H:
+             * Bypass takipte reverse surge yasaktır.
              *
-             * Trajectory already computes the desired mission speed.
-             * Control must not multiply it with fear gates again.
-             *
-             * We only cap it by physically/control-wise valid speed limits.
+             * Sebep:
+             * local-detour ileri/yan tarafta iken speed error negatif kalabiliyor ve Fx tersine dönüyor.
+             * Tekne bu durumda bypass rotasını takip etmek yerine obstacle yanında debeleniyor.
              */
+            var allowReverseForNavigation =
+                intent.AllowReverse &&
+                !bypassFollowMode;
+
             var gatedDesiredSpeed = Math.Clamp(
                 desiredSpeed,
-                intent.AllowReverse ? -speedLimit : 0.0,
+                allowReverseForNavigation ? -speedLimit : 0.0,
                 speedLimit);
-            if (!intent.AllowReverse && gatedDesiredSpeed < 0.0)
+
+            if (!allowReverseForNavigation && gatedDesiredSpeed < 0.0)
                 gatedDesiredSpeed = 0.0;
+
+            if (bypassFollowMode && distance > 0.75)
+            {
+                /*
+                 * Bypass rotasında tamamen sıfır speed, aracın yaw saturasyonunda dönüp kalmasına
+                 * sebep oluyor. Küçük pozitif akış şart.
+                 */
+                var minimumBypassSpeed = ResolveMinimumBypassSpeed(
+                    absHeadingError,
+                    absYawRate,
+                    intent.RiskLevel);
+
+                gatedDesiredSpeed = Math.Max(
+                    gatedDesiredSpeed,
+                    Math.Min(minimumBypassSpeed, speedLimit));
+            }
 
             var gatedSpeedError = gatedDesiredSpeed - forwardSpeed;
 
-            /*
-             * Constraint-optimal surge control:
-             *
-             * P control corrects speed error.
-             * Feed-forward supplies the force needed to maintain requested speed.
-             *
-             * Without feed-forward, 0.75 m/s request settles around 0.59 m/s
-             * because P thrust balances drag before the target speed is reached.
-             */
             var feedForwardFx = ComputeSpeedFeedForwardFx(gatedDesiredSpeed);
 
             var fx =
                 feedForwardFx +
                 gatedSpeedError * SpeedKp * MaxFxN;
 
-            /*
-             * Turn-align fazı:
-             * Heading error çok büyükse ya da yaw rate çok yüksekse ileri thrust
-             * pozitif yönde zorlanmaz. Araç önce dönüp hizalanır.
-             */
             var turnAlign = absHeadingError >= 55.0 || absYawRate >= 95.0;
 
-            if (turnAlign && fx > 0.0)
-                fx *= 0.18;
+            if (bypassFollowMode)
+            {
+                /*
+                 * Bypass takipte ileri akış tamamen öldürülmez.
+                 * Büyük heading hatasında bile tekne küçük bir yay çizerek dönmelidir.
+                 */
+                if (turnAlign && fx > 0.0)
+                    fx *= 0.45;
 
-            if (absHeadingError >= 85.0 && fx > 0.0)
-                fx = 0.0;
+                if (absHeadingError >= 100.0 && fx > 0.0)
+                    fx *= 0.35;
 
-            if (!intent.AllowReverse && fx < 0.0)
-                fx = 0.0;
+                var minimumForwardFx = ResolveMinimumBypassForwardFx(
+                    distance,
+                    absHeadingError,
+                    absYawRate,
+                    intent.RiskLevel);
+
+                if (distance > 0.75 && fx < minimumForwardFx)
+                    fx = minimumForwardFx;
+
+                /*
+                 * Reverse surge bypass takipte kesin kapalı.
+                 */
+                if (fx < 0.0)
+                    fx = minimumForwardFx;
+            }
+            else
+            {
+                /*
+                 * Eski stabil davranış:
+                 * Heading error çok büyükse ya da yaw rate çok yüksekse ileri thrust azaltılır.
+                 */
+                if (turnAlign && fx > 0.0)
+                    fx *= 0.18;
+
+                if (absHeadingError >= 85.0 && fx > 0.0)
+                    fx = 0.0;
+
+                if (!intent.AllowReverse && fx < 0.0)
+                    fx = 0.0;
+            }
 
             /*
              * Yaw kontrol:
@@ -125,10 +176,6 @@ namespace Hydronom.Core.Modules.Control
 
             var yawCommandNorm = yawP + yawD;
 
-            /*
-             * Büyük heading hatasında minimum yaw otoritesi.
-             * Küçük hata/yüksek yaw rate durumunda damping baskın kalır.
-             */
             if (absHeadingError >= 20.0 && Math.Abs(yawCommandNorm) < 0.18)
                 yawCommandNorm = headingErrorDeg >= 0.0 ? 0.18 : -0.18;
 
@@ -137,19 +184,43 @@ namespace Hydronom.Core.Modules.Control
 
             yawCommandNorm = Math.Clamp(yawCommandNorm, -1.0, 1.0);
 
+            if (bypassFollowMode)
+            {
+                /*
+                 * Rudder/yaw saturasyonu bypass sırasında tekneyi olduğu yerde döndürüyor.
+                 * Biraz yaw otoritesi kalacak ama ileri akışla beraber ark çizilecek.
+                 */
+                var yawLimit = ResolveBypassYawLimit(
+                    absHeadingError,
+                    absYawRate,
+                    intent.RiskLevel);
+
+                yawCommandNorm = Math.Clamp(
+                    yawCommandNorm,
+                    -yawLimit,
+                    yawLimit);
+            }
+
             var tz = yawCommandNorm * MaxTzNm;
 
             /*
              * Lateral path correction:
-             * Lookahead noktası gövde ekseninde sağ/sol tarafta kalıyorsa çok sınırlı
-             * bir sway kuvveti üretir. Bu ana yönelim kontrolünü ezmez.
+             * Lookahead noktası gövde ekseninde sağ/sol tarafta kalıyorsa sınırlı sway üretir.
+             *
+             * Paket-8H:
+             * Bypass takipte lateral kuvvet daha da sınırlandırılır.
+             * Aksi halde araç local-detour noktasını yanlayarak kovalamaya çalışıyor.
              */
             var lateralErrorBody = Safe(targetBody.Y);
 
+            var fyLimitRatio = bypassFollowMode
+                ? 0.20
+                : 0.35;
+
             var fyPath = Math.Clamp(
                 lateralErrorBody * 1.35 - lateralSpeed * 2.25,
-                -MaxFyN * 0.35,
-                MaxFyN * 0.35);
+                -MaxFyN * fyLimitRatio,
+                MaxFyN * fyLimitRatio);
 
             var secondary = StabilizeSecondaryAxes(intent, state, dt);
 
@@ -162,18 +233,13 @@ namespace Hydronom.Core.Modules.Control
                 tz: tz
             );
 
-            /*
-             * Eski stabil davranışa en yakın yol:
-             * Önce klasik ClampCommand.
-             *
-             * Not:
-             * Capability parametresi imza uyumu için var. Burada agresif capability shaping
-             * yapmıyoruz çünkü son testlerde davranışı bozan şey controller tarafındaki
-             * ekstra müdahalelerdi.
-             */
             var command = ClampCommand(rawCommand);
 
-            var mode = avoidanceMode ? "AVOID_TRAJECTORY_CONTROL" : "TRAJECTORY_CONTROL";
+            var mode = bypassFollowMode
+                ? "BYPASS_TRAJECTORY_CONTROL"
+                : avoidanceMode
+                    ? "AVOID_TRAJECTORY_CONTROL"
+                    : "TRAJECTORY_CONTROL";
 
             var reason =
                 $"{mode} intent={intent.Kind} " +
@@ -185,6 +251,9 @@ namespace Hydronom.Core.Modules.Control
                 $"v={forwardSpeed:F2}->{desiredSpeed:F2}/{gatedDesiredSpeed:F2}mps " +
                 $"vLimit={speedLimit:F2} " +
                 $"turnAlign={turnAlign} " +
+                $"bypassFollow={bypassFollowMode} " +
+                $"reverseNav={allowReverseForNavigation} " +
+                $"targetBody=({targetBody.X:F2},{targetBody.Y:F2}) " +
                 $"risk={intent.RiskLevel:F2} " +
                 $"cap={capability.Summary} " +
                 $"src={intent.Reason}";
@@ -249,6 +318,112 @@ namespace Hydronom.Core.Modules.Control
                 $"src={intent.Reason}");
         }
 
+        private static bool IsBypassFollowIntent(
+            ControlIntent intent,
+            bool avoidanceMode)
+        {
+            if (!avoidanceMode)
+                return false;
+
+            var reason = intent.Reason ?? string.Empty;
+            var kind = intent.Kind.ToString();
+
+            return
+                ContainsIgnoreCase(reason, "obstacle-bypass") ||
+                ContainsIgnoreCase(reason, "local-detour") ||
+                ContainsIgnoreCase(reason, "BYPASS") ||
+                ContainsIgnoreCase(reason, "detour") ||
+                ContainsIgnoreCase(kind, "Avoid");
+        }
+
+        private static double ResolveMinimumBypassSpeed(
+            double absHeadingErrorDeg,
+            double absYawRateDeg,
+            double riskLevel)
+        {
+            var risk = Math.Clamp(Safe(riskLevel), 0.0, 1.0);
+
+            var speed = 0.28;
+
+            if (absHeadingErrorDeg >= 85.0)
+                speed = 0.18;
+            else if (absHeadingErrorDeg >= 65.0)
+                speed = 0.22;
+
+            if (absYawRateDeg >= 120.0)
+                speed = Math.Min(speed, 0.16);
+            else if (absYawRateDeg >= 85.0)
+                speed = Math.Min(speed, 0.20);
+
+            if (risk >= 0.85)
+                speed = Math.Min(speed, 0.18);
+            else if (risk >= 0.70)
+                speed = Math.Min(speed, 0.22);
+
+            return Math.Clamp(speed, 0.12, 0.35);
+        }
+
+        private static double ResolveMinimumBypassForwardFx(
+            double distanceMeters,
+            double absHeadingErrorDeg,
+            double absYawRateDeg,
+            double riskLevel)
+        {
+            if (!double.IsFinite(distanceMeters) || distanceMeters <= 0.75)
+                return 0.0;
+
+            var risk = Math.Clamp(Safe(riskLevel), 0.0, 1.0);
+
+            var ratio = 0.105;
+
+            if (absHeadingErrorDeg >= 90.0)
+                ratio = 0.055;
+            else if (absHeadingErrorDeg >= 70.0)
+                ratio = 0.075;
+
+            if (absYawRateDeg >= 120.0)
+                ratio *= 0.55;
+            else if (absYawRateDeg >= 85.0)
+                ratio *= 0.72;
+
+            if (risk >= 0.85)
+                ratio *= 0.55;
+            else if (risk >= 0.70)
+                ratio *= 0.75;
+
+            return Math.Clamp(
+                MaxFxN * ratio,
+                0.18,
+                MaxFxN * 0.14);
+        }
+
+        private static double ResolveBypassYawLimit(
+            double absHeadingErrorDeg,
+            double absYawRateDeg,
+            double riskLevel)
+        {
+            var risk = Math.Clamp(Safe(riskLevel), 0.0, 1.0);
+
+            var limit = 0.68;
+
+            if (absHeadingErrorDeg >= 90.0)
+                limit = 0.48;
+            else if (absHeadingErrorDeg >= 70.0)
+                limit = 0.56;
+
+            if (absYawRateDeg >= 120.0)
+                limit = Math.Min(limit, 0.42);
+            else if (absYawRateDeg >= 85.0)
+                limit = Math.Min(limit, 0.52);
+
+            if (risk >= 0.85)
+                limit = Math.Min(limit, 0.46);
+            else if (risk >= 0.70)
+                limit = Math.Min(limit, 0.56);
+
+            return Math.Clamp(limit, 0.35, 0.72);
+        }
+
         private static double ComputeSpeedFeedForwardFx(double desiredSpeedMps)
         {
             desiredSpeedMps = Safe(desiredSpeedMps);
@@ -260,19 +435,21 @@ namespace Hydronom.Core.Modules.Control
                 SpeedLinearFeedForwardNPerMps * desiredSpeedMps +
                 SpeedQuadraticFeedForwardNPerMps2 * desiredSpeedMps * Math.Abs(desiredSpeedMps);
         }
+
         private static double ResolveTrajectoryDesiredSpeed(
             ControlIntent intent,
-            bool avoidanceMode)
+            bool avoidanceMode,
+            bool bypassFollowMode)
         {
-            /*
-             * Desired speed is a mission/trajectory request.
-             * Do not downscale it here. Only clamp impossible values.
-             */
-            var maxSpeed = avoidanceMode ? 1.10 : 2.25;
+            var maxSpeed = bypassFollowMode
+                ? 0.85
+                : avoidanceMode
+                    ? 1.10
+                    : 2.25;
 
             return Math.Clamp(
                 Safe(intent.DesiredForwardSpeedMps),
-                intent.AllowReverse ? -maxSpeed : 0.0,
+                intent.AllowReverse && !bypassFollowMode ? -maxSpeed : 0.0,
                 maxSpeed);
         }
 
@@ -281,22 +458,18 @@ namespace Hydronom.Core.Modules.Control
             double distanceMeters,
             double absHeadingErrorDeg,
             double absYawRateDeg,
-            bool avoidanceMode)
+            bool avoidanceMode,
+            bool bypassFollowMode)
         {
-            /*
-             * This is not a "mode". It is the physical/control envelope:
-             * go as fast as possible while still being able to steer, brake,
-             * and respect risk/geometry constraints.
-             */
-            var limit = avoidanceMode ? 1.10 : 2.25;
+            var limit = bypassFollowMode
+                ? 0.85
+                : avoidanceMode
+                    ? 1.10
+                    : 2.25;
 
             if (!double.IsFinite(distanceMeters) || distanceMeters <= 0.15)
                 return 0.0;
 
-            /*
-             * Distance limit is only a braking envelope near the target.
-             * No more 4m / 2m / 1m double slowdown.
-             */
             if (distanceMeters <= 0.45)
                 limit = Math.Min(limit, 0.22);
             else if (distanceMeters <= 0.80)
@@ -304,53 +477,70 @@ namespace Hydronom.Core.Modules.Control
             else if (distanceMeters <= 1.25)
                 limit = Math.Min(limit, 0.58);
 
-            /*
-             * Heading envelope:
-             * If we are badly misaligned, cap forward speed.
-             * If heading is reasonable, keep mission speed alive.
-             */
-            if (absHeadingErrorDeg >= 105.0)
-                limit = 0.0;
-            else if (absHeadingErrorDeg >= 85.0)
-                limit = Math.Min(limit, 0.25);
-            else if (absHeadingErrorDeg >= 70.0)
-                limit = Math.Min(limit, 0.45);
-            else if (absHeadingErrorDeg >= 55.0)
-                limit = Math.Min(limit, 0.70);
-            else if (absHeadingErrorDeg >= 40.0)
-                limit = Math.Min(limit, 1.00);
+            if (bypassFollowMode)
+            {
+                /*
+                 * Bypass sırasında heading error speed'i öldürmez; sadece limitler.
+                 * Tam sıfır hız, local-detour takipte kötü davranıyor.
+                 */
+                if (absHeadingErrorDeg >= 115.0)
+                    limit = Math.Min(limit, 0.18);
+                else if (absHeadingErrorDeg >= 95.0)
+                    limit = Math.Min(limit, 0.25);
+                else if (absHeadingErrorDeg >= 75.0)
+                    limit = Math.Min(limit, 0.38);
+                else if (absHeadingErrorDeg >= 55.0)
+                    limit = Math.Min(limit, 0.55);
+            }
+            else
+            {
+                if (absHeadingErrorDeg >= 105.0)
+                    limit = 0.0;
+                else if (absHeadingErrorDeg >= 85.0)
+                    limit = Math.Min(limit, 0.25);
+                else if (absHeadingErrorDeg >= 70.0)
+                    limit = Math.Min(limit, 0.45);
+                else if (absHeadingErrorDeg >= 55.0)
+                    limit = Math.Min(limit, 0.70);
+                else if (absHeadingErrorDeg >= 40.0)
+                    limit = Math.Min(limit, 1.00);
+            }
 
-            /*
-             * Yaw-rate envelope:
-             * High yaw rate means the boat is already rotating hard,
-             * so cap forward speed until it stabilizes.
-             */
             if (absYawRateDeg >= 150.0)
-                limit = Math.Min(limit, 0.25);
+                limit = Math.Min(limit, bypassFollowMode ? 0.20 : 0.25);
             else if (absYawRateDeg >= 110.0)
-                limit = Math.Min(limit, 0.45);
+                limit = Math.Min(limit, bypassFollowMode ? 0.28 : 0.45);
             else if (absYawRateDeg >= 80.0)
-                limit = Math.Min(limit, 0.75);
+                limit = Math.Min(limit, bypassFollowMode ? 0.42 : 0.75);
             else if (absYawRateDeg >= 55.0)
-                limit = Math.Min(limit, 1.10);
+                limit = Math.Min(limit, bypassFollowMode ? 0.60 : 1.10);
 
-            /*
-             * Risk envelope:
-             * Risk is a speed limit, not a multiplicative panic brake.
-             */
             var risk = Math.Clamp(Safe(intent.RiskLevel), 0.0, 1.0);
 
             if (risk >= 0.95)
-                limit = Math.Min(limit, 0.25);
+                limit = Math.Min(limit, bypassFollowMode ? 0.20 : 0.25);
             else if (risk >= 0.85)
-                limit = Math.Min(limit, 0.45);
+                limit = Math.Min(limit, bypassFollowMode ? 0.28 : 0.45);
             else if (risk >= 0.70)
-                limit = Math.Min(limit, 0.75);
+                limit = Math.Min(limit, bypassFollowMode ? 0.45 : 0.75);
             else if (risk >= 0.55)
-                limit = Math.Min(limit, 1.05);
+                limit = Math.Min(limit, bypassFollowMode ? 0.65 : 1.05);
 
-            return Math.Clamp(limit, 0.0, avoidanceMode ? 1.10 : 2.25);
+            return Math.Clamp(
+                limit,
+                0.0,
+                bypassFollowMode ? 0.85 : avoidanceMode ? 1.10 : 2.25);
         }
+
+        private static bool ContainsIgnoreCase(
+            string value,
+            string needle)
+        {
+            return value.Contains(
+                needle,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private static Vec3 SanitizeVec(Vec3 value)
         {
             return new Vec3(

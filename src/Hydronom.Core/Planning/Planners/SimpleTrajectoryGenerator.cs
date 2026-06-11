@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hydronom.Core.Domain;
@@ -10,20 +10,20 @@ namespace Hydronom.Core.Planning.Planners
     /// <summary>
     /// World-aware trajectory generator.
     ///
-    /// PlannedPath noktalarını hız, heading, curvature, lookahead ve geçiş fazı bilgisi
-    /// taşıyan trajectory noktalarına çevirir.
+    /// PlannedPath noktalarÄ±nÄ± hÄ±z, heading, curvature, lookahead ve geÃ§iÅŸ fazÄ± bilgisi
+    /// taÅŸÄ±yan trajectory noktalarÄ±na Ã§evirir.
     ///
-    /// Bu sınıf sadece "path noktalarını kopyalayan" basit bir dönüştürücü değildir.
-    /// Araç-hedef mesafesi, path progress, risk, corridor/gate güvenliği, final capture
-    /// bölgesi ve CanReverse gibi görev/araç kabiliyetlerini birlikte değerlendirerek
-    /// daha profesyonel bir hız profili üretir.
+    /// Bu sÄ±nÄ±f sadece "path noktalarÄ±nÄ± kopyalayan" basit bir dÃ¶nÃ¼ÅŸtÃ¼rÃ¼cÃ¼ deÄŸildir.
+    /// AraÃ§-hedef mesafesi, path progress, risk, corridor/gate gÃ¼venliÄŸi, final capture
+    /// bÃ¶lgesi ve CanReverse gibi gÃ¶rev/araÃ§ kabiliyetlerini birlikte deÄŸerlendirerek
+    /// daha profesyonel bir hÄ±z profili Ã¼retir.
     ///
     /// Temel prensip:
-    /// - Araç hedefe uzakken cruise hızına izin verilir.
-    /// - Riskli corridor/gate noktalarında hız yumuşatılır.
-    /// - Final hedefe yaklaşınca arrival/capture hızına düşülür.
-    /// - Final noktanın trajectory point olarak hedefe yakın olması, araç uzaktayken tüm
-    ///   yolu arrival hızına kilitlemez.
+    /// - AraÃ§ hedefe uzakken cruise hÄ±zÄ±na izin verilir.
+    /// - Riskli corridor/gate noktalarÄ±nda hÄ±z yumuÅŸatÄ±lÄ±r.
+    /// - Final hedefe yaklaÅŸÄ±nca arrival/capture hÄ±zÄ±na dÃ¼ÅŸÃ¼lÃ¼r.
+    /// - Final noktanÄ±n trajectory point olarak hedefe yakÄ±n olmasÄ±, araÃ§ uzaktayken tÃ¼m
+    ///   yolu arrival hÄ±zÄ±na kilitlemez.
     /// </summary>
     public sealed class SimpleTrajectoryGenerator : ITrajectoryGenerator
     {
@@ -31,11 +31,21 @@ namespace Hydronom.Core.Planning.Planners
         private const double FinalCaptureLookAheadFactor = 0.55;
 
         /*
-         * Hız profili sabitleri.
+         * Detour/corridor sticky lookahead:
          *
-         * Bunlar doğrudan "yarış hızı" değildir; planner'ın trajectory üst sınırı /
-         * faz davranışıdır. Asıl fiziksel limitler yine PlanningContext, Control,
-         * SafetyLimiter ve Actuator katmanlarında korunur.
+         * If the local planner produced an intermediate point, trajectory must not
+         * immediately jump to the final waypoint while the vehicle is still close
+         * to obstacles. Otherwise the boat cuts the corner and scrapes blockers.
+         */
+        private const double DetourStickyLookAheadMeters = 0.85;
+        private const double RiskyPathStickyLookAheadMeters = 1.25;
+
+        /*
+         * HÄ±z profili sabitleri.
+         *
+         * Bunlar doÄŸrudan "yarÄ±ÅŸ hÄ±zÄ±" deÄŸildir; planner'Ä±n trajectory Ã¼st sÄ±nÄ±rÄ± /
+         * faz davranÄ±ÅŸÄ±dÄ±r. AsÄ±l fiziksel limitler yine PlanningContext, Control,
+         * SafetyLimiter ve Actuator katmanlarÄ±nda korunur.
          */
         private const double StartPointSpeedLimitMps = 0.35;
         private const double MinimumMovingSpeedMps = 0.12;
@@ -46,11 +56,11 @@ namespace Hydronom.Core.Planning.Planners
         private const double MaximumAvoidanceCruiseMps = 0.65;
 
         /*
-         * Hedefe yaklaşma bölgeleri.
+         * Hedefe yaklaÅŸma bÃ¶lgeleri.
          *
-         * Bu değerler acceptance radius ile ölçeklenir. Böylece küçük toleranslı hassas
-         * görevlerde daha erken yavaşlama, geniş fly-through görevlerinde daha akıcı
-         * geçiş elde edilir.
+         * Bu deÄŸerler acceptance radius ile Ã¶lÃ§eklenir. BÃ¶ylece kÃ¼Ã§Ã¼k toleranslÄ± hassas
+         * gÃ¶revlerde daha erken yavaÅŸlama, geniÅŸ fly-through gÃ¶revlerinde daha akÄ±cÄ±
+         * geÃ§iÅŸ elde edilir.
          */
         private const double CaptureZoneFactor = 1.35;
         private const double ApproachZoneFactor = 3.00;
@@ -252,9 +262,9 @@ namespace Hydronom.Core.Planning.Planners
             /*
              * Path-level risk policy:
              *
-             * Collision/replan risk hız profilini ciddi düşürür.
-             * Ama safe=True / feasible=True olan soft corridor risk, özellikle scenario
-             * fly-through hedeflerinde "sürün" anlamına gelmemeli.
+             * Collision/replan risk hÄ±z profilini ciddi dÃ¼ÅŸÃ¼rÃ¼r.
+             * Ama safe=True / feasible=True olan soft corridor risk, Ã¶zellikle scenario
+             * fly-through hedeflerinde "sÃ¼rÃ¼n" anlamÄ±na gelmemeli.
              */
             var risk = Math.Clamp(path.Risk.RiskScore, 0.0, 1.0);
             var hardRisk =
@@ -472,10 +482,60 @@ namespace Hydronom.Core.Planning.Planners
 
             var final = points[^1];
             var distanceToFinal = Distance(vehicle, final.Position);
+            /*
+             * Sticky intermediate waypoint rule:
+             *
+             * In detour/corridor paths, points[1] is usually the clearance-preserving
+             * local point. If lookahead jumps directly to the final scenario waypoint,
+             * the vehicle cuts the corner and can scrape the blocker.
+             *
+             * Therefore, while the intermediate point is still ahead, hold it until it
+             * is actually reached/passed. Final capture still works after that.
+             */
+            if (points.Count >= 3)
+            {
+                var intermediate = points[1];
+                var intermediateAhead =
+                    intermediate.DistanceAlongPathMeters + PassedPointSlackMeters >= progress.DistanceAlongPathMeters;
+
+                var intermediateDistance = Distance(vehicle, intermediate.Position);
+
+                var toFinalX = final.Position.X - vehicle.X;
+                var toFinalY = final.Position.Y - vehicle.Y;
+                var finalLen = Math.Sqrt(toFinalX * toFinalX + toFinalY * toFinalY);
+
+                var toIntermediateX = intermediate.Position.X - vehicle.X;
+                var toIntermediateY = intermediate.Position.Y - vehicle.Y;
+
+                var intermediateForwardDot = finalLen > 1e-6
+                    ? (toIntermediateX * toFinalX + toIntermediateY * toFinalY) / finalLen
+                    : 0.0;
+
+                var intermediateIsForward =
+                    intermediateForwardDot > 0.25;
+
+                var riskyPath =
+                    intermediate.RiskScore >= 0.35 ||
+                    final.RiskScore >= 0.35 ||
+                    context.Goal.Source.Contains("SCENARIO", StringComparison.OrdinalIgnoreCase) ||
+                    context.Goal.Reason.Contains("SCENARIO", StringComparison.OrdinalIgnoreCase) ||
+                    context.Goal.GoalId.Contains("wp", StringComparison.OrdinalIgnoreCase);
+
+                var stickyRadius = riskyPath
+                    ? RiskyPathStickyLookAheadMeters
+                    : DetourStickyLookAheadMeters;
+
+                if (intermediateAhead &&
+                    intermediateIsForward &&
+                    intermediateDistance > stickyRadius)
+                {
+                    return intermediate;
+                }
+            }
 
             /*
-             * Final hedefe yaklaşıldığında lookahead zorla daha eski corridor/gate
-             * noktalarına dönmemeli. Hedefe yeterince yaklaşıldıysa final referansı korunur.
+             * Final hedefe yaklaÅŸÄ±ldÄ±ÄŸÄ±nda lookahead zorla daha eski corridor/gate
+             * noktalarÄ±na dÃ¶nmemeli. Hedefe yeterince yaklaÅŸÄ±ldÄ±ysa final referansÄ± korunur.
              */
             if (distanceToFinal <= Math.Max(
                     final.AcceptanceRadiusMeters * 3.0,
@@ -507,8 +567,8 @@ namespace Hydronom.Core.Planning.Planners
                 return bestForward;
 
             /*
-             * Eğer lookahead mesafesi path sonunu aşıyorsa, ileride kalan son noktayı seç.
-             * Burada geride kalan gate noktalarını tekrar seçmiyoruz.
+             * EÄŸer lookahead mesafesi path sonunu aÅŸÄ±yorsa, ileride kalan son noktayÄ± seÃ§.
+             * Burada geride kalan gate noktalarÄ±nÄ± tekrar seÃ§miyoruz.
              */
             for (var i = points.Count - 1; i >= 0; i--)
             {
@@ -532,7 +592,7 @@ namespace Hydronom.Core.Planning.Planners
                 return false;
 
             /*
-             * Noktanın path distance'ı aracın projection ilerlemesinden belirgin şekilde
+             * NoktanÄ±n path distance'Ä± aracÄ±n projection ilerlemesinden belirgin ÅŸekilde
              * gerideyse bu nokta lookahead olamaz.
              */
             return point.DistanceAlongPathMeters < progress.DistanceAlongPathMeters - PassedPointSlackMeters;
@@ -780,3 +840,5 @@ namespace Hydronom.Core.Planning.Planners
             double DistanceMeters);
     }
 }
+
+
