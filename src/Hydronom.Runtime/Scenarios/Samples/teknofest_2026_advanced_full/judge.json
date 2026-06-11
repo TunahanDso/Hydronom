@@ -1,0 +1,22 @@
+{
+  "judge": {
+    "enabled": true,
+    "checkCollisions": true,
+    "checkNoGoZones": true,
+    "enforceObjectiveOrder": true,
+    "failOnRequiredObjectiveFailure": false,
+    "failOnCollision": false,
+    "failOnNoGoZoneViolation": false,
+    "collisionPenalty": 20.0,
+    "noGoZonePenalty": 20.0,
+    "degradedOperationPenalty": 5.0,
+    "parameters": {
+      "scenario.judgeProfile": "teknofest_advanced_full_sim",
+      "lineFollowing.maxDurationSec": "300",
+      "autonomous.maxDurationSec": "300",
+      "mainUuv.forbiddenPipeEntry": "true",
+      "miniRov.requiredForPipe": "true",
+      "visual.realisticParkur": "true"
+    }
+  }
+}

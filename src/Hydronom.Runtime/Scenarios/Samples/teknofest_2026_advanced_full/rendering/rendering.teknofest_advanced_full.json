@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "hydronom.rendering.v1",
+  "scenarioId": "teknofest_2026_advanced_full",
+  "palette": {
+    "ral3020": "#cc0605",
+    "ral9005": "#0a0a0a",
+    "st37Metal": "#71717a",
+    "pipeBlack": "#111827",
+    "pipeEdge": "#64748b",
+    "waterCyan": "#14b8a6",
+    "gateBlue": "#38bdf8",
+    "warningAmber": "#f59e0b",
+    "dangerRed": "#ef4444",
+    "successGreen": "#22c55e"
+  },
+  "renderers": {
+    "guidance_board": {
+      "kind": "extruded_strip_polyline",
+      "heightM": 0.10,
+      "widthM": 0.15,
+      "fillColor": "#cc0605",
+      "strokeColor": "#7f1d1d",
+      "material": "painted_st37"
+    },
+    "track_stripe": {
+      "kind": "painted_strip_polyline",
+      "heightM": 0.012,
+      "widthM": 0.03,
+      "fillColor": "#0a0a0a",
+      "material": "matte_paint"
+    },
+    "pipe_segment": {
+      "kind": "pipe_polyline",
+      "outerRadiusM": 0.30,
+      "innerRadiusM": 0.22,
+      "fillColor": "#111827",
+      "strokeColor": "#64748b",
+      "material": "dark_pipe"
+    },
+    "pipe_entry": {
+      "kind": "ring_portal",
+      "outerRadiusM": 0.30,
+      "innerRadiusM": 0.22,
+      "thicknessM": 0.08,
+      "fillColor": "#111827",
+      "accentColor": "#38bdf8"
+    },
+    "clue_marker": {
+      "kind": "glowing_plate",
+      "fillColor": "#facc15",
+      "accentColor": "#fef08a"
+    },
+    "gate_left": {
+      "kind": "gate_post",
+      "fillColor": "#38bdf8",
+      "heightM": 0.90,
+      "radiusM": 0.12
+    },
+    "gate_right": {
+      "kind": "gate_post",
+      "fillColor": "#38bdf8",
+      "heightM": 0.90,
+      "radiusM": 0.12
+    },
+    "controlled_zone": {
+      "kind": "zone_polygon",
+      "fillColor": "#f59e0b",
+      "opacity": 0.17
+    },
+    "no_go_zone": {
+      "kind": "zone_polygon",
+      "fillColor": "#ef4444",
+      "opacity": 0.18
+    }
+  },
+  "hud": {
+    "showStageLabel": true,
+    "showActiveObjective": true,
+    "showVehicleAccessHints": true,
+    "showPipeRestrictionWarning": true
+  }
+}

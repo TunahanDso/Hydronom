@@ -1,0 +1,238 @@
+{
+  "schemaVersion": "hydronom.layout.v1",
+  "stageId": "advanced_line_following_closed_inspection",
+  "displayName": "İleri Kategori - Hat Takibi ve Kapalı Alan İncelemesi",
+  "durationSec": 300,
+  "coordinateUnit": "meter",
+  "objects": [
+    {
+      "id": "lf_start_zone",
+      "type": "start_zone",
+      "label": "Hat Takibi Başlangıç Alanı",
+      "shape": "cylinder",
+      "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "radius": 0.6,
+      "height": 0.04,
+      "visual": {
+        "fillColor": "#22c55e",
+        "strokeColor": "#bbf7d0",
+        "opacity": 0.18,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "main_uuv",
+        "interaction": "start"
+      }
+    },
+    {
+      "id": "guidance_board_a",
+      "type": "guidance_board",
+      "label": "Yönlendirme Tahtası A",
+      "shape": "strip_polyline",
+      "width": 0.15,
+      "height": 0.10,
+      "points": [
+        { "x": 0.7, "y": 0.0, "z": -0.55 },
+        { "x": 2.7, "y": 0.0, "z": -0.55 },
+        { "x": 5.0, "y": 0.0, "z": -0.55 },
+        { "x": 5.0, "y": 2.0, "z": -0.55 },
+        { "x": 5.0, "y": 4.0, "z": -0.55 },
+        { "x": 8.0, "y": 4.0, "z": -0.55 }
+      ],
+      "visual": {
+        "fillColor": "#cc0605",
+        "strokeColor": "#7f1d1d",
+        "opacity": 0.94,
+        "metalness": 0.32,
+        "roughness": 0.38,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "material": "st37",
+        "ral": "RAL3020",
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "main_uuv",
+        "interaction": "follow",
+        "resetOnTouch": "true",
+        "judgeTracked": "true"
+      }
+    },
+    {
+      "id": "track_stripe_a",
+      "type": "track_stripe",
+      "label": "Siyah Takip Şeridi",
+      "shape": "strip_polyline",
+      "width": 0.03,
+      "height": 0.012,
+      "zOffset": 0.065,
+      "points": [
+        { "x": 0.7, "y": 0.0, "z": -0.48 },
+        { "x": 2.7, "y": 0.0, "z": -0.48 },
+        { "x": 5.0, "y": 0.0, "z": -0.48 },
+        { "x": 5.0, "y": 2.0, "z": -0.48 },
+        { "x": 5.0, "y": 4.0, "z": -0.48 },
+        { "x": 8.0, "y": 4.0, "z": -0.48 }
+      ],
+      "visual": {
+        "fillColor": "#0a0a0a",
+        "strokeColor": "#000000",
+        "opacity": 1.0,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "ral": "RAL9005",
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "main_uuv",
+        "interaction": "visual_line_follow"
+      }
+    },
+    {
+      "id": "mini_rov_drop_zone",
+      "type": "mini_rov_drop_zone",
+      "label": "Mini ROV Bırakma Alanı",
+      "shape": "cylinder",
+      "position": { "x": 8.25, "y": 4.0, "z": -0.45 },
+      "radius": 0.45,
+      "height": 0.06,
+      "visual": {
+        "fillColor": "#a855f7",
+        "strokeColor": "#e9d5ff",
+        "opacity": 0.24,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "main_uuv",
+        "interaction": "deploy_mini_rov"
+      }
+    },
+    {
+      "id": "pipe_entry",
+      "type": "pipe_entry",
+      "label": "Boru Giriş Ağzı",
+      "shape": "ring",
+      "position": { "x": 8.75, "y": 4.0, "z": -0.45 },
+      "rotationDeg": { "roll": 0.0, "pitch": 0.0, "yaw": 0.0 },
+      "outerRadius": 0.30,
+      "innerRadius": 0.22,
+      "thickness": 0.08,
+      "visual": {
+        "fillColor": "#111827",
+        "strokeColor": "#38bdf8",
+        "opacity": 0.95,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "mini_rov",
+        "forbiddenVehicle": "main_uuv",
+        "interaction": "enter_pipe"
+      }
+    },
+    {
+      "id": "pipe_segment_main",
+      "type": "pipe_segment",
+      "label": "Mini ROV Boru Hattı",
+      "shape": "pipe_polyline",
+      "outerRadius": 0.30,
+      "innerRadius": 0.22,
+      "points": [
+        { "x": 8.75, "y": 4.0, "z": -0.45 },
+        { "x": 10.0, "y": 4.0, "z": -0.45 },
+        { "x": 11.2, "y": 4.0, "z": -0.45 },
+        { "x": 11.8, "y": 4.6, "z": -0.45 }
+      ],
+      "visual": {
+        "fillColor": "#111827",
+        "strokeColor": "#64748b",
+        "opacity": 0.88,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "mini_rov",
+        "forbiddenVehicle": "main_uuv",
+        "interaction": "pipe_navigation"
+      }
+    },
+    {
+      "id": "pipe_clue_marker",
+      "type": "clue_marker",
+      "label": "Boru Sonu İpucu",
+      "shape": "box",
+      "position": { "x": 11.95, "y": 4.75, "z": -0.45 },
+      "size": { "x": 0.18, "y": 0.04, "z": 0.18 },
+      "visual": {
+        "fillColor": "#facc15",
+        "strokeColor": "#fef08a",
+        "opacity": 0.95,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "mini_rov",
+        "interaction": "inspect_clue",
+        "judgeTracked": "true"
+      }
+    },
+    {
+      "id": "lf_finish_zone",
+      "type": "finish_zone",
+      "label": "Kapalı Alan İnceleme Bitiş",
+      "shape": "cylinder",
+      "position": { "x": 8.2, "y": 4.0, "z": -0.45 },
+      "radius": 0.38,
+      "height": 0.05,
+      "visual": {
+        "fillColor": "#22c55e",
+        "strokeColor": "#bbf7d0",
+        "opacity": 0.16,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_line_following_closed_inspection",
+        "allowedVehicle": "mini_rov",
+        "interaction": "exit_pipe_and_complete"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "main_uuv_line_follow_route",
+      "vehicle": "main_uuv",
+      "label": "Ana UUV Yönlendirme Tahtası Rotası",
+      "points": [
+        { "x": 0.0, "y": 0.0, "z": -0.45, "label": "Start" },
+        { "x": 0.7, "y": 0.0, "z": -0.45, "label": "Board Entry" },
+        { "x": 2.7, "y": 0.0, "z": -0.45, "label": "Straight 1" },
+        { "x": 5.0, "y": 0.0, "z": -0.45, "label": "Turn 1" },
+        { "x": 5.0, "y": 2.0, "z": -0.45, "label": "Vertical" },
+        { "x": 5.0, "y": 4.0, "z": -0.45, "label": "Turn 2" },
+        { "x": 8.0, "y": 4.0, "z": -0.45, "label": "Pipe Approach" },
+        { "x": 8.25, "y": 4.0, "z": -0.45, "label": "Mini ROV Drop" }
+      ]
+    },
+    {
+      "id": "mini_rov_pipe_route",
+      "vehicle": "mini_rov",
+      "label": "Mini ROV Boru İçi Rota",
+      "points": [
+        { "x": 8.25, "y": 4.0, "z": -0.45, "label": "Deploy" },
+        { "x": 8.75, "y": 4.0, "z": -0.45, "label": "Pipe Entry" },
+        { "x": 10.0, "y": 4.0, "z": -0.45, "label": "Pipe Mid" },
+        { "x": 11.2, "y": 4.0, "z": -0.45, "label": "Pipe End Approach" },
+        { "x": 11.95, "y": 4.75, "z": -0.45, "label": "Clue" },
+        { "x": 8.25, "y": 4.0, "z": -0.45, "label": "Exit Complete" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "hydronom.layout.v1",
+  "stageId": "advanced_autonomous_navigation_controlled_passage",
+  "displayName": "İleri Kategori - Otonom Navigasyon, İntikal ve Kontrollü Alan Geçişi",
+  "durationSec": 300,
+  "coordinateUnit": "meter",
+  "objects": [
+    {
+      "id": "auto_start_zone",
+      "type": "start_zone",
+      "label": "Otonom Başlangıç",
+      "shape": "cylinder",
+      "position": { "x": 0.0, "y": -2.2, "z": -0.45 },
+      "radius": 0.65,
+      "height": 0.04,
+      "visual": {
+        "fillColor": "#22c55e",
+        "strokeColor": "#bbf7d0",
+        "opacity": 0.18,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "allowedVehicle": "main_uuv",
+        "interaction": "start"
+      }
+    },
+    {
+      "id": "auto_gate_1_left",
+      "type": "gate_left",
+      "label": "Kapı 1 Sol",
+      "shape": "cylinder",
+      "position": { "x": 2.8, "y": -2.85, "z": -0.45 },
+      "radius": 0.12,
+      "height": 0.9,
+      "visual": {
+        "fillColor": "#38bdf8",
+        "strokeColor": "#bae6fd",
+        "opacity": 0.9,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "gateId": "auto_gate_1",
+        "side": "left",
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "interaction": "gate_pass"
+      }
+    },
+    {
+      "id": "auto_gate_1_right",
+      "type": "gate_right",
+      "label": "Kapı 1 Sağ",
+      "shape": "cylinder",
+      "position": { "x": 2.8, "y": -1.55, "z": -0.45 },
+      "radius": 0.12,
+      "height": 0.9,
+      "visual": {
+        "fillColor": "#38bdf8",
+        "strokeColor": "#bae6fd",
+        "opacity": 0.9,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "gateId": "auto_gate_1",
+        "side": "right",
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "interaction": "gate_pass"
+      }
+    },
+    {
+      "id": "auto_gate_2_left",
+      "type": "gate_left",
+      "label": "Kapı 2 Sol",
+      "shape": "cylinder",
+      "position": { "x": 5.6, "y": -0.2, "z": -0.45 },
+      "radius": 0.12,
+      "height": 0.9,
+      "visual": {
+        "fillColor": "#60a5fa",
+        "strokeColor": "#dbeafe",
+        "opacity": 0.9,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "gateId": "auto_gate_2",
+        "side": "left",
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "interaction": "gate_pass"
+      }
+    },
+    {
+      "id": "auto_gate_2_right",
+      "type": "gate_right",
+      "label": "Kapı 2 Sağ",
+      "shape": "cylinder",
+      "position": { "x": 6.8, "y": 0.5, "z": -0.45 },
+      "radius": 0.12,
+      "height": 0.9,
+      "visual": {
+        "fillColor": "#60a5fa",
+        "strokeColor": "#dbeafe",
+        "opacity": 0.9,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "gateId": "auto_gate_2",
+        "side": "right",
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "interaction": "gate_pass"
+      }
+    },
+    {
+      "id": "controlled_zone_a",
+      "type": "controlled_zone",
+      "label": "Kontrollü Alan",
+      "shape": "polygon",
+      "points": [
+        { "x": 7.6, "y": -0.7, "z": -0.45 },
+        { "x": 10.0, "y": -0.7, "z": -0.45 },
+        { "x": 10.0, "y": 1.1, "z": -0.45 },
+        { "x": 7.6, "y": 1.1, "z": -0.45 }
+      ],
+      "visual": {
+        "fillColor": "#f59e0b",
+        "strokeColor": "#fde68a",
+        "opacity": 0.17,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "allowedVehicle": "main_uuv",
+        "interaction": "controlled_area_pass"
+      }
+    },
+    {
+      "id": "no_go_zone_auto_1",
+      "type": "no_go_zone",
+      "label": "Yasak Alan 1",
+      "shape": "polygon",
+      "points": [
+        { "x": 4.2, "y": -2.2, "z": -0.45 },
+        { "x": 5.4, "y": -2.0, "z": -0.45 },
+        { "x": 5.3, "y": -1.0, "z": -0.45 },
+        { "x": 4.0, "y": -1.1, "z": -0.45 }
+      ],
+      "visual": {
+        "fillColor": "#ef4444",
+        "strokeColor": "#fecaca",
+        "opacity": 0.18,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "interaction": "avoid",
+        "penalty": "true"
+      }
+    },
+    {
+      "id": "auto_finish_zone",
+      "type": "finish_zone",
+      "label": "Otonom Bitiş",
+      "shape": "cylinder",
+      "position": { "x": 11.2, "y": 0.2, "z": -0.45 },
+      "radius": 0.65,
+      "height": 0.04,
+      "visual": {
+        "fillColor": "#22c55e",
+        "strokeColor": "#bbf7d0",
+        "opacity": 0.20,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionStage": "advanced_autonomous_navigation_controlled_passage",
+        "allowedVehicle": "main_uuv",
+        "interaction": "finish"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "main_uuv_autonomous_route",
+      "vehicle": "main_uuv",
+      "label": "Ana UUV Otonom Navigasyon Rotası",
+      "points": [
+        { "x": 0.0, "y": -2.2, "z": -0.45, "label": "Auto Start" },
+        { "x": 2.8, "y": -2.2, "z": -0.45, "label": "Gate 1 Center" },
+        { "x": 6.2, "y": 0.15, "z": -0.45, "label": "Gate 2 Center" },
+        { "x": 8.2, "y": 0.2, "z": -0.45, "label": "Controlled Zone Entry" },
+        { "x": 9.4, "y": 0.2, "z": -0.45, "label": "Controlled Zone Exit" },
+        { "x": 11.2, "y": 0.2, "z": -0.45, "label": "Finish" }
+      ]
+    }
+  ]
+}

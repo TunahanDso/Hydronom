@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "hydronom.objectives.v1",
+  "stageId": "advanced_autonomous_navigation_controlled_passage",
+  "displayName": "Otonom Navigasyon, İntikal ve Kontrollü Alan Geçişi Objective Zinciri",
+  "maxDurationSec": 300,
+  "objectives": [
+    {
+      "id": "auto_001_start",
+      "type": "start",
+      "vehicle": "main_uuv",
+      "label": "Otonom başlangıç alanından çıkış",
+      "targetObjectId": "auto_start_zone",
+      "completion": {
+        "mode": "enter_radius",
+        "radiusM": 0.7,
+        "settleSec": 0.5
+      },
+      "score": 0
+    },
+    {
+      "id": "auto_010_gate_1",
+      "type": "gate_pass",
+      "vehicle": "main_uuv",
+      "label": "Kapı 1 geçişi",
+      "targetGateId": "auto_gate_1",
+      "targetPoint": { "x": 2.8, "y": -2.2, "z": -0.45 },
+      "completion": {
+        "mode": "pass_gate",
+        "radiusM": 0.55,
+        "settleSec": 0.4
+      },
+      "score": 20
+    },
+    {
+      "id": "auto_020_gate_2",
+      "type": "gate_pass",
+      "vehicle": "main_uuv",
+      "label": "Kapı 2 geçişi",
+      "targetGateId": "auto_gate_2",
+      "targetPoint": { "x": 6.2, "y": 0.15, "z": -0.45 },
+      "completion": {
+        "mode": "pass_gate",
+        "radiusM": 0.55,
+        "settleSec": 0.4
+      },
+      "score": 20
+    },
+    {
+      "id": "auto_030_controlled_zone_entry",
+      "type": "controlled_zone_entry",
+      "vehicle": "main_uuv",
+      "label": "Kontrollü alana giriş",
+      "targetPoint": { "x": 8.2, "y": 0.2, "z": -0.45 },
+      "completion": {
+        "mode": "enter_polygon",
+        "targetObjectId": "controlled_zone_a",
+        "settleSec": 0.4
+      },
+      "score": 15
+    },
+    {
+      "id": "auto_040_controlled_zone_exit",
+      "type": "controlled_zone_exit",
+      "vehicle": "main_uuv",
+      "label": "Kontrollü alandan çıkış",
+      "targetPoint": { "x": 9.4, "y": 0.2, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.5,
+        "settleSec": 0.4
+      },
+      "score": 15
+    },
+    {
+      "id": "auto_050_finish",
+      "type": "finish",
+      "vehicle": "main_uuv",
+      "label": "Otonom bitiş alanına ulaş",
+      "targetObjectId": "auto_finish_zone",
+      "completion": {
+        "mode": "enter_radius",
+        "radiusM": 0.65,
+        "settleSec": 1.0
+      },
+      "score": 30
+    }
+  ],
+  "penalties": [
+    {
+      "id": "penalty_no_go_zone",
+      "type": "zone_intersection",
+      "objectType": "no_go_zone",
+      "points": -20,
+      "label": "Yasak alana giriş cezası"
+    }
+  ],
+  "scoring": {
+    "maxTaskScore": 100,
+    "durationScoreFormula": "GP * remainingSeconds / 300",
+    "notes": [
+      "Bu JSON simülasyon/judge temsilidir; resmi hakem kararı yerine geçmez"
+    ]
+  }
+}

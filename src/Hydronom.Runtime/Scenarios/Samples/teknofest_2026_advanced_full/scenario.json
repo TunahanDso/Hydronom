@@ -1,0 +1,32 @@
+{
+  "id": "teknofest_2026_advanced_full",
+  "name": "TEKNOFEST 2026 İleri Kategori Full Parkur",
+  "description": "Ana UUV ve Mini ROV için iki aşamalı TEKNOFEST ileri kategori parkur paketi. Aşama 1: yönlendirme tahtası/hat takibi ve boru içi ipucu inceleme. Aşama 2: otonom navigasyon, intikal ve kontrollü alan geçişi.",
+  "version": "1.0.0",
+  "scenarioFamily": "teknofest_underwater_advanced",
+  "coordinateFrame": "local_metric",
+  "runMode": "simulation",
+  "vehicleId": "hydronom-main",
+  "vehiclePlatform": "underwater_vehicle",
+  "startX": 0.0,
+  "startY": 0.0,
+  "startZ": -0.45,
+  "startRollDeg": 0.0,
+  "startPitchDeg": 0.0,
+  "startYawDeg": 0.0,
+  "timeLimitSeconds": 600.0,
+  "minimumSuccessScore": 100.0,
+  "tags": {
+    "scenario.package": "true",
+    "scenario.packageVersion": "vp8",
+    "scenario.profileAware": "true",
+    "scenario.mainVehicleProfileId": "hydronom_uuv_main_2026",
+    "scenario.miniRovProfileId": "hydronom_mini_rov_2026",
+    "scenario.stageCount": "2",
+    "scenario.stage.1": "advanced_line_following_closed_inspection",
+    "scenario.stage.2": "advanced_autonomous_navigation_controlled_passage",
+    "teknofest.category": "advanced",
+    "teknofest.year": "2026",
+    "teknofest.visual.realistic": "true"
+  }
+}

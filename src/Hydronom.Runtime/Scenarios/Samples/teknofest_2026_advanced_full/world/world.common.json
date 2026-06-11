@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "hydronom.world.package.v1",
+  "worldId": "teknofest_2026_advanced_full_world",
+  "displayName": "TEKNOFEST 2026 Advanced Full World",
+  "environment": {
+    "type": "underwater_pool",
+    "waterDepthM": 3.0,
+    "floor": {
+      "type": "flat_pool_floor",
+      "sizeX": 18.0,
+      "sizeY": 14.0,
+      "z": -1.2,
+      "color": "#0f172a",
+      "grid": true
+    },
+    "lighting": {
+      "ambientIntensity": 0.72,
+      "mainLightIntensity": 1.1,
+      "fogEnabled": true,
+      "fogColor": "#042f2e",
+      "fogNear": 30,
+      "fogFar": 130
+    }
+  },
+  "commonObjects": [
+    {
+      "id": "dock_start",
+      "type": "dock",
+      "label": "İskele / Başlangıç",
+      "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "size": { "x": 1.6, "y": 0.6, "z": 0.12 },
+      "shape": "box",
+      "visual": {
+        "fillColor": "#64748b",
+        "strokeColor": "#cbd5e1",
+        "opacity": 0.72,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionRole": "start",
+        "allowedVehicle": "main_uuv"
+      }
+    },
+    {
+      "id": "pool_boundary",
+      "type": "boundary",
+      "label": "Parkur Sınırı",
+      "shape": "polygon",
+      "points": [
+        { "x": -2.0, "y": -4.0, "z": 0.0 },
+        { "x": 15.0, "y": -4.0, "z": 0.0 },
+        { "x": 15.0, "y": 9.0, "z": 0.0 },
+        { "x": -2.0, "y": 9.0, "z": 0.0 }
+      ],
+      "visual": {
+        "fillColor": "#020617",
+        "strokeColor": "#475569",
+        "opacity": 0.06,
+        "strokeWidth": 0.04,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionRole": "world_boundary"
+      }
+    },
+    {
+      "id": "safety_rope_hint",
+      "type": "safety_line",
+      "label": "Emniyet Halatı Temsilî",
+      "shape": "polyline",
+      "points": [
+        { "x": 0.0, "y": -0.2, "z": 0.0 },
+        { "x": 2.0, "y": -0.4, "z": -0.1 },
+        { "x": 4.0, "y": -0.25, "z": -0.1 }
+      ],
+      "visual": {
+        "strokeColor": "#f8fafc",
+        "opacity": 0.22,
+        "strokeWidth": 0.025,
+        "render3d": true,
+        "render2d": false
+      },
+      "tags": {
+        "missionRole": "safety_visual_only"
+      }
+    }
+  ]
+}

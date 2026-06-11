@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "hydronom.scenario.package.v1",
+  "scenarioId": "teknofest_2026_advanced_full",
+  "displayName": "TEKNOFEST 2026 İleri Kategori Full Parkur",
+  "category": "advanced",
+  "competition": "TEKNOFEST İnsansız Su Altı Sistemleri Yarışması",
+  "year": 2026,
+  "source": {
+    "rulesDocument": "2026 İnsansız Su Altı Sistemleri Yarışması Teknik Şartnamesi",
+    "drawing": "İleri Kategori Hat Takibi ve Kapalı Alan İncelemesi HT26-A1-001-001-00",
+    "notes": [
+      "Yönlendirme yolu malzemesi ST37 sac",
+      "Yönlendirme yolu RAL3020 kırmızı",
+      "Takip şeridi RAL9005 siyah",
+      "Nihai teknik çizimler değişebilir; bu paket yarışma dokümanlarına göre simülasyon/ops parkur temsilidir"
+    ]
+  },
+  "entrypoint": {
+    "metadata": "metadata.json",
+    "commonWorld": "world/world.common.json",
+    "layouts": [
+      "layouts/layout.line_following_closed_inspection.json",
+      "layouts/layout.autonomous_navigation_controlled_passage.json"
+    ],
+    "objectives": [
+      "objectives/objectives.line_following_closed_inspection.json",
+      "objectives/objectives.autonomous_navigation_controlled_passage.json"
+    ],
+    "rules": "rules/rules.advanced_full.json",
+    "rendering": "rendering/rendering.teknofest_advanced_full.json"
+  },
+  "vehicles": {
+    "mainVehicleProfileId": "hydronom_uuv_main_2026",
+    "miniRovProfileId": "hydronom_mini_rov_2026"
+  },
+  "stages": [
+    {
+      "stageId": "advanced_line_following_closed_inspection",
+      "displayName": "Hat Takibi ve Kapalı Alan İncelemesi",
+      "mode": "semi_autonomous",
+      "maxDurationSec": 300,
+      "layoutFile": "layouts/layout.line_following_closed_inspection.json",
+      "objectiveFile": "objectives/objectives.line_following_closed_inspection.json"
+    },
+    {
+      "stageId": "advanced_autonomous_navigation_controlled_passage",
+      "displayName": "Otonom Navigasyon, İntikal ve Kontrollü Alan Geçişi",
+      "mode": "autonomous",
+      "maxDurationSec": 300,
+      "layoutFile": "layouts/layout.autonomous_navigation_controlled_passage.json",
+      "objectiveFile": "objectives/objectives.autonomous_navigation_controlled_passage.json"
+    }
+  ]
+}

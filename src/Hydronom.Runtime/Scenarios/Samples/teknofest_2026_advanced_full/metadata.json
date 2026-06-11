@@ -1,0 +1,66 @@
+{
+    "scenarioId":  "teknofest_2026_advanced_full",
+    "displayName":  "TEKNOFEST 2026 Advanced Full Course",
+    "description":  "Ä°leri kategori iki aÅŸamalÄ± full parkur paketi: ana UUV ile yÃ¶nlendirme tahtasÄ±/hat takibi, Mini ROV ile boru iÃ§i ipucu inceleme, ardÄ±ndan tam otonom navigasyon ve kontrollÃ¼ alan geÃ§iÅŸi.",
+    "coordinateSystem":  {
+                             "unit":  "meter",
+                             "worldAxes":  {
+                                               "x":  "forward/east",
+                                               "y":  "left/north",
+                                               "z":  "up/depth-relative"
+                                           },
+                             "origin":  {
+                                            "name":  "dock_start_center",
+                                            "x":  0.0,
+                                            "y":  0.0,
+                                            "z":  0.0
+                                        },
+                             "note":  "CAD Ã¶lÃ§Ã¼leri mm cinsindendir; bu paket metreye Ã§evrilmiÅŸ temsilÃ® world koordinatlarÄ± kullanÄ±r."
+                         },
+    "visualStyle":  {
+                        "environment":  "underwater_pool",
+                        "seabedColor":  "#0f172a",
+                        "waterFogColor":  "#042f2e",
+                        "guidanceBoardColor":  "#cc0605",
+                        "trackStripeColor":  "#0a0a0a",
+                        "pipeColor":  "#111827",
+                        "gateColor":  "#38bdf8",
+                        "noGoColor":  "#ef4444",
+                        "controlledZoneColor":  "#f59e0b"
+                    },
+    "sourceFacts":  [
+                        {
+                            "id":  "line_following_board_material",
+                            "value":  "ST37 sac"
+                        },
+                        {
+                            "id":  "line_following_board_color",
+                            "value":  "RAL3020 kÄ±rmÄ±zÄ±"
+                        },
+                        {
+                            "id":  "track_stripe_color",
+                            "value":  "RAL9005 siyah"
+                        },
+                        {
+                            "id":  "line_following_theme_duration_sec",
+                            "value":  300
+                        }
+                    ],
+    "tags":  {
+                 "scenario.id":  "teknofest_2026_advanced_full",
+                 "scenario.package":  "true",
+                 "scenario.packageVersion":  "vp8",
+                 "scenario.profileAware":  "true",
+                 "scenario.visual.realistic":  "true",
+                 "scenario.mainVehicleProfileId":  "hydronom_uuv_main_2026",
+                 "scenario.miniRovProfileId":  "hydronom_mini_rov_2026",
+                 "scenario.stageCount":  "2",
+                 "scenario.stage.1":  "advanced_line_following_closed_inspection",
+                 "scenario.stage.2":  "advanced_autonomous_navigation_controlled_passage",
+                 "teknofest.category":  "advanced",
+                 "teknofest.year":  "2026",
+                 "teknofest.guidanceBoard.material":  "ST37",
+                 "teknofest.guidanceBoard.ral":  "RAL3020",
+                 "teknofest.trackStripe.ral":  "RAL9005"
+             }
+}

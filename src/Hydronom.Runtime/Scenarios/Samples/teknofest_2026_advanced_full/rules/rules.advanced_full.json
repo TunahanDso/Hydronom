@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "hydronom.rules.v1",
+  "scenarioId": "teknofest_2026_advanced_full",
+  "rules": [
+    {
+      "id": "rule_main_uuv_follow_board",
+      "stageId": "advanced_line_following_closed_inspection",
+      "label": "Ana UUV yönlendirme tahtasını takip eder",
+      "vehicle": "main_uuv",
+      "objectTypes": ["guidance_board", "track_stripe"],
+      "ruleType": "follow_without_contact",
+      "severity": "warning",
+      "runtimeAction": "mark_reset_required_on_touch"
+    },
+    {
+      "id": "rule_only_mini_rov_enters_pipe",
+      "stageId": "advanced_line_following_closed_inspection",
+      "label": "Boru içine yalnızca Mini ROV girebilir",
+      "vehicle": "main_uuv",
+      "objectTypes": ["pipe_entry", "pipe_segment"],
+      "ruleType": "forbidden_entry",
+      "severity": "critical",
+      "runtimeAction": "block_or_warn"
+    },
+    {
+      "id": "rule_mini_rov_inspects_clue",
+      "stageId": "advanced_line_following_closed_inspection",
+      "label": "Mini ROV boru sonundaki ipucunu görüntüler",
+      "vehicle": "mini_rov",
+      "objectTypes": ["clue_marker"],
+      "ruleType": "inspect_required",
+      "severity": "info",
+      "runtimeAction": "complete_on_camera_or_radius"
+    },
+    {
+      "id": "rule_autonomous_no_go_avoidance",
+      "stageId": "advanced_autonomous_navigation_controlled_passage",
+      "label": "Otonom parkurda yasak alanlardan kaçın",
+      "vehicle": "main_uuv",
+      "objectTypes": ["no_go_zone"],
+      "ruleType": "avoid_zone",
+      "severity": "critical",
+      "runtimeAction": "penalty_and_avoidance"
+    },
+    {
+      "id": "rule_autonomous_gate_pass",
+      "stageId": "advanced_autonomous_navigation_controlled_passage",
+      "label": "Kapılar merkezden ve kontrollü geçilir",
+      "vehicle": "main_uuv",
+      "objectTypes": ["gate_left", "gate_right"],
+      "ruleType": "pass_between_pair",
+      "severity": "info",
+      "runtimeAction": "complete_gate_objective"
+    }
+  ],
+  "vehicleAccess": {
+    "main_uuv": {
+      "allowedObjectTypes": [
+        "dock",
+        "start_zone",
+        "guidance_board",
+        "track_stripe",
+        "mini_rov_drop_zone",
+        "gate_left",
+        "gate_right",
+        "controlled_zone",
+        "finish_zone"
+      ],
+      "forbiddenObjectTypes": [
+        "pipe_entry",
+        "pipe_segment"
+      ]
+    },
+    "mini_rov": {
+      "allowedObjectTypes": [
+        "mini_rov_drop_zone",
+        "pipe_entry",
+        "pipe_segment",
+        "clue_marker",
+        "finish_zone"
+      ],
+      "forbiddenObjectTypes": [
+        "guidance_board",
+        "gate_left",
+        "gate_right",
+        "controlled_zone"
+      ]
+    }
+  }
+}

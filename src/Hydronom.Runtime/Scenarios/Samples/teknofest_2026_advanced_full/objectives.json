@@ -1,0 +1,319 @@
+{
+    "objectives":  [
+                       {
+                           "id":  "lf_001_start",
+                           "type":  "start",
+                           "title":  "Ana UUV baÃƒâ€¦Ã…Â¸langÃƒâ€Ã‚Â±ÃƒÆ’Ã‚Â§ alanÃƒâ€Ã‚Â±nda hazÃƒâ€Ã‚Â±r",
+                           "description":  "Ana UUV baÃƒâ€¦Ã…Â¸langÃƒâ€Ã‚Â±ÃƒÆ’Ã‚Â§ alanÃƒâ€Ã‚Â±nda hazÃƒâ€Ã‚Â±r",
+                           "targetObjectId":  "lf_start_zone",
+                           "order":  10,
+                           "isRequired":  true,
+                           "scoreValue":  0,
+                           "toleranceMeters":  0.65,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "main_uuv",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "settleSec":  "0.5"
+                                          }
+                       },
+                       {
+                           "id":  "lf_010_follow_board_entry",
+                           "type":  "line_follow",
+                           "title":  "YÃƒÆ’Ã‚Â¶nlendirme tahtasÃƒâ€Ã‚Â±na giriÃƒâ€¦Ã…Â¸",
+                           "description":  "YÃƒÆ’Ã‚Â¶nlendirme tahtasÃƒâ€Ã‚Â±na giriÃƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "main_uuv_line_follow_route_wp_1",
+                           "order":  20,
+                           "isRequired":  true,
+                           "scoreValue":  5,
+                           "toleranceMeters":  0.45,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.5",
+                                              "completion.mode":  "pass_waypoint",
+                                              "target.x":  "0.7",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "0.0",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "lf_020_follow_board_mid",
+                           "type":  "line_follow",
+                           "title":  "YÃƒÆ’Ã‚Â¶nlendirme tahtasÃƒâ€Ã‚Â± orta takip",
+                           "description":  "YÃƒÆ’Ã‚Â¶nlendirme tahtasÃƒâ€Ã‚Â± orta takip",
+                           "targetObjectId":  "main_uuv_line_follow_route_wp_3",
+                           "order":  30,
+                           "isRequired":  true,
+                           "scoreValue":  10,
+                           "toleranceMeters":  0.45,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.5",
+                                              "completion.mode":  "pass_waypoint",
+                                              "target.x":  "5.0",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "0.0",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "lf_030_follow_board_turn",
+                           "type":  "line_follow",
+                           "title":  "Tahta dÃƒÆ’Ã‚Â¶nÃƒÆ’Ã‚Â¼Ãƒâ€¦Ã…Â¸ / kÃƒâ€Ã‚Â±rÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±m geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "description":  "Tahta dÃƒÆ’Ã‚Â¶nÃƒÆ’Ã‚Â¼Ãƒâ€¦Ã…Â¸ / kÃƒâ€Ã‚Â±rÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±m geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "targetObjectId":  "main_uuv_line_follow_route_wp_5",
+                           "order":  40,
+                           "isRequired":  true,
+                           "scoreValue":  10,
+                           "toleranceMeters":  0.45,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.5",
+                                              "completion.mode":  "pass_waypoint",
+                                              "target.x":  "5.0",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "4.0",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "lf_040_arrive_drop_zone",
+                           "type":  "arrive",
+                           "title":  "Mini ROV bÃƒâ€Ã‚Â±rakma alanÃƒâ€Ã‚Â±na ulaÃƒâ€¦Ã…Â¸",
+                           "description":  "Mini ROV bÃƒâ€Ã‚Â±rakma alanÃƒâ€Ã‚Â±na ulaÃƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "mini_rov_drop_zone",
+                           "order":  50,
+                           "isRequired":  true,
+                           "scoreValue":  15,
+                           "toleranceMeters":  0.5,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "main_uuv",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "settleSec":  "1.0"
+                                          }
+                       },
+                       {
+                           "id":  "lf_050_deploy_mini_rov",
+                           "type":  "deploy",
+                           "title":  "Mini ROV gÃƒÆ’Ã‚Â¶rev moduna geÃƒÆ’Ã‚Â§",
+                           "description":  "Mini ROV gÃƒÆ’Ã‚Â¶rev moduna geÃƒÆ’Ã‚Â§",
+                           "targetObjectId":  "mini_rov_drop_zone",
+                           "order":  60,
+                           "isRequired":  true,
+                           "scoreValue":  0,
+                           "toleranceMeters":  0.5,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "main_uuv",
+                                              "completion.mode":  "manual_or_simulated_event",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "eventName":  "mini_rov_deployed"
+                                          }
+                       },
+                       {
+                           "id":  "lf_060_pipe_entry",
+                           "type":  "pipe_entry",
+                           "title":  "Mini ROV boru giriÃƒâ€¦Ã…Â¸inden iÃƒÆ’Ã‚Â§eri girer",
+                           "description":  "Mini ROV boru giriÃƒâ€¦Ã…Â¸inden iÃƒÆ’Ã‚Â§eri girer",
+                           "targetObjectId":  "pipe_entry",
+                           "order":  70,
+                           "isRequired":  true,
+                           "scoreValue":  10,
+                           "toleranceMeters":  0.32,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "mini_rov",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "settleSec":  "0.5"
+                                          }
+                       },
+                       {
+                           "id":  "lf_070_pipe_navigation",
+                           "type":  "pipe_navigation",
+                           "title":  "Mini ROV boru hattÃƒâ€Ã‚Â±nda ilerler",
+                           "description":  "Mini ROV boru hattÃƒâ€Ã‚Â±nda ilerler",
+                           "targetObjectId":  "mini_rov_pipe_route_wp_3",
+                           "order":  80,
+                           "isRequired":  true,
+                           "scoreValue":  15,
+                           "toleranceMeters":  0.35,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.5",
+                                              "completion.mode":  "pass_waypoint",
+                                              "target.x":  "11.2",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "vehicle":  "mini_rov",
+                                              "target.y":  "4.0",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "lf_080_inspect_clue",
+                           "type":  "inspect",
+                           "title":  "Boru sonundaki ipucunu gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼ntÃƒÆ’Ã‚Â¼le",
+                           "description":  "Boru sonundaki ipucunu gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼ntÃƒÆ’Ã‚Â¼le",
+                           "targetObjectId":  "pipe_clue_marker",
+                           "order":  90,
+                           "isRequired":  true,
+                           "scoreValue":  25,
+                           "toleranceMeters":  0.35,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "mini_rov",
+                                              "completion.mode":  "camera_detect_or_enter_radius",
+                                              "settleSec":  "1.0",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "eventName":  "pipe_clue_confirmed"
+                                          }
+                       },
+                       {
+                           "id":  "lf_090_exit_pipe",
+                           "type":  "exit",
+                           "title":  "Mini ROV borudan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kar ve aÃƒâ€¦Ã…Â¸ama tamamlanÃƒâ€Ã‚Â±r",
+                           "description":  "Mini ROV borudan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kar ve aÃƒâ€¦Ã…Â¸ama tamamlanÃƒâ€Ã‚Â±r",
+                           "targetObjectId":  "lf_finish_zone",
+                           "order":  100,
+                           "isRequired":  true,
+                           "scoreValue":  10,
+                           "toleranceMeters":  0.45,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "mini_rov",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_line_following_closed_inspection",
+                                              "settleSec":  "0.8"
+                                          }
+                       },
+                       {
+                           "id":  "auto_001_start",
+                           "type":  "start",
+                           "title":  "Otonom baÃƒâ€¦Ã…Â¸langÃƒâ€Ã‚Â±ÃƒÆ’Ã‚Â§ alanÃƒâ€Ã‚Â±ndan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸",
+                           "description":  "Otonom baÃƒâ€¦Ã…Â¸langÃƒâ€Ã‚Â±ÃƒÆ’Ã‚Â§ alanÃƒâ€Ã‚Â±ndan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "auto_start_zone",
+                           "order":  200,
+                           "isRequired":  true,
+                           "scoreValue":  0,
+                           "toleranceMeters":  0.7,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "main_uuv",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "settleSec":  "0.5"
+                                          }
+                       },
+                       {
+                           "id":  "auto_010_gate_1",
+                           "type":  "gate_pass",
+                           "title":  "KapÃƒâ€Ã‚Â± 1 geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "description":  "KapÃƒâ€Ã‚Â± 1 geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "targetObjectId":  "main_uuv_autonomous_route_wp_1",
+                           "order":  210,
+                           "isRequired":  true,
+                           "scoreValue":  20,
+                           "toleranceMeters":  0.55,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "targetGateId":  "auto_gate_1",
+                                              "target.x":  "2.8",
+                                              "settleSec":  "0.4",
+                                              "completion.mode":  "pass_gate",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "-2.2",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "auto_020_gate_2",
+                           "type":  "gate_pass",
+                           "title":  "KapÃƒâ€Ã‚Â± 2 geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "description":  "KapÃƒâ€Ã‚Â± 2 geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i",
+                           "targetObjectId":  "main_uuv_autonomous_route_wp_2",
+                           "order":  220,
+                           "isRequired":  true,
+                           "scoreValue":  20,
+                           "toleranceMeters":  0.55,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "targetGateId":  "auto_gate_2",
+                                              "target.x":  "6.2",
+                                              "settleSec":  "0.4",
+                                              "completion.mode":  "pass_gate",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "0.15",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "auto_030_controlled_zone_entry",
+                           "type":  "controlled_zone_entry",
+                           "title":  "KontrollÃƒÆ’Ã‚Â¼ alana giriÃƒâ€¦Ã…Â¸",
+                           "description":  "KontrollÃƒÆ’Ã‚Â¼ alana giriÃƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "controlled_zone_a",
+                           "order":  230,
+                           "isRequired":  true,
+                           "scoreValue":  15,
+                           "toleranceMeters":  0.5,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.4",
+                                              "completion.mode":  "enter_polygon",
+                                              "target.x":  "8.2",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "0.2",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "auto_040_controlled_zone_exit",
+                           "type":  "controlled_zone_exit",
+                           "title":  "KontrollÃƒÆ’Ã‚Â¼ alandan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸",
+                           "description":  "KontrollÃƒÆ’Ã‚Â¼ alandan ÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±kÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "main_uuv_autonomous_route_wp_4",
+                           "order":  240,
+                           "isRequired":  true,
+                           "scoreValue":  15,
+                           "toleranceMeters":  0.5,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "settleSec":  "0.4",
+                                              "completion.mode":  "pass_waypoint",
+                                              "target.x":  "9.4",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "vehicle":  "main_uuv",
+                                              "target.y":  "0.2",
+                                              "target.z":  "-0.45"
+                                          }
+                       },
+                       {
+                           "id":  "auto_050_finish",
+                           "type":  "finish",
+                           "title":  "Otonom bitiÃƒâ€¦Ã…Â¸ alanÃƒâ€Ã‚Â±na ulaÃƒâ€¦Ã…Â¸",
+                           "description":  "Otonom bitiÃƒâ€¦Ã…Â¸ alanÃƒâ€Ã‚Â±na ulaÃƒâ€¦Ã…Â¸",
+                           "targetObjectId":  "auto_finish_zone",
+                           "order":  250,
+                           "isRequired":  true,
+                           "scoreValue":  30,
+                           "toleranceMeters":  0.65,
+                           "timeLimitSeconds":  0,
+                           "parameters":  {
+                                              "vehicle":  "main_uuv",
+                                              "completion.mode":  "enter_radius",
+                                              "stageId":  "advanced_autonomous_navigation_controlled_passage",
+                                              "settleSec":  "1.0"
+                                          }
+                       }
+                   ]
+}
