@@ -13,7 +13,7 @@ namespace Hydronom.Core.World
     /// - Z ekseni yukarıdır.
     /// - SurfaceZ varsayılan 0 kabul edilir.
     /// - Sualtı konumları genellikle negatif Z değerindedir.
-    /// - FloorZ ileride scenario/world config üzerinden beslenecektir.
+    /// - FloorZ/current/visibility/density değerleri scenario/world metadata üzerinden beslenebilir.
     /// </summary>
     public sealed record WorldModel
     {
@@ -29,19 +29,47 @@ namespace Hydronom.Core.World
 
         /*
          * EnvironmentLayer/MediumProperties dosyaları VP9A ileri katmanları için
-         * korunuyor. Fakat mevcut kod tabanında EnvironmentZone + EnvironmentResolver
+         * korunuyor. Mevcut kod tabanında EnvironmentZone + EnvironmentResolver
          * zaten surface/floor/current/visibility/floor bilgilerini taşıdığı için
-         * ilk gerçek entegrasyon burada resolver üstünden yapılır.
+         * ilk gerçek entegrasyon resolver üstünden yapılır.
          */
-        public static WorldModel DefaultPool(double floorZ = -2.0, double surfaceZ = 0.0)
+        public static WorldModel DefaultPool(
+            double floorZ = -2.0,
+            double surfaceZ = 0.0,
+            double gravityMps2 = 9.80665,
+            Vec3? currentWorld = null,
+            double visibilityMeters = 8.0,
+            double waterDensityKgM3 = 997.0,
+            double airDensityKgM3 = 1.225)
         {
+            var current = currentWorld ?? Vec3.Zero;
+
+            if (!double.IsFinite(current.X) ||
+                !double.IsFinite(current.Y) ||
+                !double.IsFinite(current.Z))
+            {
+                current = Vec3.Zero;
+            }
+
+            if (!double.IsFinite(gravityMps2) || gravityMps2 <= 0.0)
+                gravityMps2 = 9.80665;
+
+            if (!double.IsFinite(visibilityMeters) || visibilityMeters <= 0.0)
+                visibilityMeters = 8.0;
+
+            if (!double.IsFinite(waterDensityKgM3) || waterDensityKgM3 <= 0.0)
+                waterDensityKgM3 = 997.0;
+
+            if (!double.IsFinite(airDensityKgM3) || airDensityKgM3 <= 0.0)
+                airDensityKgM3 = 1.225;
+
             return new WorldModel
             {
                 Id = "default_pool",
                 Name = "Default Pool World",
                 SurfaceZ = surfaceZ,
                 FloorZ = floorZ,
-                GravityMps2 = 9.80665,
+                GravityMps2 = gravityMps2,
                 Zones = new List<EnvironmentZone>
                 {
                     new()
@@ -58,8 +86,9 @@ namespace Hydronom.Core.World
                             double.PositiveInfinity),
                         SurfaceZ = surfaceZ,
                         FloorZ = floorZ,
-                        GravityMps2 = 9.80665,
-                        AirDensityKgM3 = 1.225,
+                        GravityMps2 = gravityMps2,
+                        AirDensityKgM3 = airDensityKgM3,
+                        WindWorld = Vec3.Zero,
                         Priority = 0
                     },
                     new()
@@ -76,9 +105,10 @@ namespace Hydronom.Core.World
                             surfaceZ),
                         SurfaceZ = surfaceZ,
                         FloorZ = floorZ,
-                        GravityMps2 = 9.80665,
-                        WaterDensityKgM3 = 997.0,
-                        VisibilityMeters = 8.0,
+                        GravityMps2 = gravityMps2,
+                        WaterDensityKgM3 = waterDensityKgM3,
+                        CurrentWorld = current,
+                        VisibilityMeters = visibilityMeters,
                         Priority = 10
                     },
                     new()
@@ -95,7 +125,7 @@ namespace Hydronom.Core.World
                             floorZ),
                         SurfaceZ = surfaceZ,
                         FloorZ = floorZ,
-                        GravityMps2 = 9.80665,
+                        GravityMps2 = gravityMps2,
                         FrictionCoefficient = 0.7,
                         Priority = 20
                     }

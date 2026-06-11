@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Scenarios.Models;
 using Hydronom.Runtime.Scenarios;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Configuration;
 partial class Program
 {
     /// <summary>
-    /// VP9A-4A:
+    /// VP9A:
     /// Aktif scenario/package metadata içindeki world.* tag'lerini okuyarak
     /// WorldOptions değerlerini scenario-aware hale getirir.
     ///
@@ -21,6 +22,12 @@ partial class Program
     /// - world.surfaceZ / world.surface_z / surfaceZ
     /// - world.floorZ   / world.floor_z   / floorZ
     /// - world.gravityMps2 / world.gravity_mps2 / gravityMps2
+    /// - world.currentX / world.current.x / currentX
+    /// - world.currentY / world.current.y / currentY
+    /// - world.currentZ / world.current.z / currentZ
+    /// - world.visibilityMeters / visibilityMeters
+    /// - world.waterDensityKgM3 / waterDensityKgM3
+    /// - world.airDensityKgM3 / airDensityKgM3
     /// </summary>
     private static async Task<WorldOptions> ReadScenarioAwareWorldOptionsAsync(
         IConfiguration config,
@@ -45,12 +52,10 @@ partial class Program
             var loader = new ScenarioLoader();
             var scenario = await loader.LoadAsync(path, cancellationToken).ConfigureAwait(false);
 
-            var effective = ApplyScenarioWorldTags(
+            return ApplyScenarioWorldTags(
                 fallback,
                 scenario,
                 path);
-
-            return effective;
         }
         catch (Exception ex)
         {
@@ -113,6 +118,63 @@ partial class Program
             "environment.gravityMps2",
             "environment.gravity_mps2");
 
+        var current = new Vec3(
+            ReadTagDouble(
+                tags,
+                fallback.CurrentWorld.X,
+                "world.currentX",
+                "world.current.x",
+                "world.current_world.x",
+                "currentX",
+                "current.x",
+                "environment.currentX"),
+            ReadTagDouble(
+                tags,
+                fallback.CurrentWorld.Y,
+                "world.currentY",
+                "world.current.y",
+                "world.current_world.y",
+                "currentY",
+                "current.y",
+                "environment.currentY"),
+            ReadTagDouble(
+                tags,
+                fallback.CurrentWorld.Z,
+                "world.currentZ",
+                "world.current.z",
+                "world.current_world.z",
+                "currentZ",
+                "current.z",
+                "environment.currentZ")
+        );
+
+        var visibility = ReadTagDouble(
+            tags,
+            fallback.VisibilityMeters,
+            "world.visibilityMeters",
+            "world.visibility_meters",
+            "visibilityMeters",
+            "visibility_meters",
+            "environment.visibilityMeters");
+
+        var waterDensity = ReadTagDouble(
+            tags,
+            fallback.WaterDensityKgM3,
+            "world.waterDensityKgM3",
+            "world.water_density_kg_m3",
+            "waterDensityKgM3",
+            "water_density_kg_m3",
+            "environment.waterDensityKgM3");
+
+        var airDensity = ReadTagDouble(
+            tags,
+            fallback.AirDensityKgM3,
+            "world.airDensityKgM3",
+            "world.air_density_kg_m3",
+            "airDensityKgM3",
+            "air_density_kg_m3",
+            "environment.airDensityKgM3");
+
         if (!double.IsFinite(surfaceZ))
             surfaceZ = fallback.SurfaceZ;
 
@@ -132,19 +194,42 @@ partial class Program
         if (!double.IsFinite(gravity) || gravity <= 0.0)
             gravity = fallback.GravityMps2;
 
+        if (!double.IsFinite(current.X) ||
+            !double.IsFinite(current.Y) ||
+            !double.IsFinite(current.Z))
+        {
+            current = fallback.CurrentWorld;
+        }
+
+        if (!double.IsFinite(visibility) || visibility <= 0.0)
+            visibility = fallback.VisibilityMeters;
+
+        if (!double.IsFinite(waterDensity) || waterDensity <= 0.0)
+            waterDensity = fallback.WaterDensityKgM3;
+
+        if (!double.IsFinite(airDensity) || airDensity <= 0.0)
+            airDensity = fallback.AirDensityKgM3;
+
         var effective = fallback with
         {
             Id = string.IsNullOrWhiteSpace(id) ? fallback.Id : id.Trim(),
             Name = string.IsNullOrWhiteSpace(name) ? fallback.Name : name.Trim(),
             SurfaceZ = surfaceZ,
             FloorZ = floorZ,
-            GravityMps2 = gravity
+            GravityMps2 = gravity,
+            CurrentWorld = current,
+            VisibilityMeters = visibility,
+            WaterDensityKgM3 = waterDensity,
+            AirDensityKgM3 = airDensity
         };
 
         Console.WriteLine(
             $"[SCN-WORLD] scenario={scenario.Id} source={ShortenPathForLog(sourcePath)} " +
             $"world={effective.Id} surfaceZ={effective.SurfaceZ:F2} " +
-            $"floorZ={effective.FloorZ:F2} gravity={effective.GravityMps2:F5}");
+            $"floorZ={effective.FloorZ:F2} gravity={effective.GravityMps2:F5} " +
+            $"current=({effective.CurrentWorld.X:F2},{effective.CurrentWorld.Y:F2},{effective.CurrentWorld.Z:F2}) " +
+            $"visibility={effective.VisibilityMeters:F1}m " +
+            $"rhoWater={effective.WaterDensityKgM3:F1} rhoAir={effective.AirDensityKgM3:F3}");
 
         return effective;
     }

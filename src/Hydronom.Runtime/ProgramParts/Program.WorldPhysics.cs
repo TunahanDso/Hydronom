@@ -1,3 +1,4 @@
+using System;
 using Hydronom.Core.Physics;
 using Hydronom.Core.Vehicles.Physics;
 using Hydronom.Core.World;
@@ -5,11 +6,10 @@ using Hydronom.Core.World;
 partial class Program
 {
     /*
-     * VP9A World Physics entegrasyon noktasÄ±.
+     * VP9A World Physics entegrasyon noktası.
      *
-     * Bu dosya ÅŸimdilik runtime davranÄ±ÅŸÄ±nÄ± tek baÅŸÄ±na deÄŸiÅŸtirmez.
-     * Ama synthetic physics / planner / control tarafÄ±nÄ±n aynÄ± world-model
-     * Ã¶rneÄŸinden beslenebilmesi iÃ§in merkezi giriÅŸ noktasÄ± saÄŸlar.
+     * Synthetic physics / planner / control tarafının aynı world-model
+     * örneğinden beslenebilmesi için merkezi giriş noktası sağlar.
      */
     private static readonly Lazy<WorldModel> DefaultWorldPhysicsModel = new(
         () => WorldModel.DefaultPool());
@@ -23,11 +23,15 @@ partial class Program
     {
         return WorldModel.DefaultPool(
             floorZ: world.FloorZ,
-            surfaceZ: world.SurfaceZ) with
+            surfaceZ: world.SurfaceZ,
+            gravityMps2: world.GravityMps2,
+            currentWorld: world.CurrentWorld,
+            visibilityMeters: world.VisibilityMeters,
+            waterDensityKgM3: world.WaterDensityKgM3,
+            airDensityKgM3: world.AirDensityKgM3) with
         {
             Id = world.Id,
-            Name = world.Name,
-            GravityMps2 = world.GravityMps2
+            Name = world.Name
         };
     }
 
