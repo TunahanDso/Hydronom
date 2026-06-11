@@ -1,20 +1,20 @@
-﻿using System;
+using System;
 using Hydronom.Core.Domain;
 
 partial class Program
 {
     /// <summary>
-    /// External pose uygulanmadığında runtime iç fizik simülasyonunu yürütür.
+    /// External pose uygulanmadÃƒâ€Ã‚Â±Ãƒâ€Ã…Â¸Ãƒâ€Ã‚Â±nda runtime iÃƒÆ’Ã‚Â§ fizik simÃƒÆ’Ã‚Â¼lasyonunu yÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼tÃƒÆ’Ã‚Â¼r.
     ///
-    /// Amaç:
-    /// - Sensör/pose gelmediği durumda karar/rota testlerini sürdürebilmek.
-    /// - ActuatorManager'ın ürettiği body-frame force/torque değerleriyle VehicleState'i ilerletmek.
-    /// - V1 environment-aware post process ile su yüzeyi/taban sınırlarını korumak.
+    /// AmaÃƒÆ’Ã‚Â§:
+    /// - SensÃƒÆ’Ã‚Â¶r/pose gelmediÃƒâ€Ã…Â¸i durumda karar/rota testlerini sÃƒÆ’Ã‚Â¼rdÃƒÆ’Ã‚Â¼rebilmek.
+    /// - ActuatorManager'Ãƒâ€Ã‚Â±n ÃƒÆ’Ã‚Â¼rettiÃƒâ€Ã…Â¸i body-frame force/torque deÃƒâ€Ã…Â¸erleriyle VehicleState'i ilerletmek.
+    /// - V1 environment-aware post process ile su yÃƒÆ’Ã‚Â¼zeyi/taban sÃƒâ€Ã‚Â±nÃƒâ€Ã‚Â±rlarÃƒâ€Ã‚Â±nÃƒâ€Ã‚Â± korumak.
     ///
     /// Not:
-    /// - forceBody gövde frame'indedir.
-    /// - VehicleState lineer tarafta dünya frame kuvvet beklediği için forceBody dünya frame'e çevrilir.
-    /// - torqueBody gövde frame olarak korunur.
+    /// - forceBody gÃƒÆ’Ã‚Â¶vde frame'indedir.
+    /// - VehicleState lineer tarafta dÃƒÆ’Ã‚Â¼nya frame kuvvet beklediÃƒâ€Ã…Â¸i iÃƒÆ’Ã‚Â§in forceBody dÃƒÆ’Ã‚Â¼nya frame'e ÃƒÆ’Ã‚Â§evrilir.
+    /// - torqueBody gÃƒÆ’Ã‚Â¶vde frame olarak korunur.
     /// </summary>
     private static VehicleState IntegrateSyntheticStateIfNeeded(
         VehicleState state,
@@ -22,6 +22,7 @@ partial class Program
         Vec3 torqueBody,
         double dtMeasured,
         PhysicsOptions physics,
+        WorldOptions world,
         RuntimeOptions runtime,
         bool externalApplied,
         ref LoopRuntimeState loopState)
@@ -35,8 +36,8 @@ partial class Program
 
         if (!loopState.LoggedSyntheticStateNotice)
         {
-            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi için iç fizik yürütülüyor).");
-            Console.WriteLine("[ENV-PHYS] Environment-aware synthetic physics v1 aktif (surface/floor clamp).");
+            Console.WriteLine("[STATE] Synthetic state integration aktif (karar/rota testi iÃƒÆ’Ã‚Â§in iÃƒÆ’Ã‚Â§ fizik yÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼tÃƒÆ’Ã‚Â¼lÃƒÆ’Ã‚Â¼yor).");
+            Console.WriteLine("[ENV-PHYS] VP9A WorldModel sampling aktif (environment resolver + config-backed surface/floor clamp).");
             loopState.LoggedSyntheticStateNotice = true;
         }
 
@@ -62,6 +63,7 @@ partial class Program
         return ApplyEnvironmentAwareSyntheticPhysicsPostStep(
             integrated,
             physics,
+            world,
             runtime.LogVerbose,
             loopState.TickIndex);
     }

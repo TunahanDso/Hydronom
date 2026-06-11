@@ -5,54 +5,39 @@ using Hydronom.Core.World;
 partial class Program
 {
     /// <summary>
-    /// Runtime iç simülasyon için aracın bulunduğu ortamı çözer.
+    /// Runtime iÃ§ simÃ¼lasyon iÃ§in aracÄ±n bulunduÄŸu ortamÄ± Ã§Ã¶zer.
     ///
-    /// V1 yaklaşımı:
-    /// - Z <= surfaceZ ise su ortamı kabul edilir.
-    /// - Z > surfaceZ ise hava ortamı kabul edilir.
-    /// - İleride bu metot RuntimeWorldModel / Scenario environmentZones üzerinden beslenecek.
+    /// VP9A-1 yaklaÅŸÄ±mÄ±:
+    /// - Ortam artÄ±k doÄŸrudan hard-coded surface/floor deÄŸerlerinden deÄŸil,
+    ///   WorldModel.SampleAt(position) Ã¼zerinden alÄ±nÄ±r.
+    /// - BÃ¶ylece ileride scenario/world surfaceZ, floorZ, current zone,
+    ///   visibility zone ve pipe/tunnel katmanlarÄ± aynÄ± Ã¶rnek Ã¼zerinden taÅŸÄ±nabilir.
     ///
     /// Not:
-    /// Hydronom'da Z ekseni yukarı kabul edilir.
-    /// Bu yüzden sualtı konumları genellikle negatif Z değerleridir.
+    /// Hydronom'da Z ekseni yukarÄ± kabul edilir.
+    /// Bu yÃ¼zden sualtÄ± konumlarÄ± genellikle negatif Z deÄŸerleridir.
     /// </summary>
     private static EnvironmentSample ResolveSyntheticEnvironmentSample(
         VehicleState state,
-        PhysicsOptions physics)
+        PhysicsOptions physics,
+        WorldOptions worldOptions)
     {
-        const double surfaceZ = 0.0;
+        var world = CreateWorldPhysicsModel(worldOptions);
+        var worldSample = world.SampleAt(state.Position);
 
-        /*
-         * V1 için taban derinliğini doğrudan config'ten okumuyoruz.
-         * Şimdilik güvenli varsayılan: 2 metre test havuzu.
-         * Sonraki pakette Runtime:Environment veya Scenario environmentZones üzerinden gelecek.
-         */
-        double floorZ = -2.0;
-
-        if (state.Position.Z <= surfaceZ)
-        {
-            return EnvironmentSample.DefaultWaterPool(
-                floorZ: floorZ,
-                surfaceZ: surfaceZ);
-        }
-
-        return EnvironmentSample.DefaultAir() with
-        {
-            SurfaceZ = surfaceZ,
-            FloorZ = floorZ
-        };
+        return worldSample.Environment;
     }
 
     /// <summary>
-    /// Ortam farkındalıklı ilk güvenlik düzeltmesi.
+    /// Ortam farkÄ±ndalÄ±klÄ± ilk gÃ¼venlik dÃ¼zeltmesi.
     ///
-    /// Amaç:
-    /// - Sualtı simülasyonunda aracın su yüzeyinden yukarı uçmasını engellemek.
-    /// - Aracın havuz / deniz tabanının altına düşmesini engellemek.
-    /// - Yüzey ve taban temasında dikey hızı güvenli şekilde bastırmak.
+    /// AmaÃ§:
+    /// - SualtÄ± simÃ¼lasyonunda aracÄ±n su yÃ¼zeyinden yukarÄ± uÃ§masÄ±nÄ± engellemek.
+    /// - AracÄ±n havuz / deniz tabanÄ±nÄ±n altÄ±na dÃ¼ÅŸmesini engellemek.
+    /// - YÃ¼zey ve taban temasÄ±nda dikey hÄ±zÄ± gÃ¼venli ÅŸekilde bastÄ±rmak.
     ///
-    /// Bu yöntem gerçek temas çözümü değildir; V1 güvenlik clamp katmanıdır.
-    /// Daha sonra ContactResolver / MediumAwarePhysicsEngine içine taşınabilir.
+    /// Bu yÃ¶ntem gerÃ§ek temas Ã§Ã¶zÃ¼mÃ¼ deÄŸildir; VP9A iÃ§inde ContactModel /
+    /// WorldPhysicsEngine tarafÄ±na taÅŸÄ±nacak gÃ¼venlik clamp katmanÄ±dÄ±r.
     /// </summary>
     private static VehicleState ApplyEnvironmentBoundaryClamp(
         VehicleState state,
@@ -73,8 +58,8 @@ partial class Program
                     environment.SurfaceZ);
 
                 /*
-                 * Araç su yüzeyinin üstüne çıkmaya çalışıyorsa yukarı hızı sıfırla.
-                 * Z yukarı olduğu için pozitif Z hızı yukarı harekettir.
+                 * AraÃ§ su yÃ¼zeyinin Ã¼stÃ¼ne Ã§Ä±kmaya Ã§alÄ±ÅŸÄ±yorsa yukarÄ± hÄ±zÄ± sÄ±fÄ±rla.
+                 * Z yukarÄ± olduÄŸu iÃ§in pozitif Z hÄ±zÄ± yukarÄ± harekettir.
                  */
                 velocity = new Vec3(
                     velocity.X,
@@ -92,8 +77,8 @@ partial class Program
                     environment.FloorZ);
 
                 /*
-                 * Araç tabanın altına inmeye çalışıyorsa aşağı hızı sıfırla.
-                 * Z yukarı olduğu için negatif Z hızı aşağı harekettir.
+                 * AraÃ§ tabanÄ±n altÄ±na inmeye Ã§alÄ±ÅŸÄ±yorsa aÅŸaÄŸÄ± hÄ±zÄ± sÄ±fÄ±rla.
+                 * Z yukarÄ± olduÄŸu iÃ§in negatif Z hÄ±zÄ± aÅŸaÄŸÄ± harekettir.
                  */
                 velocity = new Vec3(
                     velocity.X,
@@ -115,29 +100,31 @@ partial class Program
     }
 
     /// <summary>
-    /// İlk environment-aware synthetic physics post process hattı.
+    /// Environment-aware synthetic physics post process hattÄ±.
     ///
-    /// Şimdilik:
-    /// - ortamı çözer,
-    /// - yüzey/taban sınırlarını uygular.
+    /// VP9A-1:
+    /// - ortamÄ± WorldModel Ã¼zerinden Ã§Ã¶zer,
+    /// - yÃ¼zey/taban sÄ±nÄ±rlarÄ±nÄ± uygular.
     ///
-    /// Sonraki paketlerde buraya:
-    /// - kaldırma kuvveti,
-    /// - su/hava ortamına göre drag seçimi,
-    /// - akıntı/rüzgar relative velocity,
-    /// - zemin teması,
-    /// - sensör görüş koşulları
+    /// Sonraki paketlerde buraya veya WorldPhysicsEngine iÃ§ine:
+    /// - kaldÄ±rma kuvveti,
+    /// - su/hava ortamÄ±na gÃ¶re drag seÃ§imi,
+    /// - akÄ±ntÄ±/rÃ¼zgar relative velocity,
+    /// - zemin temasÄ±,
+    /// - sensÃ¶r gÃ¶rÃ¼ÅŸ koÅŸullarÄ±
     /// eklenecek.
     /// </summary>
     private static VehicleState ApplyEnvironmentAwareSyntheticPhysicsPostStep(
         VehicleState state,
         PhysicsOptions physics,
+        WorldOptions worldOptions,
         bool logVerbose,
         long tickIndex)
     {
         var environment = ResolveSyntheticEnvironmentSample(
             state,
-            physics);
+            physics,
+            worldOptions);
 
         var clamped = ApplyEnvironmentBoundaryClamp(
             state,
