@@ -184,6 +184,37 @@ export function TacticalWorldLayer(props: {
       }));
   }, [world?.objects, origin]);
 
+  const advancedCourseObjects = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) =>
+        object.type === "guidance_board" ||
+        object.type === "track_stripe" ||
+        object.type === "pipe_entry" ||
+        object.type === "pipe_segment" ||
+        object.type === "clue_marker" ||
+        object.type === "controlled_zone"
+      )
+      .map((object) => ({
+        object,
+        scenePoints: getWorldObjectScenePoints(object as WorldObjectWithOptionalPoints, origin),
+        position: worldToSceneTuple(object.x, object.y, object.z, origin)
+      }));
+  }, [world?.objects, origin]);
+
+  const polygonNoGoZones = useMemo(() => {
+    const objects = world?.objects ?? [];
+
+    return objects
+      .filter((object) => object.type === "no_go_zone")
+      .map((object) => ({
+        object,
+        scenePoints: getWorldObjectScenePoints(object as WorldObjectWithOptionalPoints, origin),
+        position: worldToSceneTuple(object.x, object.y, object.z, origin)
+      }))
+      .filter((item) => item.scenePoints.length >= 3);
+  }, [world?.objects, origin]);
   const activeObjectivePosition = useMemo<[number, number, number] | null>(() => {
     const target = world?.activeObjectiveTarget;
 
@@ -235,6 +266,8 @@ export function TacticalWorldLayer(props: {
     trackingStripes.length > 0 ||
     pipes.length > 0 ||
     releaseZones.length > 0 ||
+    advancedCourseObjects.length > 0 ||
+    polygonNoGoZones.length > 0 ||
     Boolean(activeObjectivePosition);
 
   if (!hasWorld) {
@@ -295,6 +328,25 @@ export function TacticalWorldLayer(props: {
         />
       ))}
 
+      {advancedCourseObjects.map(({ object, scenePoints, position }) => (
+        <AdvancedCourseObjectMarker
+          key={object.id}
+          object={object as WorldObjectWithOptionalPoints}
+          points={scenePoints}
+          position={position}
+        />
+      ))}
+
+      {polygonNoGoZones.map(({ object, scenePoints, position }) => (
+        <PolygonZoneMarker
+          key={object.id}
+          points={scenePoints}
+          fallbackPosition={position}
+          color={object.color ?? "#ef4444"}
+          opacity={0.18}
+          ringColor="#fecaca"
+        />
+      ))}
       {noGoZones.map((zone) => (
         <NoGoZoneMarker
           key={zone.id}
