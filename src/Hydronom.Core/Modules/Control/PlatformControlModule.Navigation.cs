@@ -10,20 +10,20 @@ namespace Hydronom.Core.Modules.Control
          * Trajectory-aware navigation control.
          *
          * Paket-8H:
-         * Obstacle-bypass / local-detour takip davranışı tekne kinematiğine göre şekillendirildi.
+         * Obstacle-bypass / local-detour takip davranÄ±ÅŸÄ± tekne kinematiÄŸine gÃ¶re ÅŸekillendirildi.
          *
-         * Kök problem:
-         * Planner artık doğru şekilde obstacle-bypass path seçiyor fakat control katmanı
-         * lookahead/local-detour noktasını takip ederken speed-error yüzünden negatif Fx üretiyordu.
-         * Tekne bu yüzden bypass noktasına ileri yay çizerek gitmek yerine, fren/geri/yan/yaw
-         * karışımıyla dubanın yanında sürünüyordu.
+         * KÃ¶k problem:
+         * Planner artÄ±k doÄŸru ÅŸekilde obstacle-bypass path seÃ§iyor fakat control katmanÄ±
+         * lookahead/local-detour noktasÄ±nÄ± takip ederken speed-error yÃ¼zÃ¼nden negatif Fx Ã¼retiyordu.
+         * Tekne bu yÃ¼zden bypass noktasÄ±na ileri yay Ã§izerek gitmek yerine, fren/geri/yan/yaw
+         * karÄ±ÅŸÄ±mÄ±yla dubanÄ±n yanÄ±nda sÃ¼rÃ¼nÃ¼yordu.
          *
-         * Yeni davranış:
-         * - obstacle-bypass / local-detour / detour reason görülürse bypass-follow mode açılır.
-         * - bypass-follow modunda reverse surge yasaklanır.
-         * - yüksek heading error olsa bile küçük pozitif forward-flow korunur.
-         * - lateral Fy sınırlandırılır; tekne yanlamasına hedef kovalamaz.
-         * - yaw moment saturasyona daha az gider; araç önce akışla dönerek bypass noktasına yaklaşır.
+         * Yeni davranÄ±ÅŸ:
+         * - obstacle-bypass / local-detour / detour reason gÃ¶rÃ¼lÃ¼rse bypass-follow mode aÃ§Ä±lÄ±r.
+         * - bypass-follow modunda reverse surge yasaklanÄ±r.
+         * - yÃ¼ksek heading error olsa bile kÃ¼Ã§Ã¼k pozitif forward-flow korunur.
+         * - lateral Fy sÄ±nÄ±rlandÄ±rÄ±lÄ±r; tekne yanlamasÄ±na hedef kovalamaz.
+         * - yaw moment saturasyona daha az gider; araÃ§ Ã¶nce akÄ±ÅŸla dÃ¶nerek bypass noktasÄ±na yaklaÅŸÄ±r.
          */
         private ControlOutput Navigate(
             ControlIntent intent,
@@ -59,9 +59,15 @@ namespace Hydronom.Core.Modules.Control
             var absHeadingError = Math.Abs(headingErrorDeg);
             var absYawRate = Math.Abs(yawRateDeg);
 
-            var bypassFollowMode = IsBypassFollowIntent(
+            var geometryEscapeRecoveryMode = IsGeometryEscapeRecoveryIntent(
                 intent,
                 avoidanceMode);
+
+            var bypassFollowMode =
+                !geometryEscapeRecoveryMode &&
+                IsBypassFollowIntent(
+                    intent,
+                    avoidanceMode);
 
             var desiredSpeed = ResolveTrajectoryDesiredSpeed(
                 intent,
@@ -78,11 +84,11 @@ namespace Hydronom.Core.Modules.Control
 
             /*
              * Paket-8H:
-             * Bypass takipte reverse surge yasaktır.
+             * Bypass takipte reverse surge yasaktÄ±r.
              *
              * Sebep:
-             * local-detour ileri/yan tarafta iken speed error negatif kalabiliyor ve Fx tersine dönüyor.
-             * Tekne bu durumda bypass rotasını takip etmek yerine obstacle yanında debeleniyor.
+             * local-detour ileri/yan tarafta iken speed error negatif kalabiliyor ve Fx tersine dÃ¶nÃ¼yor.
+             * Tekne bu durumda bypass rotasÄ±nÄ± takip etmek yerine obstacle yanÄ±nda debeleniyor.
              */
             var allowReverseForNavigation =
                 intent.AllowReverse &&
@@ -99,8 +105,8 @@ namespace Hydronom.Core.Modules.Control
             if (bypassFollowMode && distance > 0.75)
             {
                 /*
-                 * Bypass rotasında tamamen sıfır speed, aracın yaw saturasyonunda dönüp kalmasına
-                 * sebep oluyor. Küçük pozitif akış şart.
+                 * Bypass rotasÄ±nda tamamen sÄ±fÄ±r speed, aracÄ±n yaw saturasyonunda dÃ¶nÃ¼p kalmasÄ±na
+                 * sebep oluyor. KÃ¼Ã§Ã¼k pozitif akÄ±ÅŸ ÅŸart.
                  */
                 var minimumBypassSpeed = ResolveMinimumBypassSpeed(
                     absHeadingError,
@@ -125,8 +131,8 @@ namespace Hydronom.Core.Modules.Control
             if (bypassFollowMode)
             {
                 /*
-                 * Bypass takipte ileri akış tamamen öldürülmez.
-                 * Büyük heading hatasında bile tekne küçük bir yay çizerek dönmelidir.
+                 * Bypass takipte ileri akÄ±ÅŸ tamamen Ã¶ldÃ¼rÃ¼lmez.
+                 * BÃ¼yÃ¼k heading hatasÄ±nda bile tekne kÃ¼Ã§Ã¼k bir yay Ã§izerek dÃ¶nmelidir.
                  */
                 if (turnAlign && fx > 0.0)
                     fx *= 0.45;
@@ -144,7 +150,7 @@ namespace Hydronom.Core.Modules.Control
                     fx = minimumForwardFx;
 
                 /*
-                 * Reverse surge bypass takipte kesin kapalı.
+                 * Reverse surge bypass takipte kesin kapalÄ±.
                  */
                 if (fx < 0.0)
                     fx = minimumForwardFx;
@@ -152,8 +158,8 @@ namespace Hydronom.Core.Modules.Control
             else
             {
                 /*
-                 * Eski stabil davranış:
-                 * Heading error çok büyükse ya da yaw rate çok yüksekse ileri thrust azaltılır.
+                 * Eski stabil davranÄ±ÅŸ:
+                 * Heading error Ã§ok bÃ¼yÃ¼kse ya da yaw rate Ã§ok yÃ¼ksekse ileri thrust azaltÄ±lÄ±r.
                  */
                 if (turnAlign && fx > 0.0)
                     fx *= 0.18;
@@ -167,9 +173,9 @@ namespace Hydronom.Core.Modules.Control
 
             /*
              * Yaw kontrol:
-             * Açık PD:
+             * AÃ§Ä±k PD:
              * - headingError pozitifse pozitif yaw moment ister.
-             * - yawRate pozitifse damping negatif yönde çalışır.
+             * - yawRate pozitifse damping negatif yÃ¶nde Ã§alÄ±ÅŸÄ±r.
              */
             var yawP = headingErrorDeg * HeadingKp;
             var yawD = -yawRateDeg * HeadingKd * 1.45;
@@ -187,8 +193,8 @@ namespace Hydronom.Core.Modules.Control
             if (bypassFollowMode)
             {
                 /*
-                 * Rudder/yaw saturasyonu bypass sırasında tekneyi olduğu yerde döndürüyor.
-                 * Biraz yaw otoritesi kalacak ama ileri akışla beraber ark çizilecek.
+                 * Rudder/yaw saturasyonu bypass sÄ±rasÄ±nda tekneyi olduÄŸu yerde dÃ¶ndÃ¼rÃ¼yor.
+                 * Biraz yaw otoritesi kalacak ama ileri akÄ±ÅŸla beraber ark Ã§izilecek.
                  */
                 var yawLimit = ResolveBypassYawLimit(
                     absHeadingError,
@@ -205,11 +211,11 @@ namespace Hydronom.Core.Modules.Control
 
             /*
              * Lateral path correction:
-             * Lookahead noktası gövde ekseninde sağ/sol tarafta kalıyorsa sınırlı sway üretir.
+             * Lookahead noktasÄ± gÃ¶vde ekseninde saÄŸ/sol tarafta kalÄ±yorsa sÄ±nÄ±rlÄ± sway Ã¼retir.
              *
              * Paket-8H:
-             * Bypass takipte lateral kuvvet daha da sınırlandırılır.
-             * Aksi halde araç local-detour noktasını yanlayarak kovalamaya çalışıyor.
+             * Bypass takipte lateral kuvvet daha da sÄ±nÄ±rlandÄ±rÄ±lÄ±r.
+             * Aksi halde araÃ§ local-detour noktasÄ±nÄ± yanlayarak kovalamaya Ã§alÄ±ÅŸÄ±yor.
              */
             var lateralErrorBody = Safe(targetBody.Y);
 
@@ -233,13 +239,19 @@ namespace Hydronom.Core.Modules.Control
                 tz: tz
             );
 
-            var command = ClampCommand(rawCommand);
+            var command = ApplyCapabilityLimits(
+                rawCommand,
+                capability,
+                avoidanceMode,
+                intent.AllowReverse);
 
-            var mode = bypassFollowMode
-                ? "BYPASS_TRAJECTORY_CONTROL"
-                : avoidanceMode
-                    ? "AVOID_TRAJECTORY_CONTROL"
-                    : "TRAJECTORY_CONTROL";
+            var mode = geometryEscapeRecoveryMode
+                ? "GEOMETRY_ESCAPE_RECOVERY_CONTROL"
+                : bypassFollowMode
+                    ? "BYPASS_TRAJECTORY_CONTROL"
+                    : avoidanceMode
+                        ? "AVOID_TRAJECTORY_CONTROL"
+                        : "TRAJECTORY_CONTROL";
 
             var reason =
                 $"{mode} intent={intent.Kind} " +
@@ -307,7 +319,11 @@ namespace Hydronom.Core.Modules.Control
                 tz: tz
             );
 
-            var command = ClampCommand(rawCommand);
+            var command = ApplyCapabilityLimits(
+                rawCommand,
+                capability,
+                avoidanceMode: false,
+                allowReverse: intent.AllowReverse);
 
             return new ControlOutput(
                 command,
@@ -316,6 +332,18 @@ namespace Hydronom.Core.Modules.Control
                 $"headErr={headingErrorDeg:F1} " +
                 $"cap={capability.Summary} " +
                 $"src={intent.Reason}");
+        }
+
+        private static bool IsGeometryEscapeRecoveryIntent(
+            ControlIntent intent,
+            bool avoidanceMode)
+        {
+            if (!avoidanceMode)
+                return false;
+
+            var reason = intent.Reason ?? string.Empty;
+
+            return ContainsIgnoreCase(reason, "GEOM_ESCAPE_RECOVERY");
         }
 
         private static bool IsBypassFollowIntent(
@@ -480,8 +508,8 @@ namespace Hydronom.Core.Modules.Control
             if (bypassFollowMode)
             {
                 /*
-                 * Bypass sırasında heading error speed'i öldürmez; sadece limitler.
-                 * Tam sıfır hız, local-detour takipte kötü davranıyor.
+                 * Bypass sÄ±rasÄ±nda heading error speed'i Ã¶ldÃ¼rmez; sadece limitler.
+                 * Tam sÄ±fÄ±r hÄ±z, local-detour takipte kÃ¶tÃ¼ davranÄ±yor.
                  */
                 if (absHeadingErrorDeg >= 115.0)
                     limit = Math.Min(limit, 0.18);

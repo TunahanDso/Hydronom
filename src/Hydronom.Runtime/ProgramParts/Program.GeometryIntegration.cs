@@ -35,8 +35,8 @@ partial class Program
 
         /*
          * HARD GUARD:
-         * Sadece gerçek çarpışma adayı / hard block varsa aracı tut.
-         * Bu kural parkur girişindeki iki sarı duba gibi geçilebilir kapıları durdurmamalı.
+         * Sadece gerÃ§ek Ã§arpÄ±ÅŸma adayÄ± / hard block varsa aracÄ± tut.
+         * Bu kural parkur giriÅŸindeki iki sarÄ± duba gibi geÃ§ilebilir kapÄ±larÄ± durdurmamalÄ±.
          */
         if (geometry.CollisionCandidate || geometry.HardBlocked)
         {
@@ -66,18 +66,18 @@ partial class Program
 
         /*
          * SOFT GUARD:
-         * Burada kritik düzeltme var:
+         * Burada kritik dÃ¼zeltme var:
          *
-         * Eski davranış:
+         * Eski davranÄ±ÅŸ:
          *   geometry.SoftBlocked || geometry.RequiresSlowMode
          *
-         * Bu, parkur girişinde "soft=False ama RequiresSlowMode=True" durumunu
-         * GEOMETRY_SOFT_COLLISION_GUARD'a çeviriyordu.
+         * Bu, parkur giriÅŸinde "soft=False ama RequiresSlowMode=True" durumunu
+         * GEOMETRY_SOFT_COLLISION_GUARD'a Ã§eviriyordu.
          *
-         * Yeni davranış:
-         *   Sadece geometry.SoftBlocked gerçekse soft collision guard çalışır.
+         * Yeni davranÄ±ÅŸ:
+         *   Sadece geometry.SoftBlocked gerÃ§ekse soft collision guard Ã§alÄ±ÅŸÄ±r.
          *
-         * Risk 0.35-0.55 aralığı ve clearance geçilebilir ise araç korkup durmaz;
+         * Risk 0.35-0.55 aralÄ±ÄŸÄ± ve clearance geÃ§ilebilir ise araÃ§ korkup durmaz;
          * sadece dikkatli corridor takip eder.
          */
         if (geometry.SoftBlocked)
@@ -203,10 +203,10 @@ partial class Program
             .Sanitized();
 
         /*
-         * Kritik düzeltme:
-         * geometry.RequiresSlowMode artık world-aware soft block sayılmıyor.
-         * Çünkü giriş kapısı gibi geçilebilir corridorlarda sadece "dikkatli geç"
-         * anlamına gelebilir; collision guard değildir.
+         * Kritik dÃ¼zeltme:
+         * geometry.RequiresSlowMode artÄ±k world-aware soft block sayÄ±lmÄ±yor.
+         * Ã‡Ã¼nkÃ¼ giriÅŸ kapÄ±sÄ± gibi geÃ§ilebilir corridorlarda sadece "dikkatli geÃ§"
+         * anlamÄ±na gelebilir; collision guard deÄŸildir.
          */
         if (geometry.SoftBlocked)
             return true;
@@ -224,46 +224,186 @@ partial class Program
         RuntimeScenarioGeometrySnapshot? geometrySnapshot,
         double finalRiskScore,
         double planningRiskScore,
-        RuntimePlanningSnapshot? planningSnapshot)
+        RuntimePlanningSnapshot? planningSnapshot,
+        VehicleCapabilityProfile capability)
     {
+        capability = capability.Sanitized();
+
         var geometry = (geometrySnapshot ?? RuntimeScenarioGeometrySnapshot.Empty)
             .Sanitized();
 
-        var target = geometry.HasEscapeTarget
+        var risk = Math.Clamp(
+            Math.Max(finalRiskScore, geometry.RiskScore),
+            0.0,
+            1.0);
+
+        var escapeTarget = geometry.HasEscapeTarget
             ? geometry.EscapeTarget
             : BuildFallbackGeometryEscapeTarget(state);
 
-        var headingDeg = geometry.HasEscapeHeading
-            ? geometry.EscapeHeadingDeg
-            : BearingDeg2D(state.Position, target);
+        var escapeHeadingDeg = geometry.HasEscapeHeading
+            ? NormalizeAngleDegLocal(geometry.EscapeHeadingDeg)
+            : BearingDeg2D(state.Position, escapeTarget);
 
-        var speed = geometry.CollisionCandidate || geometry.HardBlocked
+        var collisionOrHard =
+            geometry.CollisionCandidate ||
+            geometry.HardBlocked;
+
+        var hasReverse =
+            capability.HasReverseAuthority &&
+            capability.NegativeSurgeAuthority > 0.05 &&
+            capability.ReverseConfidence > 0.05;
+
+        var hasLateral =
+            capability.CanGenerateLateralForce &&
+            capability.LateralConfidence > 0.05 &&
+            (capability.PositiveSwayAuthority > 0.05 ||
+             capability.NegativeSwayAuthority > 0.05);
+
+        var hasYaw =
+            capability.CanGenerateYawMoment &&
+            capability.YawConfidence > 0.03 &&
+            (capability.PositiveYawAuthority > 0.02 ||
+             capability.NegativeYawAuthority > 0.02);
+
+        var kind = collisionOrHard
+            ? ControlIntentKind.HoldPosition
+            : ControlIntentKind.AvoidObstacle;
+
+        var targetPosition = collisionOrHard
+            ? state.Position
+            : escapeTarget;
+
+        var targetHeadingDeg = hasYaw
+            ? escapeHeadingDeg
+            : state.Orientation.YawDeg;
+
+        var desiredSpeed = collisionOrHard
             ? 0.0
-            : Math.Min(geometry.SuggestedSpeedMps, 0.20);
+            : Math.Clamp(
+                Math.Min(geometry.SuggestedSpeedMps, 0.20),
+                0.0,
+                0.28);
+
+        var allowReverse = false;
+        var recoveryMode = collisionOrHard
+            ? "hold_depth"
+            : "forward_escape_depth_hold";
+
+        if (collisionOrHard)
+        {
+            if (!hasLateral && hasReverse)
+            {
+                /*
+                 * Platform bağımsız kritik kural:
+                 * Yanal kuvvet yok ama reverse var ise imkânsız Fy istemiyoruz.
+                 * Araç kendi ekseni boyunca geri kaçıyor; yaw varsa güvenli heading'e dönebiliyor.
+                 */
+                var reverseDistance = geometry.CollisionCandidate ? 1.75 : 1.35;
+
+                targetPosition = BuildReverseGeometryEscapeTarget(
+                    state,
+                    reverseDistance);
+
+                kind = ControlIntentKind.AvoidObstacle;
+                allowReverse = true;
+
+                desiredSpeed = -Math.Clamp(
+                    0.12 + risk * 0.14,
+                    0.14,
+                    0.30);
+
+                targetHeadingDeg = hasYaw
+                    ? escapeHeadingDeg
+                    : state.Orientation.YawDeg;
+
+                recoveryMode = hasYaw
+                    ? "reverse_surge_yaw_depth_hold"
+                    : "reverse_surge_depth_hold";
+            }
+            else if (hasLateral)
+            {
+                /*
+                 * Omnidirectional / lateral authority olan platformlarda
+                 * güvenli escape target'a yan kuvvetle çıkmak mümkündür.
+                 */
+                targetPosition = escapeTarget;
+                kind = ControlIntentKind.AvoidObstacle;
+                desiredSpeed = 0.0;
+                allowReverse = hasReverse;
+                targetHeadingDeg = hasYaw
+                    ? escapeHeadingDeg
+                    : state.Orientation.YawDeg;
+
+                recoveryMode = hasYaw
+                    ? "lateral_yaw_depth_hold"
+                    : "lateral_depth_hold";
+            }
+            else if (hasYaw)
+            {
+                /*
+                 * Reverse ve lateral yoksa, en azından heading'i güvenli yöne çevirip
+                 * derinliği tutuyoruz. Bu hâlâ platform bağımsız güvenli davranıştır.
+                 */
+                targetPosition = state.Position;
+                kind = ControlIntentKind.HoldPosition;
+                desiredSpeed = 0.0;
+                targetHeadingDeg = escapeHeadingDeg;
+                allowReverse = false;
+                recoveryMode = "yaw_only_depth_hold";
+            }
+        }
+        else if (!hasLateral && hasReverse)
+        {
+            /*
+             * Non-critical escape target arkada kalıyorsa reverse'e izin ver.
+             * Önde/yan-önde kalıyorsa yaw + pozitif surge ile gidilir.
+             */
+            var deltaWorld = new Vec3(
+                escapeTarget.X - state.Position.X,
+                escapeTarget.Y - state.Position.Y,
+                0.0);
+
+            var deltaBody = state.Orientation.WorldToBody(deltaWorld);
+
+            if (deltaBody.X < -0.25)
+            {
+                desiredSpeed = -Math.Clamp(
+                    Math.Abs(deltaBody.X) * 0.08,
+                    0.10,
+                    0.18);
+
+                allowReverse = true;
+                recoveryMode = hasYaw
+                    ? "reverse_to_escape_target_yaw_depth_hold"
+                    : "reverse_to_escape_target_depth_hold";
+            }
+        }
 
         return new ControlIntent(
-            Kind: geometry.CollisionCandidate || geometry.HardBlocked
-                ? ControlIntentKind.HoldPosition
-                : ControlIntentKind.AvoidObstacle,
-            TargetPosition: geometry.CollisionCandidate || geometry.HardBlocked
-                ? state.Position
-                : target,
-            TargetHeadingDeg: headingDeg,
-            DesiredForwardSpeedMps: speed,
+            Kind: kind,
+            TargetPosition: targetPosition,
+            TargetHeadingDeg: targetHeadingDeg,
+            DesiredForwardSpeedMps: desiredSpeed,
             DesiredDepthMeters: state.Position.Z,
             DesiredAltitudeMeters: 0.0,
             HoldHeading: true,
             HoldDepth: true,
-            AllowReverse: false,
-            RiskLevel: Math.Clamp(Math.Max(finalRiskScore, geometry.RiskScore), 0.0, 1.0),
+            AllowReverse: allowReverse,
+            RiskLevel: risk,
             Reason:
                 $"{geometry.Summary}" +
+                $"|GEOM_ESCAPE_RECOVERY:{recoveryMode}" +
+                $"|CAP_REV:{hasReverse}" +
+                $"|CAP_LAT:{hasLateral}" +
+                $"|CAP_YAW:{hasYaw}" +
                 $"|GEOM_RISK:{geometry.RiskScore:F2}" +
                 $"|PLAN_RISK:{planningRiskScore:F2}" +
                 $"|FINAL_RISK:{finalRiskScore:F2}" +
                 $"|NEAREST:{geometry.NearestObstacleId ?? "none"}" +
                 $"|CLEAR:{geometry.NearestClearanceMeters:F2}" +
-                $"|PLAN:{planningSnapshot?.Summary ?? "NO_PLAN"}");
+                $"|PLAN:{planningSnapshot?.Summary ?? "NO_PLAN"}" +
+                $"|CAP:{capability.Summary}");
     }
 
     private static Vec3 ResolveGeometryReferenceTarget(
@@ -310,6 +450,22 @@ partial class Program
         return new Vec3(
             state.Position.X - Math.Cos(yawRad) * 1.5,
             state.Position.Y - Math.Sin(yawRad) * 1.5,
+            state.Position.Z);
+    }
+
+    private static Vec3 BuildReverseGeometryEscapeTarget(
+        VehicleState state,
+        double distanceMeters)
+    {
+        var distance = double.IsFinite(distanceMeters)
+            ? Math.Clamp(distanceMeters, 0.50, 3.00)
+            : 1.50;
+
+        var yawRad = state.Orientation.YawDeg * Math.PI / 180.0;
+
+        return new Vec3(
+            state.Position.X - Math.Cos(yawRad) * distance,
+            state.Position.Y - Math.Sin(yawRad) * distance,
             state.Position.Z);
     }
 

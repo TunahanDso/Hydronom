@@ -59,7 +59,7 @@ partial class Program
         }
         else
         {
-            Console.WriteLine("[PY] Python sensor hub auto-start devre dÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â± veya belirtilmedi.");
+            Console.WriteLine("[PY] Python sensor hub auto-start devre dÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± veya belirtilmedi.");
         }
 
         var analysisImpl = CreateAnalysisModule(config);
@@ -92,8 +92,8 @@ partial class Program
 
         Console.WriteLine(
             activeVehicleContext.HasProfile
-                ? $"[CFG] PlatformControl capability bind ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€Â¢ vehicle-profile {controlModule.CapabilityProfile.Summary}"
-                : $"[CFG] PlatformControl capability bind ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€Â¢ actuator-manager {controlModule.CapabilityProfile.Summary}");
+                ? $"[CFG] PlatformControl capability bind ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢ vehicle-profile {controlModule.CapabilityProfile.Summary}"
+                : $"[CFG] PlatformControl capability bind ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢ actuator-manager {controlModule.CapabilityProfile.Summary}");
 
         var limiter = CreateSafetyLimiter(config);
 
@@ -156,7 +156,7 @@ partial class Program
                 };
 
                 Console.WriteLine(
-                    $"[TWIN] Enabled ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€Â¢ RefLat={((TcpTwinPublisher)twinPublisher).ReferenceLatDeg:F6} " +
+                    $"[TWIN] Enabled ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢ RefLat={((TcpTwinPublisher)twinPublisher).ReferenceLatDeg:F6} " +
                     $"RefLon={((TcpTwinPublisher)twinPublisher).ReferenceLonDeg:F6} " +
                     $"GpsHz={((TcpTwinPublisher)twinPublisher).GpsRateHz:F1} " +
                     $"ImuHz={((TcpTwinPublisher)twinPublisher).ImuRateHz:F1}"
@@ -179,7 +179,7 @@ partial class Program
         if (tickMs < 10)
             tickMs = 10;
 
-        Console.WriteLine($"[CFG] Tick ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€Â¢ {tickMs} ms | DevMode={runtime.DevMode} SimMode={runtime.SimMode}");
+        Console.WriteLine($"[CFG] Tick ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢ {tickMs} ms | DevMode={runtime.DevMode} SimMode={runtime.SimMode}");
 
         var tuner = CreateInlineTuner(
             analysisImpl,
@@ -219,7 +219,7 @@ partial class Program
 
         _ = cmdSrv.StartAsync(cts.Token);
 
-        Console.WriteLine($"Hydronom runtime started. Frames on {sourceType}, Commands on {cmdHost}:{cmdPort}. Ctrl+C ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€Â¢ stop.");
+        Console.WriteLine($"Hydronom runtime started. Frames on {sourceType}, Commands on {cmdHost}:{cmdPort}. Ctrl+C ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢ stop.");
 
         bool invertRudder = ReadBool(config, "Control:InvertRudder", false);
         int heartbeatTimeoutMs = ReadInt(config, "Control:HeartbeatTimeoutMs", 1500);
@@ -486,9 +486,9 @@ partial class Program
                      * Hard blocked / collision candidate plan veya geometry target olarak Decision'a verilmez.
                      *
                      * Ek kural:
-                     * Scenario reach_wp gÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶revlerinde local-detour, gerÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ek waypoint hedefini ezemez.
-                     * Gate/slalom bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶lgesinde planner'ÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±n local-detour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼retmesi aracÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â± kapÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â± koridorundan
-                     * ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±karÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±p duba dibine sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼kleyebiliyor.
+                     * Scenario reach_wp gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶revlerinde local-detour, gerÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ek waypoint hedefini ezemez.
+                     * Gate/slalom bÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶lgesinde planner'ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±n local-detour ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼retmesi aracÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± kapÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± koridorundan
+                     * ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±karÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±p duba dibine sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼kleyebiliyor.
                      */
                     if (ShouldBindPlanLookAheadToDecision(
                             taskForDecision,
@@ -528,7 +528,8 @@ partial class Program
                             geometrySnapshot,
                             finalRiskScore,
                             planningRiskScore,
-                            planningSnapshot);
+                            planningSnapshot,
+                            controlModule.CapabilityProfile);
                     }
                     else if (hardBlocked)
                     {
@@ -599,8 +600,8 @@ partial class Program
                     {
                         /*
                          * Plan var ama referans bind edilmedi.
-                         * Bu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶zellikle scenario reach_wp + local-detour durumunda bilinÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§li yapÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±lÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±r.
-                         * Planner hedefi ezemez; sadece risk/speed bilgisini intent'e iÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸leriz.
+                         * Bu ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶zellikle scenario reach_wp + local-detour durumunda bilinÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§li yapÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±lÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±r.
+                         * Planner hedefi ezemez; sadece risk/speed bilgisini intent'e iÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸leriz.
                          */
                         var desiredSpeed = intent.DesiredForwardSpeedMps;
 
@@ -612,7 +613,7 @@ partial class Program
                             desiredSpeed = Math.Min(desiredSpeed, 0.45);
 
                         /*
-                         * Soft risk var ama hard collision yoksa aracÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â± tamamen ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶ldÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼rme.
+                         * Soft risk var ama hard collision yoksa aracÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± tamamen ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ldÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼rme.
                          */
                         if (!hardBlocked &&
                             finalRiskScore < 0.85 &&
@@ -1005,8 +1006,8 @@ partial class Program
         }
 
         /*
-         * Scenario reach_wp gÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶revlerinde local-detour, gerÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ek gÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶rev hedefini ezemez.
-         * Bu, WP2'ye gitmesi gereken aracÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±n saÃƒÆ’Ã¢â‚¬ÂÃƒâ€¦Ã‚Â¸ dubanÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±n altÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±ndaki detour'a kÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±rÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±lmasÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±nÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â± engeller.
+         * Scenario reach_wp gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶revlerinde local-detour, gerÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ek gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶rev hedefini ezemez.
+         * Bu, WP2'ye gitmesi gereken aracÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±n saÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ dubanÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±n altÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ndaki detour'a kÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±rÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±lmasÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±nÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± engeller.
          */
         if (IsExternalReachWaypointTask(task) &&
             IsLocalDetourLookAhead(planningSnapshot))
@@ -1047,8 +1048,8 @@ partial class Program
         }
 
         /*
-         * Scenario waypoint gÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶revlerinde local-detour intent hedefini ezemez.
-         * Bu kapÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±/slalomda "WP2'ye git" hedefinin "saÃƒÆ’Ã¢â‚¬ÂÃƒâ€¦Ã‚Â¸ duba altÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±ndaki detour'a git"e dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¶nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸mesini engeller.
+         * Scenario waypoint gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶revlerinde local-detour intent hedefini ezemez.
+         * Bu kapÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±/slalomda "WP2'ye git" hedefinin "saÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ duba altÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ndaki detour'a git"e dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸mesini engeller.
          */
         if (IsExternalReachWaypointTask(task) &&
             IsLocalDetourLookAhead(planningSnapshot))

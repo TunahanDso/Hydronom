@@ -4,17 +4,17 @@ using Hydronom.Core.Domain;
 namespace Hydronom.Core.Modules.Control
 {
     /// <summary>
-    /// Platform bağımsız yüksek frekanslı kontrol modülü.
+    /// Platform baÃ„Å¸Ã„Â±msÃ„Â±z yÃƒÂ¼ksek frekanslÃ„Â± kontrol modÃƒÂ¼lÃƒÂ¼.
     ///
-    /// Decision artık doğrudan wrench üretmek zorunda değildir.
-    /// Decision, ControlIntent üretir.
-    /// Bu modül ise ControlIntent + VehicleState üzerinden gerçek DecisionCommand/wrench üretir.
+    /// Decision artÃ„Â±k doÃ„Å¸rudan wrench ÃƒÂ¼retmek zorunda deÃ„Å¸ildir.
+    /// Decision, ControlIntent ÃƒÂ¼retir.
+    /// Bu modÃƒÂ¼l ise ControlIntent + VehicleState ÃƒÂ¼zerinden gerÃƒÂ§ek DecisionCommand/wrench ÃƒÂ¼retir.
     ///
     /// Paket-6F:
-    /// Bu modül artık vehicle capability aware çalışır.
-    /// Tek yönlü ESC / underactuated surface vehicle gibi araçlarda üretilmesi fiziksel olarak
-    /// mümkün olmayan yanal kuvvet, reverse surge ve aşırı yaw moment istekleri daha üst seviyede
-    /// bastırılır. Böylece allocation katmanı "imkânsız wrench" ile boğulmaz.
+    /// Bu modÃƒÂ¼l artÃ„Â±k vehicle capability aware ÃƒÂ§alÃ„Â±Ã…Å¸Ã„Â±r.
+    /// Tek yÃƒÂ¶nlÃƒÂ¼ ESC / underactuated surface vehicle gibi araÃƒÂ§larda ÃƒÂ¼retilmesi fiziksel olarak
+    /// mÃƒÂ¼mkÃƒÂ¼n olmayan yanal kuvvet, reverse surge ve aÃ…Å¸Ã„Â±rÃ„Â± yaw moment istekleri daha ÃƒÂ¼st seviyede
+    /// bastÃ„Â±rÃ„Â±lÃ„Â±r. BÃƒÂ¶ylece allocation katmanÃ„Â± "imkÃƒÂ¢nsÃ„Â±z wrench" ile boÃ„Å¸ulmaz.
     /// </summary>
     public sealed partial class PlatformControlModule : IControlModule
     {
@@ -51,10 +51,10 @@ namespace Hydronom.Core.Modules.Control
         private const double PitchKd = 0.008;
 
         /// <summary>
-        /// Runtime/Actuator katmanı tarafından güncellenebilecek araç kabiliyet profili.
+        /// Runtime/Actuator katmanÃ„Â± tarafÃ„Â±ndan gÃƒÂ¼ncellenebilecek araÃƒÂ§ kabiliyet profili.
         ///
-        /// Default Unknown profili bilerek underactuated surface vehicle gibi temkinli davranır.
-        /// Böylece bilgi yoksa bile kontrolcü omnidirectional/çift yönlü araç varsaymaz.
+        /// Default Unknown profili bilerek underactuated surface vehicle gibi temkinli davranÃ„Â±r.
+        /// BÃƒÂ¶ylece bilgi yoksa bile kontrolcÃƒÂ¼ omnidirectional/ÃƒÂ§ift yÃƒÂ¶nlÃƒÂ¼ araÃƒÂ§ varsaymaz.
         /// </summary>
         public VehicleCapabilityProfile CapabilityProfile { get; private set; } =
             VehicleCapabilityProfile.Unknown;
@@ -145,7 +145,8 @@ namespace Hydronom.Core.Modules.Control
         private static DecisionCommand ApplyCapabilityLimits(
             DecisionCommand command,
             VehicleCapabilityProfile capability,
-            bool avoidanceMode)
+            bool avoidanceMode,
+            bool allowReverse)
         {
             capability = capability.Sanitized();
 
@@ -156,49 +157,57 @@ namespace Hydronom.Core.Modules.Control
             var ty = Safe(command.Ty);
             var tz = Safe(command.Tz);
 
-            if (!capability.HasReverseAuthority || capability.IsUnderactuatedSurfaceVehicle)
-            {
-                if (fx < 0.0)
-                    fx = 0.0;
-            }
+            var reverseUsable =
+                allowReverse &&
+                capability.HasReverseAuthority &&
+                capability.NegativeSurgeAuthority > 0.05 &&
+                capability.ReverseConfidence > 0.05;
 
-            if (capability.IsUnderactuatedSurfaceVehicle || !capability.CanGenerateLateralForce)
+            if (!reverseUsable && fx < 0.0)
+                fx = 0.0;
+
+            if (!capability.CanGenerateLateralForce)
             {
                 /*
-                 * Tek yönlü / underactuated yüzey araçta lateral wrench hayaldir.
-                 * Tam sıfırlıyoruz ama çok küçük damping payı bırakıyoruz ki sim/sualtı profiline
-                 * geçildiğinde davranış tamamen kırılmasın.
+                 * Platform bağımsız kural:
+                 * Lateral otorite yoksa Fy isteme.
+                 * Araç adı/tipe göre değil, capability profile'a göre karar verilir.
                  */
-                var lateralScale = Math.Clamp(capability.LateralConfidence, 0.0, 0.20);
-                fy *= lateralScale;
+                fy = 0.0;
             }
             else
             {
-                var lateralScale = Math.Clamp(capability.LateralConfidence, 0.25, 1.0);
+                var lateralScale = Math.Clamp(capability.LateralConfidence, 0.0, 1.0);
                 fy *= lateralScale;
             }
 
             if (!capability.CanGenerateYawMoment)
             {
-                tz *= 0.20;
+                tz = 0.0;
             }
             else
             {
-                var yawScale = Math.Clamp(capability.YawConfidence, 0.35, 1.0);
+                var yawScale = Math.Clamp(capability.YawConfidence, 0.05, 1.0);
                 tz *= yawScale;
             }
 
             if (capability.IsUnderactuatedSurfaceVehicle)
             {
                 /*
-                 * Underactuated surface vehicle politikası:
-                 * - Turn-align sırasında tamamen gazı kesmek yerine küçük pozitif ileri akış bırakılabilir.
-                 * - Ancak çok riskli avoidance modunda aşırı thrust da verilmez.
+                 * Underactuated araç politikası:
+                 * Reverse sadece intent izin veriyor ve araçta gerçek reverse otoritesi varsa açılır.
+                 * Normal navigation/bypass ters sürüşe zorlanmaz.
+                 * Collision/no-go recovery gibi durumlarda reverse platform bağımsız şekilde kullanılabilir.
                  */
-                if (avoidanceMode)
-                    fx = Math.Clamp(fx, 0.0, MaxFxN * 0.45);
-                else
-                    fx = Math.Clamp(fx, 0.0, MaxFxN);
+                var minFx = reverseUsable
+                    ? -MaxFxN * (avoidanceMode ? 0.45 : 0.65)
+                    : 0.0;
+
+                var maxFx = avoidanceMode
+                    ? MaxFxN * 0.45
+                    : MaxFxN;
+
+                fx = Math.Clamp(fx, minFx, maxFx);
             }
 
             return ClampCommand(new DecisionCommand(
