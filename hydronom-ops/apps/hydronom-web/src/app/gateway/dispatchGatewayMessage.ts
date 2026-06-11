@@ -8,7 +8,7 @@ import {
   type SourceKind,
   type VehicleId
 } from "../../shared/types/common.types";
-import type { VehicleTelemetry } from "../../entities/vehicle/model/vehicle.types";
+import type { VehicleProfileInfo, VehicleTelemetry } from "../../entities/vehicle/model/vehicle.types";
 import type { SensorState } from "../../entities/sensor/model/sensor.types";
 import type {
   MissionState,
@@ -200,7 +200,7 @@ export function dispatchGatewayMessage(message: GatewayMessage) {
     }
 
     default: {
-      console.debug("Bilinmeyen gateway mesajÄ±:", message);
+      console.debug("Bilinmeyen gateway mesajÃ„Â±:", message);
       return;
     }
   }
@@ -749,6 +749,58 @@ function isFrontendActuatorState(value: unknown): value is ActuatorState {
   );
 }
 
+
+function normalizeRuntimeSummaryVehicleProfile(
+  payload: GatewayRuntimeTelemetrySummaryPayload,
+  fallbackDisplayName: string
+): VehicleProfileInfo | null {
+  const extended = payload as GatewayRuntimeTelemetrySummaryPayload & {
+    vehicleProfileId?: string | null;
+    vehiclePlatformKind?: string | null;
+    vehicleDisplayName?: string | null;
+    vehicleProfileActive?: boolean;
+    vehicleIsUnderwater?: boolean;
+    vehicleIsMiniRov?: boolean;
+    vehicleProfile?: Partial<VehicleProfileInfo> | null;
+  };
+
+  const raw = extended.vehicleProfile ?? null;
+
+  const profileId = raw?.profileId ?? extended.vehicleProfileId ?? null;
+  const platformKind = raw?.platformKind ?? extended.vehiclePlatformKind ?? null;
+  const displayName = raw?.displayName ?? extended.vehicleDisplayName ?? fallbackDisplayName;
+
+  const active = raw?.active ?? Boolean(extended.vehicleProfileActive);
+  const isUnderwater = raw?.isUnderwater ?? Boolean(extended.vehicleIsUnderwater);
+  const isMiniRov = raw?.isMiniRov ?? Boolean(extended.vehicleIsMiniRov);
+
+  if (
+    !profileId &&
+    !platformKind &&
+    !extended.vehicleProfileActive &&
+    !extended.vehicleIsUnderwater &&
+    !extended.vehicleIsMiniRov &&
+    !raw
+  ) {
+    return null;
+  }
+
+  return {
+    profileId,
+    platformKind,
+    displayName,
+    active,
+    isUnderwater,
+    isMiniRov,
+    capabilitySummary: raw?.capabilitySummary ?? null,
+    capabilities: {
+      hasThrusters: Boolean(raw?.capabilities?.hasThrusters),
+      hasReverseAuthority: Boolean(raw?.capabilities?.hasReverseAuthority),
+      canGenerateLateralForce: Boolean(raw?.capabilities?.canGenerateLateralForce),
+      canGenerateYawMoment: Boolean(raw?.capabilities?.canGenerateYawMoment)
+    }
+  };
+}
 function mapRuntimeSummaryToVehicleTelemetry(
   payload: GatewayRuntimeTelemetrySummaryPayload,
   missionState: BackendMissionState | MissionState | null,
@@ -798,13 +850,17 @@ function mapRuntimeSummaryToVehicleTelemetry(
   const obstacleCount = Math.max(0, finite(payload.obstacleCount, 0));
   const obstacleAhead = Boolean(payload.obstacleAhead);
 
+  const vehicleProfile = normalizeRuntimeSummaryVehicleProfile(payload, vehicleId);
+  const resolvedDisplayName = vehicleProfile?.displayName ?? vehicleId;
+
   const telemetry: VehicleTelemetry = {
     vehicleId,
-    displayName: vehicleId,
+    displayName: resolvedDisplayName,
 
     mode: "manual" as VehicleTelemetry["mode"],
     armState: "disarmed" as VehicleTelemetry["armState"],
-    vehicleProfile: null,
+    vehicleProfile,
+
     pose: {
       position: {
         x,

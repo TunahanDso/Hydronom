@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using Hydronom.AI.Clients;
 using Hydronom.AI.Orchestration;
@@ -11,6 +11,7 @@ using Hydronom.Runtime.AI;
 using Hydronom.Runtime.AI.Tools;
 using Hydronom.Runtime.Buses;
 using Hydronom.Runtime.Tuning;
+using Hydronom.Runtime.Vehicles;
 using Microsoft.Extensions.Configuration;
 
 partial class Program
@@ -123,7 +124,8 @@ partial class Program
     private static (ActuatorManager Manager, ActuatorBus Bus) CreateActuatorSystem(
         IConfiguration config,
         RuntimeOptions runtime,
-        IMotorController motors)
+        IMotorController motors,
+        ActiveVehicleContext? activeVehicleContext)
     {
         var configuredSerialPortName = config["Actuator:Serial:Port"];
         var serialPortName = string.IsNullOrWhiteSpace(configuredSerialPortName)
@@ -202,7 +204,7 @@ partial class Program
             );
         }
 
-        var thrusterDescs = LoadThrusterDescriptions(config);
+        var thrusterDescs = LoadThrusterDescriptions(config, activeVehicleContext);
         var actuatorManager = new ActuatorManager(thrusterDescs, motors, serialPortName, serialBaud);
         var actuatorBus = new ActuatorBus(new IActuator[] { actuatorManager });
 

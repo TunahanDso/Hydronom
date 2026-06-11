@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,7 +55,7 @@ partial class Program
         }
         else
         {
-            Console.WriteLine("[PY] Python sensor hub auto-start devre dışı veya belirtilmedi.");
+            Console.WriteLine("[PY] Python sensor hub auto-start devre dÄ±ÅŸÄ± veya belirtilmedi.");
         }
 
         var analysisImpl = CreateAnalysisModule(config);
@@ -76,7 +76,7 @@ partial class Program
         var feedback = CreateFeedbackRecorder(config);
         var motors = CreateMotorController(config);
 
-        var actuatorSystem = CreateActuatorSystem(config, runtime, motors);
+        var actuatorSystem = CreateActuatorSystem(config, runtime, motors, activeVehicleContext);
         var actuatorManager = actuatorSystem.Manager;
         var actuatorBus = actuatorSystem.Bus;
 
@@ -88,8 +88,8 @@ partial class Program
 
         Console.WriteLine(
             activeVehicleContext.HasProfile
-                ? $"[CFG] PlatformControl capability bind → vehicle-profile {controlModule.CapabilityProfile.Summary}"
-                : $"[CFG] PlatformControl capability bind → actuator-manager {controlModule.CapabilityProfile.Summary}");
+                ? $"[CFG] PlatformControl capability bind â†’ vehicle-profile {controlModule.CapabilityProfile.Summary}"
+                : $"[CFG] PlatformControl capability bind â†’ actuator-manager {controlModule.CapabilityProfile.Summary}");
 
         var limiter = CreateSafetyLimiter(config);
 
@@ -127,7 +127,8 @@ partial class Program
                     config,
                     tcpFrameSource.Server,
                     state,
-                    runtimeWorldModel
+                    runtimeWorldModel,
+                    activeVehicleContext: activeVehicleContext
                 );
             }
             else
@@ -151,7 +152,7 @@ partial class Program
                 };
 
                 Console.WriteLine(
-                    $"[TWIN] Enabled → RefLat={((TcpTwinPublisher)twinPublisher).ReferenceLatDeg:F6} " +
+                    $"[TWIN] Enabled â†’ RefLat={((TcpTwinPublisher)twinPublisher).ReferenceLatDeg:F6} " +
                     $"RefLon={((TcpTwinPublisher)twinPublisher).ReferenceLonDeg:F6} " +
                     $"GpsHz={((TcpTwinPublisher)twinPublisher).GpsRateHz:F1} " +
                     $"ImuHz={((TcpTwinPublisher)twinPublisher).ImuRateHz:F1}"
@@ -174,7 +175,7 @@ partial class Program
         if (tickMs < 10)
             tickMs = 10;
 
-        Console.WriteLine($"[CFG] Tick → {tickMs} ms | DevMode={runtime.DevMode} SimMode={runtime.SimMode}");
+        Console.WriteLine($"[CFG] Tick â†’ {tickMs} ms | DevMode={runtime.DevMode} SimMode={runtime.SimMode}");
 
         var tuner = CreateInlineTuner(
             analysisImpl,
@@ -214,7 +215,7 @@ partial class Program
 
         _ = cmdSrv.StartAsync(cts.Token);
 
-        Console.WriteLine($"Hydronom runtime started. Frames on {sourceType}, Commands on {cmdHost}:{cmdPort}. Ctrl+C → stop.");
+        Console.WriteLine($"Hydronom runtime started. Frames on {sourceType}, Commands on {cmdHost}:{cmdPort}. Ctrl+C â†’ stop.");
 
         bool invertRudder = ReadBool(config, "Control:InvertRudder", false);
         int heartbeatTimeoutMs = ReadInt(config, "Control:HeartbeatTimeoutMs", 1500);
@@ -481,9 +482,9 @@ partial class Program
                      * Hard blocked / collision candidate plan veya geometry target olarak Decision'a verilmez.
                      *
                      * Ek kural:
-                     * Scenario reach_wp görevlerinde local-detour, gerçek waypoint hedefini ezemez.
-                     * Gate/slalom bölgesinde planner'ın local-detour üretmesi aracı kapı koridorundan
-                     * çıkarıp duba dibine sürükleyebiliyor.
+                     * Scenario reach_wp gÃ¶revlerinde local-detour, gerÃ§ek waypoint hedefini ezemez.
+                     * Gate/slalom bÃ¶lgesinde planner'Ä±n local-detour Ã¼retmesi aracÄ± kapÄ± koridorundan
+                     * Ã§Ä±karÄ±p duba dibine sÃ¼rÃ¼kleyebiliyor.
                      */
                     if (ShouldBindPlanLookAheadToDecision(
                             taskForDecision,
@@ -594,8 +595,8 @@ partial class Program
                     {
                         /*
                          * Plan var ama referans bind edilmedi.
-                         * Bu özellikle scenario reach_wp + local-detour durumunda bilinçli yapılır.
-                         * Planner hedefi ezemez; sadece risk/speed bilgisini intent'e işleriz.
+                         * Bu Ã¶zellikle scenario reach_wp + local-detour durumunda bilinÃ§li yapÄ±lÄ±r.
+                         * Planner hedefi ezemez; sadece risk/speed bilgisini intent'e iÅŸleriz.
                          */
                         var desiredSpeed = intent.DesiredForwardSpeedMps;
 
@@ -607,7 +608,7 @@ partial class Program
                             desiredSpeed = Math.Min(desiredSpeed, 0.45);
 
                         /*
-                         * Soft risk var ama hard collision yoksa aracı tamamen öldürme.
+                         * Soft risk var ama hard collision yoksa aracÄ± tamamen Ã¶ldÃ¼rme.
                          */
                         if (!hardBlocked &&
                             finalRiskScore < 0.85 &&
@@ -999,8 +1000,8 @@ partial class Program
         }
 
         /*
-         * Scenario reach_wp görevlerinde local-detour, gerçek görev hedefini ezemez.
-         * Bu, WP2'ye gitmesi gereken aracın sağ dubanın altındaki detour'a kırılmasını engeller.
+         * Scenario reach_wp gÃ¶revlerinde local-detour, gerÃ§ek gÃ¶rev hedefini ezemez.
+         * Bu, WP2'ye gitmesi gereken aracÄ±n saÄŸ dubanÄ±n altÄ±ndaki detour'a kÄ±rÄ±lmasÄ±nÄ± engeller.
          */
         if (IsExternalReachWaypointTask(task) &&
             IsLocalDetourLookAhead(planningSnapshot))
@@ -1041,8 +1042,8 @@ partial class Program
         }
 
         /*
-         * Scenario waypoint görevlerinde local-detour intent hedefini ezemez.
-         * Bu kapı/slalomda "WP2'ye git" hedefinin "sağ duba altındaki detour'a git"e dönüşmesini engeller.
+         * Scenario waypoint gÃ¶revlerinde local-detour intent hedefini ezemez.
+         * Bu kapÄ±/slalomda "WP2'ye git" hedefinin "saÄŸ duba altÄ±ndaki detour'a git"e dÃ¶nÃ¼ÅŸmesini engeller.
          */
         if (IsExternalReachWaypointTask(task) &&
             IsLocalDetourLookAhead(planningSnapshot))

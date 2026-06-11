@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Actuators;
+using Hydronom.Runtime.Vehicles;
 using Microsoft.Extensions.Configuration;
 
 // ThrusterDesc adÄ±nÄ± Runtime.Actuators iÃ§indeki tipe sabitle
@@ -21,10 +22,16 @@ partial class Program
     /// 4. Actuator:Thrusters legacy section
     /// 5. AutoDiscovery Ã§Ä±ktÄ±sÄ± placeholder
     /// </summary>
-    private static ThrusterDesc[] LoadThrusterDescriptions(IConfiguration config)
+    private static ThrusterDesc[] LoadThrusterDescriptions(IConfiguration config, ActiveVehicleContext? activeVehicleContext = null)
     {
         ThrusterDesc[]? thrusterDescs = null;
 
+
+        var profileThrusters = TryLoadThrustersFromVehicleProfile(config, activeVehicleContext);
+        if (profileThrusters.Length > 0)
+        {
+            return SanitizeThrusterDescriptions(profileThrusters);
+        }
         try
         {
             thrusterDescs = config.GetSection("Thrusters").Get<ThrusterDesc[]>();
@@ -66,6 +73,83 @@ partial class Program
     /// Thruster config loader.
     /// Configs altÄ±ndaki keÅŸif/geometri dosyalarÄ±nÄ± dener.
     /// </summary>
+
+    /// <summary>
+    /// Aktif VehicleProfile.Actuation içindeki thruster listesini runtime ActuatorManager geometri formatına çevirir.
+    ///
+    /// Kalıcı karar:
+    /// - Araç profili aktifse actuator geometrisinin ana kaynağı VehicleProfile.Actuation'dır.
+    /// - Configs/thrusters.geometry.json ve legacy Thrusters bölümleri yalnızca fallback olarak kalır.
+    /// - VehicleProfile:ActuationSource = "Config" verilirse profil actuation bilinçli olarak atlanır.
+    /// </summary>
+    private static ThrusterDesc[] TryLoadThrustersFromVehicleProfile(
+        IConfiguration config,
+        ActiveVehicleContext? activeVehicleContext)
+    {
+        var source = config["VehicleProfile:ActuationSource"];
+
+        if (string.Equals(source, "Config", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("[CFG] VehicleProfile actuation skipped: VehicleProfile:ActuationSource=Config.");
+            return Array.Empty<ThrusterDesc>();
+        }
+
+        var profile = activeVehicleContext?.Profile?.Sanitized();
+
+        if (profile is null)
+            return Array.Empty<ThrusterDesc>();
+
+        var activeThrusters = profile.Actuation.ActiveThrusters;
+
+        if (activeThrusters.Count <= 0)
+        {
+            Console.WriteLine(
+                $"[CFG] VehicleProfile actuation empty for profile={profile.ProfileId}; falling back to config geometry.");
+
+            return Array.Empty<ThrusterDesc>();
+        }
+
+        var result = activeThrusters
+            .Select((thruster, index) =>
+            {
+                var channel = ParseThrusterChannel(thruster.Channel, index);
+
+                return new ThrusterDesc(
+                    Id: string.IsNullOrWhiteSpace(thruster.Id)
+                        ? $"VP_CH{channel}"
+                        : thruster.Id.Trim(),
+                    Channel: channel,
+                    Position: thruster.PositionM,
+                    ForceDir: thruster.Direction,
+                    Reversed: false,
+                    CanReverse: thruster.CanReverse && thruster.MaxReverseThrustN > 0.0
+                );
+            })
+            .ToArray();
+
+        Console.WriteLine(
+            $"[CFG] Thrusters loaded from VehicleProfile.Actuation profile={profile.ProfileId} vehicle={profile.VehicleId} ({result.Length} ch).");
+
+        return result;
+    }
+
+    private static int ParseThrusterChannel(string? rawChannel, int fallback)
+    {
+        if (string.IsNullOrWhiteSpace(rawChannel))
+            return fallback;
+
+        var raw = rawChannel.Trim();
+
+        if (int.TryParse(raw, out var direct) && direct >= 0)
+            return direct;
+
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+
+        if (int.TryParse(digits, out var parsed) && parsed >= 0)
+            return parsed;
+
+        return fallback;
+    }
     private static ThrusterDesc[] TryLoadThrustersFromChannelProfiles(IConfiguration config)
     {
         var baseDir = AppContext.BaseDirectory;

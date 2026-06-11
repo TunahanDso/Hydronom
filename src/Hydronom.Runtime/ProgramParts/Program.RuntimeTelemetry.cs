@@ -13,15 +13,16 @@ using Hydronom.Runtime.Simulation.Physics;
 using Hydronom.Runtime.StateRuntime;
 using Hydronom.Runtime.Telemetry;
 using Hydronom.Runtime.World.Runtime;
+using Hydronom.Runtime.Vehicles;
 using Microsoft.Extensions.Configuration;
 
 partial class Program
 {
     /// <summary>
-    /// Runtime ana döngüsünde kullanılacak C# Primary telemetry pipeline çalışma zamanı tutucusu.
+    /// Runtime ana dÃƒÂ¶ngÃƒÂ¼sÃƒÂ¼nde kullanÃ„Â±lacak C# Primary telemetry pipeline ÃƒÂ§alÃ„Â±Ã…Å¸ma zamanÃ„Â± tutucusu.
     ///
-    /// Bu yapı sensör verisini TCP'den almaz.
-    /// C# Primary akışta sensörler runtime içinde okunur; TCP yalnızca Gateway/Ops telemetry yayını için kullanılır.
+    /// Bu yapÃ„Â± sensÃƒÂ¶r verisini TCP'den almaz.
+    /// C# Primary akÃ„Â±Ã…Å¸ta sensÃƒÂ¶rler runtime iÃƒÂ§inde okunur; TCP yalnÃ„Â±zca Gateway/Ops telemetry yayÃ„Â±nÃ„Â± iÃƒÂ§in kullanÃ„Â±lÃ„Â±r.
     /// </summary>
     private sealed class RuntimeTelemetryRuntime : IAsyncDisposable
     {
@@ -80,7 +81,7 @@ partial class Program
     }
 
     /// <summary>
-    /// RuntimeTelemetryPipeline kurulmalı mı?
+    /// RuntimeTelemetryPipeline kurulmalÃ„Â± mÃ„Â±?
     /// </summary>
     private static bool IsRuntimeTelemetryEnabled(IConfiguration config)
     {
@@ -88,25 +89,32 @@ partial class Program
     }
 
     /// <summary>
-    /// C# Primary RuntimeTelemetryPipeline oluşturur.
+    /// C# Primary RuntimeTelemetryPipeline oluÃ…Å¸turur.
     ///
     /// Not:
-    /// - Bu pipeline runtime içindeki C# sensör/fusion/state hattını kullanır.
-    /// - TcpJsonServer yalnızca RuntimeTelemetrySummary yayınlamak için kullanılır.
-    /// - Python/TcpJsonFrameSource fallback hattı bundan bağımsız kalır.
-    /// - Sim LiDAR aynı RuntimeWorldModel instance'ını okuyarak senaryo dubalarını/engellerini raycast eder.
+    /// - Bu pipeline runtime iÃƒÂ§indeki C# sensÃƒÂ¶r/fusion/state hattÃ„Â±nÃ„Â± kullanÃ„Â±r.
+    /// - TcpJsonServer yalnÃ„Â±zca RuntimeTelemetrySummary yayÃ„Â±nlamak iÃƒÂ§in kullanÃ„Â±lÃ„Â±r.
+    /// - Python/TcpJsonFrameSource fallback hattÃ„Â± bundan baÃ„Å¸Ã„Â±msÃ„Â±z kalÃ„Â±r.
+    /// - Sim LiDAR aynÃ„Â± RuntimeWorldModel instance'Ã„Â±nÃ„Â± okuyarak senaryo dubalarÃ„Â±nÃ„Â±/engellerini raycast eder.
     /// </summary>
     private static RuntimeTelemetryRuntime CreateRuntimeTelemetryRuntime(
         IConfiguration config,
         TcpJsonServer tcpJsonServer,
         VehicleState initialState,
-        RuntimeWorldModel? runtimeWorldModel = null)
+        RuntimeWorldModel? runtimeWorldModel = null,
+        ActiveVehicleContext? activeVehicleContext = null)
     {
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(tcpJsonServer);
 
         var runtimeId = ReadString(config, "Runtime:TelemetrySummary:RuntimeId", "hydronom_runtime");
-        var vehicleId = ReadString(config, "Runtime:TelemetrySummary:VehicleId", "hydronom-main");
+                var configuredVehicleId = ReadString(config, "Runtime:TelemetrySummary:VehicleId", "hydronom-main");
+
+        var vehicleId =
+            activeVehicleContext?.HasProfile == true &&
+            !string.IsNullOrWhiteSpace(activeVehicleContext.VehicleId)
+                ? activeVehicleContext.VehicleId
+                : configuredVehicleId;
         var frameId = ReadString(config, "Runtime:TelemetrySummary:FrameId", "map");
 
         var everyTicks = ReadInt(config, "Runtime:TelemetrySummary:Every", 10);
@@ -136,14 +144,14 @@ partial class Program
         sensorOptions.EnableGps = ReadBool(config, "Runtime:TelemetrySummary:EnableGps", true);
 
         /*
-        * Depth sensörü yüzey aracı için varsayılan zorunlu değildir.
-        * Sualtı / degraded GPS kaybı testlerinde Runtime:TelemetrySummary:EnableDepth=true ile açılır.
+        * Depth sensÃƒÂ¶rÃƒÂ¼ yÃƒÂ¼zey aracÃ„Â± iÃƒÂ§in varsayÃ„Â±lan zorunlu deÃ„Å¸ildir.
+        * SualtÃ„Â± / degraded GPS kaybÃ„Â± testlerinde Runtime:TelemetrySummary:EnableDepth=true ile aÃƒÂ§Ã„Â±lÃ„Â±r.
         */
         sensorOptions.EnableDepth = ReadBool(config, "Runtime:TelemetrySummary:EnableDepth", false);
 
         /*
-         * Parkur-2 engel algılama için LiDAR varsayılan olarak açık olmalı.
-         * Konfigürasyonda Runtime:TelemetrySummary:EnableLidar=false verilirse kapatılabilir.
+         * Parkur-2 engel algÃ„Â±lama iÃƒÂ§in LiDAR varsayÃ„Â±lan olarak aÃƒÂ§Ã„Â±k olmalÃ„Â±.
+         * KonfigÃƒÂ¼rasyonda Runtime:TelemetrySummary:EnableLidar=false verilirse kapatÃ„Â±labilir.
          */
         sensorOptions.EnableLidar = ReadBool(config, "Runtime:TelemetrySummary:EnableLidar", true);
         sensorOptions.EnableCamera = ReadBool(config, "Runtime:TelemetrySummary:EnableCamera", false);
@@ -193,8 +201,8 @@ partial class Program
             MaxStateAgeMs = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MaxStateAgeMs", 2_000.0),
 
             /*
-             * CDSE degraded modda GPS yokken IMU + Depth ile yaklaşık 0.48 confidence üretebilir.
-             * 0.45 eşiği bu durumu kabul eder; depth-only gibi çok düşük güvenli çıktılar ise reddedilmeye devam eder.
+             * CDSE degraded modda GPS yokken IMU + Depth ile yaklaÃ…Å¸Ã„Â±k 0.48 confidence ÃƒÂ¼retebilir.
+             * 0.45 eÃ…Å¸iÃ„Å¸i bu durumu kabul eder; depth-only gibi ÃƒÂ§ok dÃƒÂ¼Ã…Å¸ÃƒÂ¼k gÃƒÂ¼venli ÃƒÂ§Ã„Â±ktÃ„Â±lar ise reddedilmeye devam eder.
              */
             MinConfidence = ReadDouble(config, "Runtime:TelemetrySummary:StateAuthority:MinConfidence", 0.45),
 
@@ -210,11 +218,11 @@ partial class Program
         var stateTelemetryBridge = new StateTelemetryBridge();
 
         /*
-         * CDSE artık runtime telemetry hattının primary estimator'ıdır.
+         * CDSE artÃ„Â±k runtime telemetry hattÃ„Â±nÃ„Â±n primary estimator'Ã„Â±dÃ„Â±r.
          *
-         * GpsImuStateEstimator yalnızca GPS+IMU özel senaryosunda çalışırken,
-         * CapabilityDrivenStateEstimator GPS, IMU, Depth ve ileride eklenecek diğer capability'lere göre
-         * eksik sensör durumlarında da en iyi state tahminini üretmeye çalışır.
+         * GpsImuStateEstimator yalnÃ„Â±zca GPS+IMU ÃƒÂ¶zel senaryosunda ÃƒÂ§alÃ„Â±Ã…Å¸Ã„Â±rken,
+         * CapabilityDrivenStateEstimator GPS, IMU, Depth ve ileride eklenecek diÃ„Å¸er capability'lere gÃƒÂ¶re
+         * eksik sensÃƒÂ¶r durumlarÃ„Â±nda da en iyi state tahminini ÃƒÂ¼retmeye ÃƒÂ§alÃ„Â±Ã…Å¸Ã„Â±r.
          */
         var estimator = new CapabilityDrivenStateEstimator();
         var runner = new StateEstimatorRunner(estimator);
@@ -253,8 +261,8 @@ partial class Program
         runtime.PublishTruthFromVehicleState(initialState, tickIndex: 0);
 
         Console.WriteLine(
-            "[RT-TEL] Enabled → " +
-            $"runtimeId={runtimeId} vehicleId={vehicleId} every={everyTicks} ticks " +
+            "[RT-TEL] Enabled Ã¢â€ â€™ " +
+            $"runtimeId={runtimeId} vehicleId={vehicleId} vehicleSource={(activeVehicleContext?.HasProfile == true ? "activeVehicleProfile" : "config")} every={everyTicks} ticks " +
             $"estimator={estimator.Name} " +
             $"sensors=imu:{sensorOptions.EnableImu},gps:{sensorOptions.EnableGps},depth:{sensorOptions.EnableDepth},lidar:{sensorOptions.EnableLidar},camera:{sensorOptions.EnableCamera} " +
             $"worldModel={(runtimeWorldModel is null ? "none" : "shared")}"
@@ -264,7 +272,7 @@ partial class Program
     }
 
     /// <summary>
-    /// Belirli tick'te runtime telemetry pipeline çalıştırılmalı mı?
+    /// Belirli tick'te runtime telemetry pipeline ÃƒÂ§alÃ„Â±Ã…Å¸tÃ„Â±rÃ„Â±lmalÃ„Â± mÃ„Â±?
     /// </summary>
     private static bool ShouldTickRuntimeTelemetry(
         RuntimeTelemetryRuntime? telemetryRuntime,
@@ -284,10 +292,10 @@ partial class Program
     }
 
     /// <summary>
-    /// Runtime telemetry pipeline'ı güvenli şekilde çalıştırır.
+    /// Runtime telemetry pipeline'Ã„Â± gÃƒÂ¼venli Ã…Å¸ekilde ÃƒÂ§alÃ„Â±Ã…Å¸tÃ„Â±rÃ„Â±r.
     ///
-    /// Telemetry yayın hatası ana runtime kontrol döngüsünü düşürmemelidir;
-    /// bu yüzden exception yakalanır ve yalnızca loglanır.
+    /// Telemetry yayÃ„Â±n hatasÃ„Â± ana runtime kontrol dÃƒÂ¶ngÃƒÂ¼sÃƒÂ¼nÃƒÂ¼ dÃƒÂ¼Ã…Å¸ÃƒÂ¼rmemelidir;
+    /// bu yÃƒÂ¼zden exception yakalanÃ„Â±r ve yalnÃ„Â±zca loglanÃ„Â±r.
     /// </summary>
     private static async Task TryTickRuntimeTelemetryPipelineAsync(
         RuntimeTelemetryRuntime? telemetryRuntime,
@@ -327,7 +335,7 @@ partial class Program
         }
         catch (OperationCanceledException)
         {
-            // Normal kapanış.
+            // Normal kapanÃ„Â±Ã…Å¸.
         }
         catch (Exception ex)
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Modules
@@ -255,7 +255,7 @@ namespace Hydronom.Core.Modules
             TryStartNextQueuedTask("TASK_COMPLETED", state, insights);
         }
 
-        private void TrackProgress(
+                private void TrackProgress(
             long nowTicks,
             double dist3D,
             VehicleState? state,
@@ -284,6 +284,14 @@ namespace Hydronom.Core.Modules
             if (_lastProgressTicks is long tProg &&
                 ElapsedSeconds(tProg, nowTicks) > _maxNoProgressSeconds)
             {
+                if (insights?.HasObstacleAhead == true)
+                {
+                    _lastProgressDist = dist3D;
+                    _lastProgressTicks = nowTicks;
+                    LastStatusReason = "Geometry/obstacle hold; no-progress abort suppressed";
+                    return;
+                }
+
                 AbortInternal("Görev ilerleme göstermiyor (takılmış olabilir).", state, insights);
             }
         }

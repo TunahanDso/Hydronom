@@ -166,7 +166,7 @@ public sealed partial class RuntimeScenarioController
             }
             catch
             {
-                // Abort sırasında beklenmeyen hata olsa bile güvenli biçimde görevi temizliyoruz.
+                // Abort sÄ±rasÄ±nda beklenmeyen hata olsa bile gÃ¼venli biÃ§imde gÃ¶revi temizliyoruz.
             }
 
             _host = null;
@@ -266,17 +266,17 @@ public sealed partial class RuntimeScenarioController
             ScenarioId = _plan?.ScenarioId,
             ScenarioName = _plan?.ScenarioName,
 
-            // Kalıcı karar:
-            // Ops/Gateway tarafına giden operational vehicle id tek kaynaktan gelir.
-            // Scenario plan içindeki VehicleId metadata/default araç bilgisi olabilir,
-            // fakat runtime telemetry/world/mission identity olarak kullanılmaz.
+            // KalÄ±cÄ± karar:
+            // Ops/Gateway tarafÄ±na giden operational vehicle id tek kaynaktan gelir.
+            // Scenario plan iÃ§indeki VehicleId metadata/default araÃ§ bilgisi olabilir,
+            // fakat runtime telemetry/world/mission identity olarak kullanÄ±lmaz.
             VehicleId = runtimeVehicleId,
             ScenarioVehicleId = _plan?.VehicleId,
 
             // Vehicle Profile binding:
-            // Runtime başlangıcında seçilen aktif araç profili snapshot içine taşınır.
-            // Ops/Gateway/diagnostics tarafı artık sadece vehicleId değil,
-            // platform ve capability bilgisini de görebilir.
+            // Runtime baÅŸlangÄ±cÄ±nda seÃ§ilen aktif araÃ§ profili snapshot iÃ§ine taÅŸÄ±nÄ±r.
+            // Ops/Gateway/diagnostics tarafÄ± artÄ±k sadece vehicleId deÄŸil,
+            // platform ve capability bilgisini de gÃ¶rebilir.
             VehicleProfileId = _activeVehicleContext?.ProfileId,
             VehiclePlatformKind = _activeVehicleContext?.PlatformKind.ToString(),
             VehicleDisplayName = _activeVehicleContext?.Profile?.DisplayName,
@@ -423,17 +423,23 @@ public sealed partial class RuntimeScenarioController
         }.Sanitized();
     }
 
-    private string ResolveRuntimeVehicleId()
+        private string ResolveRuntimeVehicleId()
     {
-        var runtimeVehicleId = _config["Runtime:TelemetrySummary:VehicleId"];
-
-        if (!string.IsNullOrWhiteSpace(runtimeVehicleId))
-            return runtimeVehicleId.Trim();
+        if (_activeVehicleContext?.HasProfile == true &&
+            !string.IsNullOrWhiteSpace(_activeVehicleContext.VehicleId))
+        {
+            return _activeVehicleContext.VehicleId.Trim();
+        }
 
         var scenarioRuntimeVehicleId = _config["ScenarioRuntime:VehicleId"];
 
         if (!string.IsNullOrWhiteSpace(scenarioRuntimeVehicleId))
             return scenarioRuntimeVehicleId.Trim();
+
+        var runtimeVehicleId = _config["Runtime:TelemetrySummary:VehicleId"];
+
+        if (!string.IsNullOrWhiteSpace(runtimeVehicleId))
+            return runtimeVehicleId.Trim();
 
         return DefaultRuntimeVehicleId;
     }
