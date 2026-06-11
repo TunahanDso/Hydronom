@@ -551,13 +551,13 @@ function MainUnderwaterVehicleMesh(props: {
 
   return (
     <>
-      {/* Ãœst ana gÃ¶vde plakasÄ± */}
+      {/* ÃƒÅ“st ana gÃƒÂ¶vde plakasÃ„Â± */}
       <mesh position={[0, 0.31, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.18, 0.07, 0.94]} />
         <meshStandardMaterial color="#93c5c3" metalness={0.18} roughness={0.34} />
       </mesh>
 
-      {/* GÃ¶vde kenarlarÄ±nÄ± daha yumuÅŸak ve geniÅŸ gÃ¶stermek iÃ§in yan ÅŸeritler */}
+      {/* GÃƒÂ¶vde kenarlarÃ„Â±nÃ„Â± daha yumuÃ…Å¸ak ve geniÃ…Å¸ gÃƒÂ¶stermek iÃƒÂ§in yan Ã…Å¸eritler */}
       <mesh position={[0, 0.285, 0.46]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.08, 0.08, 1.15, 24]} />
         <meshStandardMaterial color="#7db4b1" metalness={0.18} roughness={0.35} />
@@ -568,7 +568,7 @@ function MainUnderwaterVehicleMesh(props: {
         <meshStandardMaterial color="#7db4b1" metalness={0.18} roughness={0.35} />
       </mesh>
 
-      {/* KÃ¶ÅŸe yumuÅŸatmalarÄ± */}
+      {/* KÃƒÂ¶Ã…Å¸e yumuÃ…Å¸atmalarÃ„Â± */}
       {[
         [0.56, 0.31, 0.40],
         [-0.56, 0.31, 0.40],
@@ -585,13 +585,13 @@ function MainUnderwaterVehicleMesh(props: {
         </mesh>
       ))}
 
-      {/* Ãœst orta kanal / yÃ¼kselti */}
+      {/* ÃƒÅ“st orta kanal / yÃƒÂ¼kselti */}
       <mesh position={[0, 0.365, 0]} castShadow>
         <boxGeometry args={[0.56, 0.03, 0.18]} />
         <meshStandardMaterial color="#4f7f7d" metalness={0.22} roughness={0.32} />
       </mesh>
 
-      {/* Ã–n-arka Ã¼st kemerler */}
+      {/* Ãƒâ€“n-arka ÃƒÂ¼st kemerler */}
       <mesh position={[0.44, 0.40, 0]} castShadow>
         <boxGeometry args={[0.16, 0.02, 0.36]} />
         <meshStandardMaterial color="#64748b" metalness={0.28} roughness={0.38} />
@@ -612,7 +612,7 @@ function MainUnderwaterVehicleMesh(props: {
         <meshStandardMaterial color="#64748b" metalness={0.28} roughness={0.38} />
       </mesh>
 
-      {/* Ãœst lineer raylar */}
+      {/* ÃƒÅ“st lineer raylar */}
       <mesh position={[0, 0.39, 0.12]} castShadow>
         <boxGeometry args={[0.76, 0.018, 0.03]} />
         <meshStandardMaterial color="#6b7280" metalness={0.32} roughness={0.38} />
@@ -623,7 +623,7 @@ function MainUnderwaterVehicleMesh(props: {
         <meshStandardMaterial color="#6b7280" metalness={0.32} roughness={0.38} />
       </mesh>
 
-      {/* Ãœst thruster aÃ§Ä±klÄ±klarÄ± */}
+      {/* ÃƒÅ“st thruster aÃƒÂ§Ã„Â±klÃ„Â±klarÃ„Â± */}
       {topOpenings.map((position, index) => (
         <group key={`uuv-opening-${index}`} position={position}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -648,7 +648,7 @@ function MainUnderwaterVehicleMesh(props: {
         </group>
       ))}
 
-      {/* Åeffaf basÄ±nÃ§ tÃ¼pÃ¼ */}
+      {/* Ã…Âeffaf basÃ„Â±nÃƒÂ§ tÃƒÂ¼pÃƒÂ¼ */}
       <mesh position={[0, 0.04, 0]} rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
         <cylinderGeometry args={[0.22, 0.22, 1.00, 40]} />
         <meshStandardMaterial
@@ -660,7 +660,7 @@ function MainUnderwaterVehicleMesh(props: {
         />
       </mesh>
 
-      {/* Ä°Ã§ silindir gÃ¶lge/derinlik hissi */}
+      {/* Ã„Â°ÃƒÂ§ silindir gÃƒÂ¶lge/derinlik hissi */}
       <mesh position={[0, 0.04, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.17, 0.17, 0.96, 32]} />
         <meshStandardMaterial
@@ -672,7 +672,7 @@ function MainUnderwaterVehicleMesh(props: {
         />
       </mesh>
 
-      {/* Ã–n flanÅŸ */}
+      {/* Ãƒâ€“n flanÃ…Å¸ */}
       <mesh position={[0.56, 0.04, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.31, 0.31, 0.07, 40]} />
         <meshStandardMaterial color="#374151" metalness={0.44} roughness={0.26} />
@@ -688,7 +688,7 @@ function MainUnderwaterVehicleMesh(props: {
         <meshStandardMaterial color="#0f172a" metalness={0.20} roughness={0.12} />
       </mesh>
 
-      {/* Arka flanÅŸ */}
+      {/* Arka flanÃ…Å¸ */}
       <mesh position={[-0.56, 0.04, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.31, 0.31, 0.07, 40]} />
         <meshStandardMaterial color="#374151" metalness={0.44} roughness={0.26} />
@@ -711,7 +711,7 @@ function MainUnderwaterVehicleMesh(props: {
         </mesh>
       ))}
 
-      {/* FlanÅŸ cÄ±vatalarÄ± */}
+      {/* FlanÃ…Å¸ cÃ„Â±vatalarÃ„Â± */}
       {flangeBoltAngles.map((angle, index) => {
         const y = 0.04 + Math.sin(angle) * 0.275;
         const z = Math.cos(angle) * 0.275;
@@ -742,7 +742,7 @@ function MainUnderwaterVehicleMesh(props: {
         <meshStandardMaterial color="#6b7280" metalness={0.26} roughness={0.40} />
       </mesh>
 
-      {/* EÄŸik taÅŸÄ±yÄ±cÄ±lar */}
+      {/* EÃ„Å¸ik taÃ…Å¸Ã„Â±yÃ„Â±cÃ„Â±lar */}
       {sideBrackets.map((bracket, index) => (
         <mesh
           key={`uuv-bracket-${index}`}
@@ -769,13 +769,13 @@ function MainUnderwaterVehicleMesh(props: {
         </group>
       ))}
 
-      {/* Durum Ä±ÅŸÄ±ÄŸÄ± */}
+      {/* Durum Ã„Â±Ã…Å¸Ã„Â±Ã„Å¸Ã„Â± */}
       <mesh ref={statusLightRef} position={[0.40, 0.43, 0.37]} castShadow>
         <sphereGeometry args={[0.03, 16, 16]} />
         <meshStandardMaterial color={props.isArmed ? "#14b8a6" : "#ef4444"} />
       </mesh>
 
-      {/* Alt sualtÄ± halkasÄ± */}
+      {/* Alt sualtÃ„Â± halkasÃ„Â± */}
       <mesh position={[0, -0.20, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.64, 0.655, 72]} />
         <meshBasicMaterial
@@ -805,165 +805,221 @@ function MiniRovVehicleMesh(props: {
 }) {
   const statusLightRef = useRef<THREE.Mesh | null>(null);
 
-  const liftRingPositions: [number, number, number][] = [
-    [0.09, 0.07, 0.12],
-    [0.09, 0.07, -0.12],
-    [-0.09, 0.07, 0.12],
-    [-0.09, 0.07, -0.12]
-  ];
-
-  const topThrusterPorts: [number, number, number][] = [
-    [-0.05, 0.07, 0.10],
-    [-0.05, 0.07, -0.10]
-  ];
-
-  const sideThrusterPorts: [number, number, number][] = [
-    [0.00, -0.005, 0.155],
-    [0.00, -0.005, -0.155]
-  ];
-
   useFrame(({ clock }) => {
     if (!statusLightRef.current) return;
 
     const material = statusLightRef.current.material as THREE.MeshStandardMaterial;
     material.emissive.setHex(props.isArmed ? 0x22c55e : 0xef4444);
     material.emissiveIntensity = props.isArmed
-      ? 0.45 + Math.sin(clock.getElapsedTime() * 4.5) * 0.18
-      : 0.28;
+      ? 0.52 + Math.sin(clock.getElapsedTime() * 4.8) * 0.20
+      : 0.32;
   });
 
   return (
     <>
-      {/* Ana kompakt gövde - basık, çokgen karakter */}
-      <mesh position={[0, 0.01, 0]} scale={[1.0, 0.36, 0.80]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.18, 0.18, 0.28, 8]} />
-        <meshStandardMaterial color="#dc2626" metalness={0.16} roughness={0.44} />
+      {/* Ana kırmızı kompakt gövde: renderdaki basık, sekizgen karakter */}
+      <mesh position={[0, 0.02, 0]} scale={[1.12, 0.42, 0.92]} rotation={[0, 0, Math.PI / 8]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.185, 0.185, 0.30, 8]} />
+        <meshStandardMaterial color="#dc2626" metalness={0.18} roughness={0.42} />
       </mesh>
 
-      {/* Üst düz plaka hissi */}
-      <mesh position={[0, 0.055, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.24, 0.02, 0.20]} />
-        <meshStandardMaterial color="#b91c1c" metalness={0.18} roughness={0.40} />
+      {/* Ön eğimli burun hacmi */}
+      <mesh position={[0.105, 0.018, 0]} scale={[0.68, 0.38, 0.78]} castShadow receiveShadow>
+        <sphereGeometry args={[0.145, 24, 18]} />
+        <meshStandardMaterial color="#ef1d1d" metalness={0.15} roughness={0.42} />
       </mesh>
 
-      {/* Ön gövde uzaması / burun */}
-      <mesh position={[0.12, 0.00, 0]} scale={[0.55, 0.32, 0.66]} castShadow receiveShadow>
-        <sphereGeometry args={[0.14, 24, 24]} />
-        <meshStandardMaterial color="#dc2626" metalness={0.14} roughness={0.42} />
+      {/* Arka kırmızı omuz / thruster bağlantı bloğu */}
+      <mesh position={[-0.105, 0.025, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.13, 0.065, 0.285]} />
+        <meshStandardMaterial color="#b91c1c" metalness={0.17} roughness={0.43} />
       </mesh>
 
-      {/* Arka blok - thruster tarafı */}
-      <mesh position={[-0.10, 0.015, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.11, 0.06, 0.26]} />
-        <meshStandardMaterial color="#991b1b" metalness={0.16} roughness={0.42} />
+      {/* Üst düz kırmızı kapak */}
+      <mesh position={[0, 0.083, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.235, 0.018, 0.205]} />
+        <meshStandardMaterial color="#b91c1c" metalness={0.20} roughness={0.40} />
       </mesh>
 
-      {/* Ön şeffaf dome / viewport */}
-      <mesh position={[0.155, -0.005, 0]} castShadow receiveShadow>
-        <sphereGeometry args={[0.075, 24, 24]} />
-        <meshStandardMaterial
-          color="#e5eef9"
-          metalness={0.05}
-          roughness={0.08}
-          transparent
-          opacity={0.42}
-        />
+      {/* Üstte küçük sensör / kapak */}
+      <mesh position={[0.015, 0.104, 0]} castShadow>
+        <cylinderGeometry args={[0.019, 0.019, 0.012, 20]} />
+        <meshStandardMaterial color="#d1d5db" metalness={0.58} roughness={0.18} />
       </mesh>
 
-      {/* Viewport flanşı */}
-      <mesh position={[0.105, -0.005, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.080, 0.080, 0.03, 32]} />
-        <meshStandardMaterial color="#f3f4f6" metalness={0.42} roughness={0.24} />
-      </mesh>
-
-      <mesh position={[0.105, -0.005, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.060, 0.060, 0.036, 28]} />
-        <meshStandardMaterial color="#111827" metalness={0.10} roughness={0.12} />
-      </mesh>
-
-      {/* Üst küçük kapak / beacon tabanı */}
-      <mesh position={[0, 0.082, 0]} castShadow>
-        <cylinderGeometry args={[0.016, 0.016, 0.012, 18]} />
-        <meshStandardMaterial color="#e5e7eb" metalness={0.52} roughness={0.20} />
-      </mesh>
-
-      <mesh ref={statusLightRef} position={[0, 0.092, 0]} castShadow>
-        <cylinderGeometry args={[0.009, 0.011, 0.012, 16]} />
+      <mesh ref={statusLightRef} position={[0.015, 0.116, 0]} castShadow>
+        <cylinderGeometry args={[0.010, 0.012, 0.010, 16]} />
         <meshStandardMaterial color={props.isArmed ? "#22c55e" : "#ef4444"} />
       </mesh>
 
-      {/* Üst thruster portları */}
-      {topThrusterPorts.map((position, index) => (
-        <group key={`mini-top-port-${index}`} position={position}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.038, 0.060, 28]} />
-            <meshBasicMaterial
-              color="#111827"
-              transparent
-              opacity={0.94}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <mesh position={[0, -0.022, 0]} castShadow>
-            <cylinderGeometry args={[0.045, 0.045, 0.035, 24]} />
-            <meshStandardMaterial color="#111827" metalness={0.12} roughness={0.20} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Yan thruster portları */}
-      {sideThrusterPorts.map((position, index) => (
-        <group key={`mini-side-port-${index}`} position={position}>
-          <mesh>
-            <ringGeometry args={[0.040, 0.065, 28]} />
-            <meshBasicMaterial
-              color="#111827"
-              transparent
-              opacity={0.96}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <mesh position={[0, 0, index === 0 ? -0.018 : 0.018]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.050, 0.050, 0.03, 20]} />
-            <meshStandardMaterial color="#111827" metalness={0.12} roughness={0.20} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Kırmızı kaldırma halkaları */}
-      {liftRingPositions.map((position, index) => (
-        <mesh
-          key={`mini-lift-ring-${index}`}
-          position={position}
-          rotation={[Math.PI / 2, 0, 0]}
-          castShadow
-        >
-          <torusGeometry args={[0.018, 0.004, 10, 20]} />
-          <meshStandardMaterial color="#dc2626" metalness={0.20} roughness={0.38} />
-        </mesh>
-      ))}
-
-      {/* Alt su izi / halo */}
-      <mesh position={[0, -0.095, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.19, 0.205, 48]} />
-        <meshBasicMaterial
-          color="#22c55e"
+      {/* Öndeki büyük şeffaf dome */}
+      <mesh position={[0.172, -0.003, 0]} castShadow receiveShadow>
+        <sphereGeometry args={[0.086, 28, 22]} />
+        <meshStandardMaterial
+          color="#e5eef9"
+          metalness={0.06}
+          roughness={0.06}
           transparent
-          opacity={0.14}
-          side={THREE.DoubleSide}
+          opacity={0.44}
         />
       </mesh>
 
-      {props.thrusters.map((thruster) => (
-        <ThrusterMesh
-          key={thruster.id}
-          position={thruster.position}
-          active={thruster.active}
-          rpm={thruster.rpm}
-          normalizedCommand={thruster.normalizedCommand}
-        />
+      {/* Dome arkasındaki koyu kamera gözü */}
+      <mesh position={[0.125, -0.003, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.064, 0.064, 0.026, 28]} />
+        <meshStandardMaterial color="#111827" metalness={0.12} roughness={0.16} />
+      </mesh>
+
+      {/* Dome flanş halkası */}
+      <mesh position={[0.116, -0.003, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <torusGeometry args={[0.080, 0.008, 12, 36]} />
+        <meshStandardMaterial color="#e5e7eb" metalness={0.45} roughness={0.22} />
+      </mesh>
+
+      {/* Renderdaki yan yatay ducted thrusterlar */}
+      <MiniRovDuctedThruster position={[0.005, -0.004, 0.228]} side={1} active={props.isArmed} />
+      <MiniRovDuctedThruster position={[0.005, -0.004, -0.228]} side={-1} active={props.isArmed} />
+
+      {/* Arka üst açılı thruster gövdeleri */}
+      <MiniRovAngledThruster position={[-0.125, 0.060, 0.155]} rotation={[0.55, 0.0, -0.55]} active={props.isArmed} />
+      <MiniRovAngledThruster position={[-0.125, 0.060, -0.155]} rotation={[-0.55, 0.0, -0.55]} active={props.isArmed} />
+
+      {/* Üst thruster delikleri */}
+      {[
+        [-0.045, 0.100, 0.092],
+        [-0.045, 0.100, -0.092]
+      ].map((position, index) => (
+        <group key={`mini-top-opening-${index}`} position={position as [number, number, number]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.035, 0.058, 32]} />
+            <meshBasicMaterial color="#111827" transparent opacity={0.96} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, -0.018, 0]} castShadow>
+            <cylinderGeometry args={[0.044, 0.044, 0.028, 24]} />
+            <meshStandardMaterial color="#0f172a" metalness={0.16} roughness={0.22} />
+          </mesh>
+        </group>
       ))}
+
+      {/* Küçük kırmızı kaldırma halkaları */}
+      {[
+        [0.085, 0.118, 0.100],
+        [0.085, 0.118, -0.100],
+        [-0.105, 0.104, 0.108],
+        [-0.105, 0.104, -0.108]
+      ].map((position, index) => (
+        <mesh
+          key={`mini-red-lift-ring-${index}`}
+          position={position as [number, number, number]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
+        >
+          <torusGeometry args={[0.016, 0.0035, 10, 22]} />
+          <meshStandardMaterial color="#ef1d1d" metalness={0.20} roughness={0.38} />
+        </mesh>
+      ))}
+
+      {/* Yan küçük bağlantı pimleri */}
+      {[
+        [0.12, 0.015, 0.172],
+        [0.12, 0.015, -0.172],
+        [-0.14, 0.015, 0.172],
+        [-0.14, 0.015, -0.172]
+      ].map((position, index) => (
+        <mesh
+          key={`mini-side-pin-${index}`}
+          position={position as [number, number, number]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
+        >
+          <cylinderGeometry args={[0.008, 0.008, 0.010, 12]} />
+          <meshStandardMaterial color="#991b1b" metalness={0.32} roughness={0.28} />
+        </mesh>
+      ))}
+
+      {/* Altta sualtı/mini halo */}
+      <mesh position={[0, -0.105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.205, 0.220, 56]} />
+        <meshBasicMaterial color="#22c55e" transparent opacity={0.14} side={THREE.DoubleSide} />
+      </mesh>
     </>
+  );
+}
+
+function MiniRovDuctedThruster(props: {
+  position: [number, number, number];
+  side: 1 | -1;
+  active: boolean;
+}) {
+  const propRef = useRef<THREE.Group | null>(null);
+
+  useFrame(({ clock }) => {
+    if (!propRef.current) return;
+    propRef.current.rotation.z += props.active ? 0.22 + Math.sin(clock.getElapsedTime() * 3) * 0.02 : 0.025;
+  });
+
+  return (
+    <group position={props.position} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh castShadow>
+        <torusGeometry args={[0.064, 0.016, 14, 34]} />
+        <meshStandardMaterial color="#111827" metalness={0.18} roughness={0.28} />
+      </mesh>
+
+      <mesh castShadow>
+        <cylinderGeometry args={[0.058, 0.058, 0.032, 30]} />
+        <meshStandardMaterial color="#020617" metalness={0.12} roughness={0.22} transparent opacity={0.72} />
+      </mesh>
+
+      <group ref={propRef}>
+        {[0, 1, 2].map((blade) => (
+          <mesh
+            key={`mini-side-blade-${props.side}-${blade}`}
+            rotation={[0, 0, (blade * Math.PI * 2) / 3]}
+            position={[0.025, 0, 0]}
+            castShadow
+          >
+            <boxGeometry args={[0.046, 0.010, 0.006]} />
+            <meshStandardMaterial color="#1f2937" metalness={0.20} roughness={0.30} />
+          </mesh>
+        ))}
+        <mesh castShadow>
+          <sphereGeometry args={[0.019, 14, 14]} />
+          <meshStandardMaterial color="#020617" metalness={0.22} roughness={0.24} />
+        </mesh>
+      </group>
+
+      {props.active ? (
+        <mesh position={[0, 0, -0.050 * props.side]} rotation={[0, 0, Math.PI / 2]}>
+          <coneGeometry args={[0.030, 0.080, 14]} />
+          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.18} transparent opacity={0.72} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
+function MiniRovAngledThruster(props: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  active: boolean;
+}) {
+  return (
+    <group position={props.position} rotation={props.rotation}>
+      <mesh castShadow>
+        <boxGeometry args={[0.050, 0.060, 0.050]} />
+        <meshStandardMaterial color="#111827" metalness={0.18} roughness={0.30} />
+      </mesh>
+
+      <mesh position={[0.038, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.035, 0.035, 0.045, 18]} />
+        <meshStandardMaterial color="#020617" metalness={0.16} roughness={0.24} />
+      </mesh>
+
+      <mesh position={[0.060, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <torusGeometry args={[0.036, 0.008, 10, 20]} />
+        <meshStandardMaterial color="#111827" metalness={0.18} roughness={0.28} />
+      </mesh>
+    </group>
   );
 }
 
