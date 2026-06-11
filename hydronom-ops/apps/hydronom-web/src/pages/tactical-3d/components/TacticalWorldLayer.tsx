@@ -378,6 +378,376 @@ export function TacticalWorldLayer(props: {
   );
 }
 
+type WorldObjectWithOptionalPoints = {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  width?: number | null;
+  height?: number | null;
+  length?: number | null;
+  color?: string | null;
+  yawDeg?: number | null;
+  tags?: Record<string, string> | null;
+  points?: Array<{ x: number; y: number; z?: number | null; label?: string | null }> | null;
+};
+
+function getWorldObjectScenePoints(
+  object: WorldObjectWithOptionalPoints,
+  origin: Vec3Like
+): THREE.Vector3[] {
+  const points = object.points ?? [];
+
+  return points
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+    .map((point) =>
+      worldToSceneVector(
+        point.x,
+        point.y,
+        typeof point.z === "number" ? point.z : object.z,
+        origin,
+        0.055
+      )
+    );
+}
+
+function getWorldObjectTagNumber(
+  object: WorldObjectWithOptionalPoints,
+  key: string,
+  fallback: number
+): number {
+  const value = object.tags?.[key];
+
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function AdvancedCourseObjectMarker(props: {
+  object: WorldObjectWithOptionalPoints;
+  points: THREE.Vector3[];
+  position: [number, number, number];
+}) {
+  const { object, points, position } = props;
+
+  if (object.type === "guidance_board") {
+    return (
+      <StripPolylineMarker
+        id={object.id}
+        points={points}
+        width={getWorldObjectTagNumber(object, "shape.width", 0.15)}
+        height={getWorldObjectTagNumber(object, "shape.height", 0.10)}
+        color={object.color ?? "#cc0605"}
+        opacity={0.96}
+        metalness={0.26}
+        roughness={0.42}
+      />
+    );
+  }
+
+  if (object.type === "track_stripe") {
+    return (
+      <StripPolylineMarker
+        id={object.id}
+        points={points}
+        width={getWorldObjectTagNumber(object, "shape.width", 0.03)}
+        height={getWorldObjectTagNumber(object, "shape.height", 0.018)}
+        color={object.color ?? "#0a0a0a"}
+        opacity={1.0}
+        metalness={0.04}
+        roughness={0.86}
+      />
+    );
+  }
+
+  if (object.type === "pipe_entry") {
+    return (
+      <PipeEntryPortalMarker
+        position={position}
+        outerRadius={getWorldObjectTagNumber(object, "outerRadius", Math.max(0.28, object.radius))}
+        innerRadius={getWorldObjectTagNumber(object, "innerRadius", Math.max(0.20, object.radius * 0.72))}
+        color={object.color ?? "#111827"}
+      />
+    );
+  }
+
+  if (object.type === "pipe_segment") {
+    return (
+      <PipePolylineMarker
+        points={points}
+        outerRadius={getWorldObjectTagNumber(object, "outerRadius", Math.max(0.22, object.radius))}
+        color={object.color ?? "#111827"}
+      />
+    );
+  }
+
+  if (object.type === "clue_marker") {
+    return (
+      <ClueMarker
+        position={position}
+        color={object.color ?? "#facc15"}
+      />
+    );
+  }
+
+  if (object.type === "controlled_zone") {
+    return (
+      <PolygonZoneMarker
+        points={points}
+        fallbackPosition={position}
+        color={object.color ?? "#f59e0b"}
+        opacity={0.18}
+        ringColor="#fde68a"
+      />
+    );
+  }
+
+  return null;
+}
+
+function StripPolylineMarker(props: {
+  id: string;
+  points: THREE.Vector3[];
+  width: number;
+  height: number;
+  color: string;
+  opacity: number;
+  metalness: number;
+  roughness: number;
+}) {
+  if (props.points.length < 2) {
+    return null;
+  }
+
+  const segmentWidth = Math.max(0.01, props.width);
+  const segmentHeight = Math.max(0.008, props.height);
+
+  return (
+    <group>
+      {props.points.slice(1).map((point, index) => {
+        const previous = props.points[index];
+        const mid = previous.clone().add(point).multiplyScalar(0.5);
+        const dx = point.x - previous.x;
+        const dz = point.z - previous.z;
+        const length = Math.max(0.05, Math.sqrt(dx * dx + dz * dz));
+        const yaw = Math.atan2(dz, dx);
+
+        return (
+          <mesh
+            key={`${props.id}-segment-${index}`}
+            position={[mid.x, mid.y + segmentHeight * 0.5, mid.z]}
+            rotation={[0, -yaw, 0]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[length, segmentHeight, segmentWidth]} />
+            <meshStandardMaterial
+              color={props.color}
+              transparent={props.opacity < 1}
+              opacity={props.opacity}
+              metalness={props.metalness}
+              roughness={props.roughness}
+            />
+          </mesh>
+        );
+      })}
+
+      {props.points.map((point, index) => (
+        <mesh
+          key={`${props.id}-joint-${index}`}
+          position={[point.x, point.y + segmentHeight * 0.52, point.z]}
+          castShadow
+          receiveShadow
+        >
+          <cylinderGeometry args={[segmentWidth * 0.56, segmentWidth * 0.56, segmentHeight * 1.05, 20]} />
+          <meshStandardMaterial
+            color={props.color}
+            transparent={props.opacity < 1}
+            opacity={props.opacity}
+            metalness={props.metalness}
+            roughness={props.roughness}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function PipeEntryPortalMarker(props: {
+  position: [number, number, number];
+  outerRadius: number;
+  innerRadius: number;
+  color: string;
+}) {
+  const outerRadius = Math.max(0.12, props.outerRadius);
+  const tubeRadius = Math.max(0.015, (props.outerRadius - props.innerRadius) * 0.5);
+
+  return (
+    <group position={props.position} rotation={[0, Math.PI / 2, 0]}>
+      <mesh castShadow receiveShadow>
+        <torusGeometry args={[outerRadius - tubeRadius, tubeRadius, 18, 72]} />
+        <meshStandardMaterial
+          color={props.color}
+          metalness={0.36}
+          roughness={0.28}
+          emissive="#0f172a"
+          emissiveIntensity={0.08}
+        />
+      </mesh>
+
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[Math.max(0.05, props.innerRadius), 0.01, 10, 60]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.24} />
+      </mesh>
+
+      <mesh position={[0, 0, -0.035]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[Math.max(0.05, props.innerRadius), Math.max(0.05, props.innerRadius), 0.05, 48, 1, true]} />
+        <meshStandardMaterial color="#020617" transparent opacity={0.36} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function PipePolylineMarker(props: {
+  points: THREE.Vector3[];
+  outerRadius: number;
+  color: string;
+}) {
+  if (props.points.length < 2) {
+    return null;
+  }
+
+  const radius = Math.max(0.10, props.outerRadius);
+
+  return (
+    <group>
+      {props.points.slice(1).map((point, index) => {
+        const previous = props.points[index];
+        const mid = previous.clone().add(point).multiplyScalar(0.5);
+        const direction = point.clone().sub(previous);
+        const length = Math.max(0.1, Math.sqrt(direction.x * direction.x + direction.z * direction.z));
+        const yaw = Math.atan2(direction.z, direction.x);
+
+        return (
+          <group
+            key={`pipe-polyline-${index}`}
+            position={[mid.x, mid.y, mid.z]}
+            rotation={[0, -yaw, Math.PI / 2]}
+          >
+            <mesh castShadow receiveShadow>
+              <cylinderGeometry args={[radius, radius, length, 40, 1, true]} />
+              <meshStandardMaterial
+                color={props.color}
+                transparent
+                opacity={0.46}
+                roughness={0.34}
+                metalness={0.22}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+
+            <mesh position={[0, length * 0.5, 0]}>
+              <torusGeometry args={[radius, 0.014, 10, 48]} />
+              <meshStandardMaterial color="#64748b" emissive="#38bdf8" emissiveIntensity={0.09} />
+            </mesh>
+
+            <mesh position={[0, -length * 0.5, 0]}>
+              <torusGeometry args={[radius, 0.014, 10, 48]} />
+              <meshStandardMaterial color="#64748b" emissive="#38bdf8" emissiveIntensity={0.09} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function ClueMarker(props: {
+  position: [number, number, number];
+  color: string;
+}) {
+  const pulseRef = useRef<THREE.Mesh | null>(null);
+
+  useFrame(({ clock }) => {
+    if (!pulseRef.current) return;
+    const s = 1 + Math.sin(clock.getElapsedTime() * 3.2) * 0.08;
+    pulseRef.current.scale.setScalar(s);
+  });
+
+  return (
+    <group position={props.position}>
+      <mesh position={[0, 0.22, 0]} castShadow>
+        <boxGeometry args={[0.26, 0.20, 0.035]} />
+        <meshStandardMaterial
+          color={props.color}
+          emissive={props.color}
+          emissiveIntensity={0.28}
+          metalness={0.16}
+          roughness={0.24}
+        />
+      </mesh>
+
+      <mesh position={[0, 0.22, 0.026]}>
+        <ringGeometry args={[0.055, 0.072, 32]} />
+        <meshBasicMaterial color="#020617" side={THREE.DoubleSide} />
+      </mesh>
+
+      <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
+        <ringGeometry args={[0.24, 0.255, 64]} />
+        <meshBasicMaterial color={props.color} transparent opacity={0.62} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function PolygonZoneMarker(props: {
+  points: THREE.Vector3[];
+  fallbackPosition: [number, number, number];
+  color: string;
+  opacity: number;
+  ringColor: string;
+}) {
+  if (props.points.length < 3) {
+    return (
+      <CylinderZoneMarker
+        position={props.fallbackPosition}
+        radius={0.75}
+        height={0.08}
+        color={props.color}
+        opacity={props.opacity}
+      />
+    );
+  }
+
+  const center = props.points
+    .reduce((acc, point) => acc.add(point), new THREE.Vector3())
+    .multiplyScalar(1 / props.points.length);
+
+  const shape = new THREE.Shape(
+    props.points.map((point) => new THREE.Vector2(point.x - center.x, point.z - center.z))
+  );
+
+  const outline = props.points.map((point) => new THREE.Vector3(point.x, point.y + 0.035, point.z));
+  outline.push(outline[0]);
+
+  return (
+    <group>
+      <mesh position={[center.x, center.y + 0.018, center.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <shapeGeometry args={[shape]} />
+        <meshBasicMaterial color={props.color} transparent opacity={props.opacity} side={THREE.DoubleSide} />
+      </mesh>
+
+      <Line points={outline} color={props.ringColor} lineWidth={2} />
+    </group>
+  );
+}
+
 function PathSlabMarker(props: {
   position: [number, number, number];
   length: number;
