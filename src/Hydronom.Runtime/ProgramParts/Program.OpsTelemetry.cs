@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Hydronom.Core.Domain;
 using Hydronom.Runtime.Actuators;
 using Hydronom.Runtime.Scenarios.Runtime;
@@ -36,16 +40,17 @@ partial class Program
             var scenarioSnapshot = runtimeScenarioController.GetSnapshot();
 
             /*
-            * Authoritative vehicle id:
-            * RuntimeScenarioController artık snapshot.VehicleId alanını runtime'ın operasyonel
-            * vehicle identity değeri olarak üretir.
-            *
-            * Bu yüzden OpsTelemetry burada ayrıca config okumaz.
-            * Telemetry, mission, actuator ve world frame'leri aynı snapshot vehicle id ile yayınlanır.
-            */
+             * Authoritative vehicle id:
+             * RuntimeScenarioController artık snapshot.VehicleId alanını runtime'ın operasyonel
+             * vehicle identity değeri olarak üretir.
+             *
+             * Bu yüzden OpsTelemetry burada ayrıca config okumaz.
+             * Telemetry, mission, actuator ve world frame'leri aynı snapshot vehicle id ile yayınlanır.
+             */
             var runtimeVehicleId = NormalizeVehicleId(scenarioSnapshot.VehicleId);
 
             var telemetryFrame = BuildRuntimeTelemetryFrame(
+                scenarioSnapshot,
                 state,
                 now,
                 runtimeVehicleId);
@@ -65,6 +70,7 @@ partial class Program
                 .ConfigureAwait(false);
 
             var actuatorFrame = BuildRuntimeActuatorStateFrame(
+                scenarioSnapshot,
                 actuatorManager,
                 now,
                 runtimeVehicleId);
@@ -92,8 +98,8 @@ partial class Program
         }
     }
 
-
     private static object BuildRuntimeTelemetryFrame(
+        RuntimeScenarioSnapshot snapshot,
         VehicleState state,
         DateTime now,
         string vehicleId)
@@ -111,6 +117,14 @@ partial class Program
             type = "RuntimeTelemetry",
             timestampUtc = now,
             vehicleId = safeVehicleId,
+
+            vehicleProfileId = snapshot.VehicleProfileId,
+            vehiclePlatformKind = snapshot.VehiclePlatformKind,
+            vehicleDisplayName = snapshot.VehicleDisplayName,
+            vehicleProfileActive = snapshot.VehicleProfileActive,
+            vehicleIsUnderwater = snapshot.VehicleIsUnderwater,
+            vehicleIsMiniRov = snapshot.VehicleIsMiniRov,
+            vehicleProfile = BuildOpsVehicleProfile(snapshot),
 
             x = state.Position.X,
             y = state.Position.Y,
@@ -142,7 +156,10 @@ partial class Program
         var status = ResolveMissionStatus(snapshot);
         var currentStepIndex = snapshot.TotalObjectiveCount <= 0
             ? 0
-            : Math.Clamp(snapshot.CompletedObjectiveCount + (snapshot.IsRunning ? 1 : 0), 0, snapshot.TotalObjectiveCount);
+            : Math.Clamp(
+                snapshot.CompletedObjectiveCount + (snapshot.IsRunning ? 1 : 0),
+                0,
+                snapshot.TotalObjectiveCount);
 
         return new
         {
@@ -151,6 +168,14 @@ partial class Program
             vehicleId = safeVehicleId,
 
             scenarioVehicleId = snapshot.VehicleId,
+
+            vehicleProfileId = snapshot.VehicleProfileId,
+            vehiclePlatformKind = snapshot.VehiclePlatformKind,
+            vehicleDisplayName = snapshot.VehicleDisplayName,
+            vehicleProfileActive = snapshot.VehicleProfileActive,
+            vehicleIsUnderwater = snapshot.VehicleIsUnderwater,
+            vehicleIsMiniRov = snapshot.VehicleIsMiniRov,
+            vehicleProfile = BuildOpsVehicleProfile(snapshot),
 
             missionId = snapshot.ScenarioId,
             missionName = snapshot.ScenarioName,
@@ -193,6 +218,7 @@ partial class Program
     }
 
     private static object BuildRuntimeActuatorStateFrame(
+        RuntimeScenarioSnapshot snapshot,
         ActuatorManager actuatorManager,
         DateTime now,
         string vehicleId)
@@ -241,6 +267,14 @@ partial class Program
             type = "RuntimeActuatorState",
             timestampUtc = now,
             vehicleId = safeVehicleId,
+
+            vehicleProfileId = snapshot.VehicleProfileId,
+            vehiclePlatformKind = snapshot.VehiclePlatformKind,
+            vehicleDisplayName = snapshot.VehicleDisplayName,
+            vehicleProfileActive = snapshot.VehicleProfileActive,
+            vehicleIsUnderwater = snapshot.VehicleIsUnderwater,
+            vehicleIsMiniRov = snapshot.VehicleIsMiniRov,
+            vehicleProfile = BuildOpsVehicleProfile(snapshot),
 
             actuatorName = "thruster-array",
             actuatorType = "thruster-group",
@@ -334,19 +368,41 @@ partial class Program
             {
                 id = x.Id,
                 type = x.Type,
-                kind = x.Type,
+                kind = x.Kind ?? x.Type,
+                name = x.Name,
+                layer = x.Layer,
+                role = x.Role,
                 label = x.Label,
                 objectiveId = x.ObjectiveId,
                 side = x.Side,
                 x = x.X,
                 y = x.Y,
                 z = x.Z,
+                rollDeg = x.RollDeg,
+                pitchDeg = x.PitchDeg,
+                yawDeg = x.YawDeg,
                 radius = x.Radius,
+                width = x.Width,
+                height = x.Height,
+                length = x.Length,
                 color = x.Color,
                 active = x.IsActive,
                 completed = x.IsCompleted,
                 isBlocking = x.IsBlocking,
-                isDetectable = x.IsDetectable
+                isDetectable = x.IsDetectable,
+                isJudgeTracked = x.IsJudgeTracked,
+                isNoGoZone = x.IsNoGoZone,
+                isTargetZone = x.IsTargetZone,
+                isGate = x.IsGate,
+                leftObjectId = x.LeftObjectId,
+                rightObjectId = x.RightObjectId,
+                toleranceMeters = x.ToleranceMeters,
+                requiresDirectionCheck = x.RequiresDirectionCheck,
+                requiredHeadingDeg = x.RequiredHeadingDeg,
+                headingToleranceDeg = x.HeadingToleranceDeg,
+                scoreValue = x.ScoreValue,
+                penaltyValue = x.PenaltyValue,
+                tags = x.Tags
             })
             .ToArray();
 
@@ -357,6 +413,14 @@ partial class Program
             vehicleId = safeVehicleId,
 
             scenarioVehicleId = snapshot.VehicleId,
+
+            vehicleProfileId = snapshot.VehicleProfileId,
+            vehiclePlatformKind = snapshot.VehiclePlatformKind,
+            vehicleDisplayName = snapshot.VehicleDisplayName,
+            vehicleProfileActive = snapshot.VehicleProfileActive,
+            vehicleIsUnderwater = snapshot.VehicleIsUnderwater,
+            vehicleIsMiniRov = snapshot.VehicleIsMiniRov,
+            vehicleProfile = BuildOpsVehicleProfile(snapshot),
 
             scenarioId = snapshot.ScenarioId,
             scenarioName = snapshot.ScenarioName,
@@ -394,6 +458,27 @@ partial class Program
             return "idle";
 
         return state.ToLowerInvariant();
+    }
+
+    private static object BuildOpsVehicleProfile(RuntimeScenarioSnapshot snapshot)
+    {
+        return new
+        {
+            profileId = snapshot.VehicleProfileId,
+            platformKind = snapshot.VehiclePlatformKind,
+            displayName = snapshot.VehicleDisplayName,
+            active = snapshot.VehicleProfileActive,
+            isUnderwater = snapshot.VehicleIsUnderwater,
+            isMiniRov = snapshot.VehicleIsMiniRov,
+            capabilitySummary = snapshot.VehicleCapabilitySummary,
+            capabilities = new
+            {
+                hasThrusters = snapshot.VehicleHasThrusters,
+                hasReverseAuthority = snapshot.VehicleHasReverseAuthority,
+                canGenerateLateralForce = snapshot.VehicleCanGenerateLateralForce,
+                canGenerateYawMoment = snapshot.VehicleCanGenerateYawMoment
+            }
+        };
     }
 
     private static string NormalizeVehicleId(string? vehicleId)
