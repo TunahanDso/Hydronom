@@ -26,12 +26,35 @@ const navItems = [
   { to: "/settings", label: "Settings", icon: Settings }
 ];
 
-// Uygulamanın genel çerçevesi, menüsü ve üst durum satırı burada yer alır
 export function AppShell() {
   const selectedVehicleId = useFleetStore((state) => state.selectedVehicleId);
   const telemetry = useVehicleStore(
     (state) => state.telemetryByVehicleId[selectedVehicleId]
   );
+
+  const vehicleProfile = telemetry?.vehicleProfile ?? null;
+  const vehicleDisplayName =
+    vehicleProfile?.displayName ?? telemetry?.displayName ?? telemetry?.vehicleId ?? "N/A";
+
+  const vehicleProfileId = vehicleProfile?.profileId ?? "N/A";
+  const vehiclePlatformKind = vehicleProfile?.platformKind ?? "N/A";
+
+  const vehicleProfileMode = vehicleProfile
+    ? vehicleProfile.isMiniRov
+      ? "MINI ROV"
+      : vehicleProfile.isUnderwater
+        ? "UNDERWATER"
+        : "SURFACE"
+    : "UNKNOWN";
+
+  const vehicleCaps = vehicleProfile?.capabilities;
+  const vehicleCapabilityText = vehicleProfile
+    ? [
+        `REV ${vehicleCaps?.hasReverseAuthority ? "✓" : "—"}`,
+        `LAT ${vehicleCaps?.canGenerateLateralForce ? "✓" : "—"}`,
+        `YAW ${vehicleCaps?.canGenerateYawMoment ? "✓" : "—"}`
+      ].join(" · ")
+    : "N/A";
 
   const gatewayStatus = useGatewayConnectionStore((state) => state.status);
   const gatewayIsConnected = useGatewayConnectionStore(
@@ -117,7 +140,11 @@ export function AppShell() {
               <div className="flex flex-wrap items-center gap-3">
                 <TopBadge label="Gateway" value={gatewayStatus.toUpperCase()} />
                 <TopBadge label="Mode" value={gatewayMode.toUpperCase()} />
-                <TopBadge label="Vehicle" value={telemetry?.vehicleId ?? "N/A"} />
+                <TopBadge label="Vehicle" value={vehicleDisplayName} />
+                <TopBadge label="Profile" value={vehicleProfileId} />
+                <TopBadge label="Platform" value={vehiclePlatformKind} />
+                <TopBadge label="Vehicle Mode" value={vehicleProfileMode} />
+                <TopBadge label="Caps" value={vehicleCapabilityText} />
                 <TopBadge
                   label="Mission Mode"
                   value={(telemetry?.mode ?? "unknown").toUpperCase()}
@@ -148,7 +175,6 @@ interface TopBadgeProps {
   value: string;
 }
 
-// Üst çubuktaki küçük durum kartları için ortak bileşen
 function TopBadge({ label, value }: TopBadgeProps) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2 shadow-panel">
