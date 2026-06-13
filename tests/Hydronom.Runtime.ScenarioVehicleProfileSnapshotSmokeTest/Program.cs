@@ -1,5 +1,6 @@
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
+using Hydronom.Core.Modules;
 using Hydronom.Runtime.Scenarios.Runtime;
 using Hydronom.Runtime.Vehicles;
 using Hydronom.Runtime.World.Runtime;
@@ -234,17 +235,25 @@ sealed class FakeTaskManager : ITaskManager
 {
     public TaskDefinition? CurrentTask { get; private set; }
 
+    public TaskPhase Phase { get; private set; } = TaskPhase.None;
+
     public void SetTask(TaskDefinition task)
     {
         CurrentTask = task;
+        Phase = TaskPhase.Active;
     }
 
     public void Update(Insights insights, VehicleState? state = null)
     {
+        if (CurrentTask is null && Phase != TaskPhase.Aborted)
+            Phase = TaskPhase.None;
     }
 
     public void ClearTask()
     {
         CurrentTask = null;
+
+        if (Phase != TaskPhase.Aborted)
+            Phase = TaskPhase.None;
     }
 }

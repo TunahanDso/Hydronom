@@ -1,5 +1,6 @@
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
+using Hydronom.Core.Modules;
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;
 using Hydronom.Runtime.Scenarios.Mission;
@@ -68,6 +69,7 @@ await RunRuntimeScenarioControllerPackagePathSmokeTest(packagePath);
 
 await RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(scenarioPath);
 await RunRuntimeScenarioControllerSlalomUTurnPackageSmokeTest();
+
 var runner = new RuntimeScenarioTestRunner();
 
 RunSingleEvaluationSmokeTest(scenario, runner);
@@ -80,6 +82,7 @@ await RunScenarioTelemetryReplayPublisherSmokeTest(executionResult);
 
 Console.WriteLine();
 Console.WriteLine("=== Scenario smoke test passed ===");
+
 static void PrintLoadedScenario(
     string title,
     Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
@@ -299,6 +302,7 @@ static async Task RunRuntimeScenarioControllerScenarioIdPackageSmokeTest(string 
 
     controller.StopScenario("scenario id package smoke completed");
 }
+
 static async Task RunRuntimeScenarioControllerSlalomUTurnPackageSmokeTest()
 {
     const string scenarioId = "teknofest_2026_parkur_1_point_tracking";
@@ -400,6 +404,7 @@ static void RequireScenarioObjectType(RuntimeScenarioSnapshot snapshot, string t
             $"Expected at least one Slalom/U-turn world object with Type={type}.");
     }
 }
+
 static IConfiguration BuildRuntimeScenarioControllerConfig(string? scenarioId = null)
 {
     var values = new Dictionary<string, string?>
@@ -544,6 +549,7 @@ static async Task WriteJsonNodeAsync(string path, JsonNode node)
             WriteIndented = true
         }));
 }
+
 static void RunScenarioMissionAdapterSmokeTest(
     Hydronom.Core.Scenarios.Models.ScenarioDefinition scenario)
 {
@@ -1355,6 +1361,8 @@ public sealed class InMemoryScenarioTaskManager : ITaskManager
 {
     public TaskDefinition? CurrentTask { get; private set; }
 
+    public TaskPhase Phase { get; private set; } = TaskPhase.None;
+
     public int SetTaskCount { get; private set; }
 
     public int ClearTaskCount { get; private set; }
@@ -1364,17 +1372,25 @@ public sealed class InMemoryScenarioTaskManager : ITaskManager
     public void SetTask(TaskDefinition task)
     {
         CurrentTask = task;
+        Phase = TaskPhase.Active;
         SetTaskCount++;
     }
 
     public void Update(Insights insights, VehicleState? state = null)
     {
+        if (CurrentTask is null && Phase != TaskPhase.Aborted)
+            Phase = TaskPhase.None;
+
         UpdateCount++;
     }
 
     public void ClearTask()
     {
         CurrentTask = null;
+
+        if (Phase != TaskPhase.Aborted)
+            Phase = TaskPhase.None;
+
         ClearTaskCount++;
     }
 }

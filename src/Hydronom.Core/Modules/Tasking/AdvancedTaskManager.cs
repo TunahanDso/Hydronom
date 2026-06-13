@@ -35,7 +35,7 @@ namespace Hydronom.Core.Modules
     /// Bu dosya public API, mission-lane yönetimi ve ana Update akışını taşır.
     /// Geçişler, raporlama ve yardımcılar ayrı partial dosyalardadır.
     /// </summary>
-    public partial class AdvancedTaskManager : ITaskManager
+    public partial class AdvancedTaskManager : IMissionOrchestrator
     {
         public TaskDefinition? CurrentTask { get; private set; }
         public TaskPhase Phase { get; private set; } = TaskPhase.None;

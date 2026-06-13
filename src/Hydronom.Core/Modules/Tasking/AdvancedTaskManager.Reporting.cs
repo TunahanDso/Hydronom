@@ -10,7 +10,7 @@ namespace Hydronom.Core.Modules
          * - AdvancedTaskReport üretmek
          * - Görev ilerlemesini yüzde olarak hesaplamak
          * - Aktif hedef / final hedef raporlamak
-         * - Mission orchestration durumunu rapora izlenebilir şekilde yansıtmak
+         * - Mission orchestration durumunu rapora property olarak yansıtmak
          * - Route-free görevleri doğru raporlamak
          *
          * Bu dosyanın görevi değildir:
@@ -20,6 +20,7 @@ namespace Hydronom.Core.Modules
          * - Controller hedefini değiştirmek
          * - Obstacle-bypass kararı vermek
          * - Görev adından davranış tahmin etmek
+         * - Orchestration bilgisini Reason string'ine sıkıştırmak
          */
 
         private void RefreshReport(
@@ -58,86 +59,52 @@ namespace Hydronom.Core.Modules
             bool obstacleAhead = insights?.HasObstacleAhead ?? false;
 
             LastReport = new AdvancedTaskReport(
-                Phase: Phase,
-                Reason: safeReason,
-                TaskName: GetTaskNameForReport(),
-                HasTask: CurrentTask is not null,
-                CurrentWaypointIndex: GetCurrentWaypointIndexForReport(),
-                WaypointCount: _routePoints.Count,
-                CompletedWaypointCount: _completedWaypointCount,
-                CurrentTarget: GetCurrentTargetForReport(),
-                FinalTarget: GetFinalTargetForReport(),
-                DistanceToWaypointM: SafeNonNegative(distanceToWaypoint, 0.0),
-                DistanceToFinalM: SafeNonNegative(distanceToFinal, 0.0),
-                ProgressPercent: Math.Clamp(progressPercent, 0.0, 100.0),
-                ElapsedTaskSeconds: elapsedTaskSeconds,
-                NoProgressSeconds: noProgressSeconds,
-                ObstacleHoldSeconds: obstacleElapsedSeconds,
-                WaitElapsedSeconds: SafeNonNegative(waitElapsedSeconds ?? 0.0, 0.0),
-                WaitRemainingSeconds: SafeNonNegative(waitRemainingSeconds ?? 0.0, 0.0),
-                ObstacleAhead: obstacleAhead,
-                Position: state?.Position,
-                SpeedMps: SafeNonNegative(speedMps, 0.0),
-                EffectiveArrivalThresholdM: SafeNonNegative(effectiveArrivalThresholdM, _arriveThresholdM),
-                QueuedTaskCount: _taskQueue.Count,
-                CompletedTaskCount: _completedTaskCount,
-                StartedTaskCount: _startedTaskCount
-            );
+                    Phase: Phase,
+                    Reason: safeReason,
+                    TaskName: GetTaskNameForReport(),
+                    HasTask: CurrentTask is not null,
+                    CurrentWaypointIndex: GetCurrentWaypointIndexForReport(),
+                    WaypointCount: _routePoints.Count,
+                    CompletedWaypointCount: _completedWaypointCount,
+                    CurrentTarget: GetCurrentTargetForReport(),
+                    FinalTarget: GetFinalTargetForReport(),
+                    DistanceToWaypointM: SafeNonNegative(distanceToWaypoint, 0.0),
+                    DistanceToFinalM: SafeNonNegative(distanceToFinal, 0.0),
+                    ProgressPercent: Math.Clamp(progressPercent, 0.0, 100.0),
+                    ElapsedTaskSeconds: elapsedTaskSeconds,
+                    NoProgressSeconds: noProgressSeconds,
+                    ObstacleHoldSeconds: obstacleElapsedSeconds,
+                    WaitElapsedSeconds: SafeNonNegative(waitElapsedSeconds ?? 0.0, 0.0),
+                    WaitRemainingSeconds: SafeNonNegative(waitRemainingSeconds ?? 0.0, 0.0),
+                    ObstacleAhead: obstacleAhead,
+                    Position: state?.Position,
+                    SpeedMps: SafeNonNegative(speedMps, 0.0),
+                    EffectiveArrivalThresholdM: SafeNonNegative(effectiveArrivalThresholdM, _arriveThresholdM),
+                    QueuedTaskCount: _taskQueue.Count,
+                    CompletedTaskCount: _completedTaskCount,
+                    StartedTaskCount: _startedTaskCount
+                )
+                .WithTaskMetadata(CurrentTask)
+                .WithOrchestration(
+                    revision: _orchestrationRevision,
+                    pendingPrimaryTaskCount: _taskQueue.Count,
+                    pendingGeneratedSubtaskCount: _generatedSubtasks.Count,
+                    suspendedPrimaryTaskCount: _suspendedPrimaryTasks.Count,
+                    activeParallelTaskCount: _parallelTasks.Count,
+                    activeGuardTaskCount: _guardTasks.Count
+                );
         }
 
         private string BuildReportReason(string? reason)
         {
-            string baseReason = SafeReason(reason, LastStatusReason ?? "UNKNOWN");
-
-            var task = CurrentTask;
-            string taskKind = task?.Kind.ToString() ?? TaskKind.Unknown.ToString();
-            string priority = task?.Priority.ToString() ?? TaskPriority.Normal.ToString();
-            string completionAuthority = task?.CompletionAuthority.ToString()
-                ?? TaskCompletionAuthority.TaskManager.ToString();
-
-            bool hasRouteFreeTask = task is not null && _routePoints.Count == 0;
-            bool isExternalTask = task?.IsExternallyCompleted ?? false;
-
             /*
-             * AdvancedTaskReport modeli henüz lane/property olarak genişletilmediği için
-             * orchestration bilgilerini Reason içine kısa ve makine-okunabilir suffix olarak ekliyoruz.
+             * AdvancedTaskReport artık TaskKind, Priority, CompletionAuthority,
+             * route-free durumu ve orchestration sayaçlarını property olarak taşıyor.
              *
-             * AdvancedTaskReport.cs güncellendiğinde bu alanlar doğrudan property olmalı:
-             * - TaskKind
-             * - TaskPriority
-             * - CompletionAuthority
-             * - PendingGeneratedSubtaskCount
-             * - SuspendedPrimaryTaskCount
-             * - ActiveParallelTaskCount
-             * - ActiveGuardTaskCount
-             * - HasRouteFreeCurrentTask
-             * - IsCurrentTaskExternal
+             * Bu yüzden Reason artık sadece olay sebebi/status metnidir.
+             * Makine-okunabilir mission-lane bilgileri Reason içine sıkıştırılmaz.
              */
-            bool hasOrchestrationState =
-                _taskQueue.Count > 0 ||
-                _generatedSubtasks.Count > 0 ||
-                _suspendedPrimaryTasks.Count > 0 ||
-                _parallelTasks.Count > 0 ||
-                _guardTasks.Count > 0 ||
-                hasRouteFreeTask ||
-                isExternalTask;
-
-            if (!hasOrchestrationState && task is null)
-                return baseReason;
-
-            return
-                $"{baseReason} | " +
-                $"orchRev={_orchestrationRevision} " +
-                $"kind={taskKind} " +
-                $"prio={priority} " +
-                $"auth={completionAuthority} " +
-                $"primaryQ={_taskQueue.Count} " +
-                $"subQ={_generatedSubtasks.Count} " +
-                $"suspended={_suspendedPrimaryTasks.Count} " +
-                $"parallel={_parallelTasks.Count} " +
-                $"guard={_guardTasks.Count} " +
-                $"routeFree={hasRouteFreeTask} " +
-                $"external={isExternalTask}";
+            return SafeReason(reason, LastStatusReason ?? "UNKNOWN");
         }
 
         private double ComputeProgressPercent(double currentDistanceToWaypoint)

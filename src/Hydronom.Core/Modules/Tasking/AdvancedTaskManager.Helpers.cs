@@ -269,21 +269,6 @@ namespace Hydronom.Core.Modules
             return normalized.CanGenerateSubtasks;
         }
 
-        /// <summary>
-        /// Legacy fallback.
-        ///
-        /// Kalıcı mimaride görev semantiği string/name üzerinden çıkarılamaz.
-        /// TaskDefinition.Kind / Behavior / Completion kullanılmalıdır.
-        ///
-        /// Build uyumluluğu için geçici olarak tutulur.
-        /// Bilerek false döner; yeni davranış bu metottan beslenmemelidir.
-        /// </summary>
-        [Obsolete("Use TaskDefinition.Kind, TaskDefinition.Behavior or TaskDefinition.Completion instead. String-based task inference is disabled.")]
-        private static bool InferHoldFromName(string? name)
-        {
-            return false;
-        }
-
         private static double Distance3D(Vec3 a, Vec3 b)
         {
             double dx = Safe(a.X - b.X);
