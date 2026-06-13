@@ -1,0 +1,119 @@
+{
+    "scenarioId":  "teknofest_2026_advanced_main_uuv_single_course",
+    "displayName":  "TEKNOFEST 2026 Ã„Â°leri Kategori - Ana UUV Tek Parkur",
+    "description":  "Ana UUV\u0027nin hat takibi ve otonom navigasyon davranÃ„Â±Ã…Å¸larÃ„Â±nÃ„Â± tek senaryo iÃƒÂ§inde izole eden ileri kategori parkuru.",
+    "coordinateSystem":  {
+                             "unit":  "meter",
+                             "worldAxes":  {
+                                               "x":  "forward/east",
+                                               "y":  "left/north",
+                                               "z":  "up/depth-relative"
+                                           },
+                             "origin":  {
+                                            "name":  "main_uuv_start_center",
+                                            "x":  0.0,
+                                            "y":  0.0,
+                                            "z":  0.0
+                                        },
+                             "note":  "CAD ÃƒÂ¶lÃƒÂ§ÃƒÂ¼leri mm; bu paket metre cinsinden simÃƒÂ¼lasyon koordinatlarÃ„Â± kullanÃ„Â±r."
+                         },
+    "stagePolicy":  {
+                        "mode":  "single_stage",
+                        "activeStageId":  "advanced_main_uuv_single_course",
+                        "plannerScope":  "active_stage_only",
+                        "judgeScope":  "active_stage_only",
+                        "geometryScope":  "active_stage_only",
+                        "disableForeignStageObjects":  true
+                    },
+    "vehicleAssumptions":  {
+                               "mainVehicleProfileId":  "hydronom_uuv_main_2026",
+                               "vehicle":  "main_uuv",
+                               "collisionRadiusM":  0.24,
+                               "plannerInflationM":  0.10,
+                               "safeClearanceM":  0.12,
+                               "nominalDepthM":  -0.45,
+                               "surfaceAllowedOnlyInsideFinishSquare":  true
+                           },
+    "courseDesign":  {
+                         "lineFollowing":  {
+                                               "boardWidthM":  0.15,
+                                               "trackStripeWidthM":  0.03,
+                                               "boardHeightM":  0.10,
+                                               "boardColor":  "RAL3020",
+                                               "trackStripeColor":  "RAL9005",
+                                               "material":  "ST37 sac"
+                                           },
+                         "autonomous":  {
+                                            "turnBuoyCenter":  {
+                                                                   "x":  11.2,
+                                                                   "y":  4.0,
+                                                                   "z":  0.0
+                                                               },
+                                            "turnRadiusM":  0.75,
+                                            "finishSquareCenter":  {
+                                                                       "x":  14.0,
+                                                                       "y":  4.0,
+                                                                       "z":  0.0
+                                                                   },
+                                            "finishSquareSizeM":  2.0
+                                        }
+                     },
+    "sourceFacts":  [
+                        {
+                            "id":  "advanced_theme_1",
+                            "value":  "Hat Takibi ve KapalÃ„Â± Alan Ã„Â°ncelemesi"
+                        },
+                        {
+                            "id":  "advanced_theme_2",
+                            "value":  "Otonom Navigasyon, Ã„Â°ntikal ve KontrollÃƒÂ¼ Alan GeÃƒÂ§iÃ…Å¸i"
+                        },
+                        {
+                            "id":  "autonomous_expected_action",
+                            "value":  "Ana araÃƒÂ§ Ã…Å¸amandÃ„Â±ra etrafÃ„Â±nda dÃƒÂ¶ner, ardÃ„Â±ndan bitiÃ…Å¸ koordinatÃ„Â±ndaki karesel alana yÃƒÂ¶nelir."
+                        },
+                        {
+                            "id":  "main_only_reason",
+                            "value":  "Bu paket ana aracÃ„Â±n davranÃ„Â±Ã…Å¸larÃ„Â±nÃ„Â± izole etmek iÃƒÂ§in Mini ROV objective zincirini ÃƒÂ§Ã„Â±karÃ„Â±r."
+                        }
+                    ],
+    "visualStyle":  {
+                        "environment":  "underwater_pool",
+                        "seabedColor":  "#0f172a",
+                        "waterFogColor":  "#042f2e",
+                        "guidanceBoardColor":  "#cc0605",
+                        "trackStripeColor":  "#0a0a0a",
+                        "pipeColor":  "#111827",
+                        "turnBuoyColor":  "#facc15",
+                        "finishColor":  "#22c55e"
+                    },
+    "tags":  {
+                 "scenario.id":  "teknofest_2026_advanced_main_uuv_single_course",
+                 "scenario.package":  "true",
+                 "scenario.mainOnly":  "true",
+                 "scenario.category":  "advanced",
+                 "coordinateFrame":  "local_metric",
+                 "visual.vehicle.widthM":  "0.30",
+                 "visual.vehicle.collisionRadiusM":  "0.24",
+                 "vehicle.widthM":  "0.30",
+                 "visual.vehicle.modelScale":  "1.0",
+                 "visual.vehicle.heightM":  "0.30",
+                 "vehicle.massKg":  "13.5",
+                 "vehicle.heightM":  "0.30",
+                 "vehicle.collisionRadiusM":  "0.24",
+                 "vehicle.lengthM":  "0.20",
+                 "visual.vehicle.lengthM":  "0.20"
+             },
+    "vehicleVisual":  {
+                          "lengthM":  0.2,
+                          "widthM":  0.3,
+                          "heightM":  0.3,
+                          "collisionRadiusM":  0.24,
+                          "modelScale":  1
+                      },
+    "plannerPolicy":  {
+                          "ignoreFarOrbitBuoyDuringLineFollowing":  true,
+                          "obstacleRequiresGeometryBlockingTrue":  true,
+                          "expectedLineFollowingY":  0,
+                          "note":  "autonomous_turn_buoy orbit referansıdır; hat takibi sırasında obstacle-bypass üretmemelidir."
+                      }
+}

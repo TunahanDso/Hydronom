@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Communication;
+using Hydronom.Core.Communication;
 using Hydronom.GroundStation.Communication;
 using Hydronom.GroundStation.LinkHealth;
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CapabilityFusionRule
  *
  * Amaç:

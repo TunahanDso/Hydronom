@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomOperationSnapshot
  *
  * Amaç:

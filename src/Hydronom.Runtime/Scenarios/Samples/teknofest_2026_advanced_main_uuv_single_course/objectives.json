@@ -1,0 +1,371 @@
+{
+  "objectives": [
+    {
+      "id": "main_001_start",
+      "type": "start",
+      "title": "Ana UUV başlangıç alanında hazır",
+      "description": "Ana UUV başlangıç alanında hazır",
+      "targetObjectId": "main_start_zone",
+      "order": 10,
+      "isRequired": true,
+      "scoreValue": 0,
+      "toleranceMeters": 0.65,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "enter_radius",
+        "settleSec": "0.5",
+        "target.x": "0.0",
+        "target.y": "0.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_010_line_entry",
+      "type": "line_follow",
+      "title": "Yönlendirme tahtasına giriş",
+      "description": "Yönlendirme tahtasına giriş",
+      "targetObjectId": "main_uuv_single_route_wp_1",
+      "order": 20,
+      "isRequired": true,
+      "scoreValue": 5,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "0.7",
+        "target.y": "0.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_020_line_straight_1",
+      "type": "line_follow",
+      "title": "Hat takibi düz bölüm 1",
+      "description": "Hat takibi düz bölüm 1",
+      "targetObjectId": "main_uuv_single_route_wp_2",
+      "order": 30,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "2.7",
+        "target.y": "0.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_030_line_corner",
+      "type": "line_follow",
+      "title": "Hat takibi kırılım noktası",
+      "description": "Hat takibi kırılım noktası",
+      "targetObjectId": "main_uuv_single_route_wp_3",
+      "order": 40,
+      "isRequired": true,
+      "scoreValue": 9,
+      "toleranceMeters": 0.48,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "5.0",
+        "target.y": "0.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_040_line_vertical_mid",
+      "type": "line_follow",
+      "title": "Hat takibi dikey orta bölüm",
+      "description": "Hat takibi dikey orta bölüm",
+      "targetObjectId": "main_uuv_single_route_wp_4",
+      "order": 50,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.48,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "5.0",
+        "target.y": "2.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_050_line_turn_end",
+      "type": "line_follow",
+      "title": "Hat takibi dönüş sonu",
+      "description": "Hat takibi dönüş sonu",
+      "targetObjectId": "main_uuv_single_route_wp_5",
+      "order": 60,
+      "isRequired": true,
+      "scoreValue": 10,
+      "toleranceMeters": 0.48,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "5.0",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_060_handoff_zone",
+      "type": "arrive",
+      "title": "Ana UUV handoff bölgesine ulaş",
+      "description": "Ana UUV Mini ROV bırakma / ipucu handoff bölgesine ulaşır",
+      "targetObjectId": "main_uuv_handoff_zone",
+      "order": 70,
+      "isRequired": true,
+      "scoreValue": 0,
+      "toleranceMeters": 0.55,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "enter_radius",
+        "settleSec": "0.8",
+        "target.x": "8.25",
+        "target.y": "4.0",
+        "target.z": "-0.45",
+        "miniRovObjectiveIncluded": "false",
+        "clueInfoAssumedAvailable": "true"
+      }
+    },
+    {
+      "id": "main_070_autonomous_intikal_start",
+      "type": "autonomous_navigation",
+      "title": "Otonom intikal başlangıcı",
+      "description": "Otonom bölüme geçiş",
+      "targetObjectId": "main_uuv_single_route_wp_7",
+      "order": 80,
+      "isRequired": true,
+      "scoreValue": 0,
+      "toleranceMeters": 0.50,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "9.2",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_080_buoy_approach",
+      "type": "autonomous_navigation",
+      "title": "Dönüş şamandırasına yaklaş",
+      "description": "Dönüş şamandırasına yaklaş",
+      "targetObjectId": "main_uuv_single_route_wp_8",
+      "order": 90,
+      "isRequired": true,
+      "scoreValue": 0,
+      "toleranceMeters": 0.50,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "10.45",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_090_orbit_south",
+      "type": "buoy_orbit",
+      "title": "Şamandıra etrafı dönüş - güney",
+      "description": "Şamandıra etrafı dönüş güney noktası",
+      "targetObjectId": "main_uuv_single_route_wp_9",
+      "order": 100,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.2",
+        "target.x": "11.2",
+        "target.y": "3.25",
+        "target.z": "-0.45",
+        "orbitObjectId": "autonomous_turn_buoy",
+        "orbitCenter.x": "11.2",
+        "orbitCenter.y": "4.0",
+        "orbitRadiusM": "0.75"
+      }
+    },
+    {
+      "id": "main_100_orbit_east",
+      "type": "buoy_orbit",
+      "title": "Şamandıra etrafı dönüş - doğu",
+      "description": "Şamandıra etrafı dönüş doğu noktası",
+      "targetObjectId": "main_uuv_single_route_wp_10",
+      "order": 110,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.2",
+        "target.x": "11.95",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_110_orbit_north",
+      "type": "buoy_orbit",
+      "title": "Şamandıra etrafı dönüş - kuzey",
+      "description": "Şamandıra etrafı dönüş kuzey noktası",
+      "targetObjectId": "main_uuv_single_route_wp_11",
+      "order": 120,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.2",
+        "target.x": "11.2",
+        "target.y": "4.75",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_120_orbit_west",
+      "type": "buoy_orbit",
+      "title": "Şamandıra etrafı dönüş - batı",
+      "description": "Şamandıra etrafı dönüş batı noktası",
+      "targetObjectId": "main_uuv_single_route_wp_12",
+      "order": 130,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.2",
+        "target.x": "10.45",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_130_orbit_complete",
+      "type": "buoy_orbit_complete",
+      "title": "Şamandıra etrafı dönüş tamamlandı",
+      "description": "Şamandıra etrafı dönüş tamamlandı",
+      "targetObjectId": "main_uuv_single_route_wp_13",
+      "order": 140,
+      "isRequired": true,
+      "scoreValue": 8,
+      "toleranceMeters": 0.45,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.2",
+        "target.x": "11.2",
+        "target.y": "3.25",
+        "target.z": "-0.45",
+        "officialEquivalent": "Şamandıranın etrafından dönüş"
+      }
+    },
+    {
+      "id": "main_140_finish_approach",
+      "type": "finish_approach",
+      "title": "Bitiş karesine yaklaş",
+      "description": "Bitiş karesine yaklaş",
+      "targetObjectId": "main_uuv_single_route_wp_14",
+      "order": 150,
+      "isRequired": true,
+      "scoreValue": 0,
+      "toleranceMeters": 0.55,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "pass_waypoint",
+        "settleSec": "0.3",
+        "target.x": "13.0",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_150_enter_finish_square",
+      "type": "finish",
+      "title": "Bitiş karesine giriş",
+      "description": "Bitiş karesine giriş",
+      "targetObjectId": "finish_square",
+      "order": 160,
+      "isRequired": true,
+      "scoreValue": 50,
+      "toleranceMeters": 1.0,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "enter_polygon",
+        "targetObjectId": "finish_square",
+        "settleSec": "0.8",
+        "target.x": "14.0",
+        "target.y": "4.0",
+        "target.z": "-0.45"
+      }
+    },
+    {
+      "id": "main_160_surface_inside_finish",
+      "type": "surface",
+      "title": "Bitiş karesi içinde yüzeye çıkış",
+      "description": "Bitiş karesi içinde yüzeye çıkış",
+      "targetObjectId": "main_uuv_single_route_wp_16",
+      "order": 170,
+      "isRequired": true,
+      "scoreValue": 10,
+      "toleranceMeters": 0.80,
+      "timeLimitSeconds": 0,
+      "parameters": {
+        "vehicle": "main_uuv",
+        "stageId": "advanced_main_uuv_single_course",
+        "completion.mode": "enter_radius",
+        "settleSec": "1.0",
+        "target.x": "14.0",
+        "target.y": "4.0",
+        "target.z": "-0.05",
+        "mustBeInsideObjectId": "finish_square",
+        "surfaceAllowedOnlyInsideFinishSquare": "true"
+      }
+    }
+  ]
+}

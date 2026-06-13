@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RealCameraBackend
  *
  * Amaç:

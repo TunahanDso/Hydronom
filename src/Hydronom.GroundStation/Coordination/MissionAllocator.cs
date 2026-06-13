@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Coordination;
+namespace Hydronom.GroundStation.Coordination;
 
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.MissionCompatibility;

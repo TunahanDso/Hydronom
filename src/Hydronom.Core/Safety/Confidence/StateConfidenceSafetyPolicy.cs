@@ -1,4 +1,4 @@
-﻿/*
+/*
  * StateConfidenceSafetyPolicy
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorResponseObserver
  *
  * Amaç:

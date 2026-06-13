@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CapabilitySource
  *
  * Amaç:

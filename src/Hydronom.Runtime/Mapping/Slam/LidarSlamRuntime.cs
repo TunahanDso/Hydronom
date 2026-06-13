@@ -1,4 +1,4 @@
-﻿/*
+/*
  * LidarSlamRuntime
  *
  * Amaç:

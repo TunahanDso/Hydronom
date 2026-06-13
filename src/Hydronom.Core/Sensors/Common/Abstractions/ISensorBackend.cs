@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Threading.Tasks;
 using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Core.Sensors.Common.Models;

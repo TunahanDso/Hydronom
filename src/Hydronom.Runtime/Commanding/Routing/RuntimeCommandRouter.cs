@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeCommandRouter
  *
  * Amaç:

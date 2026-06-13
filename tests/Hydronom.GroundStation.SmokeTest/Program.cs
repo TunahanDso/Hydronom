@@ -1,4 +1,4 @@
-﻿/*
+/*
 using Hydronom.Core.Communication;
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Ack;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SafetyDegradedDecision
  *
  * Amaç:

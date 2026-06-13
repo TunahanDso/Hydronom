@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Hydronom.Core.Domain;
 
 namespace Hydronom.Core.Interfaces

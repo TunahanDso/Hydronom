@@ -1,4 +1,4 @@
-﻿// File: Hydronom.Core/Domain/DiscoveryReport.cs
+// File: Hydronom.Core/Domain/DiscoveryReport.cs
 
 using System;
 using System.Collections.Generic;

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Domain
+namespace Hydronom.Core.Domain
 {
     /// <summary>
     /// Bir fizik adÄ±mÄ±nda uygulanacak dÄ±ÅŸ yÃ¼kler.

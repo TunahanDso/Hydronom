@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Hydronom.Core.Communication.Telemetry;
 
 Console.OutputEncoding = Encoding.UTF8;

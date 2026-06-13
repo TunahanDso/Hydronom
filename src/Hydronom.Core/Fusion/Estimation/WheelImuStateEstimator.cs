@@ -1,4 +1,4 @@
-﻿/*
+/*
  * WheelImuStateEstimator
  *
  * Amaç:

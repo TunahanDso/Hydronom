@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehicleIdentityReport
  *
  * Amaç:

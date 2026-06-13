@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Telemetry.World;
+using Hydronom.Core.Telemetry.World;
 using Hydronom.Core.World.Models;
 using Hydronom.Runtime.World.Runtime;
 

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Communication;
+namespace Hydronom.Core.Communication;
 
 /// <summary>
 /// Hydronom Fleet & Ground Station mimarisinde tÃ¼m haberleÅŸme kanallarÄ±nÄ±n

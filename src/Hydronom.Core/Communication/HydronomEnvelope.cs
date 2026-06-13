@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Communication;
+namespace Hydronom.Core.Communication;
 
 /// <summary>
 /// Hydronom sisteminde taÅŸÄ±nan tÃ¼m Ã¼st seviye mesajlarÄ±n ortak zarfÄ±dÄ±r.

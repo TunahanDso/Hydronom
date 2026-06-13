@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World
+namespace Hydronom.Core.Simulation.World
 {
     /// <summary>
     /// DÃ¼nya nesnelerine eklenebilecek esnek etiket modeli.

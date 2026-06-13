@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Runtime.Tuning
+namespace Hydronom.Runtime.Tuning
 {
     public interface ITuningSink
     {

@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Domain;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 using Hydronom.Runtime.Scenarios;
 using Hydronom.Runtime.Scenarios.Execution;

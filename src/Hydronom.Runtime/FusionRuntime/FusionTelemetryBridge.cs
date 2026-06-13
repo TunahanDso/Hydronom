@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Fusion.Diagnostics;
+using Hydronom.Core.Fusion.Diagnostics;
 
 namespace Hydronom.Runtime.FusionRuntime;
 

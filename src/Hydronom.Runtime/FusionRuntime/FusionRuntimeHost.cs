@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Fusion.Diagnostics;
+using Hydronom.Core.Fusion.Diagnostics;
 using Hydronom.Core.Fusion.Models;
 using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.State.Authority;

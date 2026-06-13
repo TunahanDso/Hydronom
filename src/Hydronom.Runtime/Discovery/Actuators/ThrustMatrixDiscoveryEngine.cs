@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ThrustMatrixDiscoveryEngine
  *
  * Amaç:

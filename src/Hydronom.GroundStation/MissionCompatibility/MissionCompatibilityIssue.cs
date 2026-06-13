@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.MissionCompatibility;
+namespace Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
 /// Mission compatibility deÄŸerlendirmesinde bulunan tek bir problemi temsil eder.

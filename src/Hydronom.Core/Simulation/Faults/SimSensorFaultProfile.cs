@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Faults
+namespace Hydronom.Core.Simulation.Faults
 {
     /// <summary>
     /// Sim sensÃ¶rlere kontrollÃ¼ hata enjekte etmek iÃ§in fault profili.

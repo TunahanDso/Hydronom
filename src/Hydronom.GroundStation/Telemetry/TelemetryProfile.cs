@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Telemetry;
+namespace Hydronom.GroundStation.Telemetry;
 
 /// <summary>
 /// Ground Station ile araÃ§ arasÄ±ndaki telemetry veri yoÄŸunluÄŸu seviyesini temsil eder.

@@ -1,5 +1,5 @@
-﻿{
-    "id":  "teknofest_2026_parkur_1_point_tracking",
+{
+    "id":  "teknofest_2026_parkur_s_slalom_uturn",
     "name":  "TEKNOFEST 2026 Parkur-2 VaryantÄ± - S Koridor, Slalom, Engel ve U DÃ¶nÃ¼ÅŸ",
     "description":  "TEKNOFEST 2026 Ä°nsansÄ±z Deniz AracÄ± YarÄ±ÅŸmasÄ± Parkur-2 mantÄ±ÄŸÄ±na uygun alternatif simÃ¼lasyon parkuru. Bu varyant; S eÄŸrisi takibi, ardÄ±ÅŸÄ±k slalom, yoÄŸun engel kaÃ§Ä±nma, dar koridor, U dÃ¶nÃ¼ÅŸÃ¼, no-go zone Ã§evresinden gÃ¼venli geÃ§iÅŸ, final hizalanmasÄ±, overshoot kontrolÃ¼ ve dÃ¼ÅŸÃ¼k hÄ±zda hassas yaklaÅŸma davranÄ±ÅŸlarÄ±nÄ± test eder.",
     "version":  "1.2.0",

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Modules;
 using Hydronom.Runtime.Actuators;

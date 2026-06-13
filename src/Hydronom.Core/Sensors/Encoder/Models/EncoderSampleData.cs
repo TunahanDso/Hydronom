@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Encoder.Models
+namespace Hydronom.Core.Sensors.Encoder.Models
 {
     /// <summary>
     /// Encoder / wheel odometry / motor encoder sample verisi.

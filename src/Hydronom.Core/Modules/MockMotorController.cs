@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Domain;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;
 
 namespace Hydronom.Core.Modules;

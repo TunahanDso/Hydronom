@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CameraBackendOptions
  *
  * Amaç:

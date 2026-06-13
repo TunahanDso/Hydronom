@@ -1,4 +1,4 @@
-﻿using HydronomOps.Gateway.Infrastructure.Time;
+using HydronomOps.Gateway.Infrastructure.Time;
 
 namespace HydronomOps.Gateway.Services.Mapping;
 

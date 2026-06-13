@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Domain
+namespace Hydronom.Core.Domain
 {
     public enum EncounterType
     {

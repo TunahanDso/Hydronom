@@ -1,4 +1,4 @@
-﻿// File: Hydronom.Core/Modules/AutoDiscoveryEngine.cs
+// File: Hydronom.Core/Modules/AutoDiscoveryEngine.cs
 
 using System;
 using System.Collections.Generic;

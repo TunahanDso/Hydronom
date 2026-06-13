@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CameraFrameData
  *
  * Amaç:

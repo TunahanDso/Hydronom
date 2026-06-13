@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Infrastructure.Time;
+namespace HydronomOps.Gateway.Infrastructure.Time;
 
 /// <summary>
 /// Sistem zamanÄ±nÄ± saÄŸlayan basit saat servisi.

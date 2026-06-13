@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Hydronom.Core.Communication.Bandwidth;
 using Hydronom.Core.Communication.Diagnostics;
 using Hydronom.Core.Communication.Envelope;

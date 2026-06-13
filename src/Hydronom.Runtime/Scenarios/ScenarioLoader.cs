@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Hydronom.Core.Scenarios.Loading;
 using Hydronom.Core.Scenarios.Models;
 

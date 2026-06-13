@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Domain;
+using Hydronom.Core.Domain;
 using Hydronom.Core.Fusion.Estimation;
 using Hydronom.Core.Fusion.Models;
 using Hydronom.Core.Sensors.Common.Models;

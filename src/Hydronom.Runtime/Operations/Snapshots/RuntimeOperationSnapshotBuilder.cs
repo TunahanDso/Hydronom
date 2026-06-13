@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Sensors.Common.Diagnostics;
+using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Runtime.Diagnostics.Snapshots;
 using Hydronom.Runtime.FusionRuntime;
 using Hydronom.Runtime.Sensors.Diagnostics;

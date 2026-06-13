@@ -1,0 +1,215 @@
+{
+  "profileId": "hydronom_uuv_main_2026",
+  "name": "Hydronom Main UUV 2026 Control Profile",
+  "enabled": true,
+  "platformKind": "Underwater",
+  "controlFrame": {
+    "bodyFrame": "body_x_forward_y_right_z_up",
+    "worldFrame": "enu_z_up",
+    "commandsInBodyFrame": true
+  },
+  "mode": {
+    "defaultMode": "Autonomous",
+    "supportsManual": true,
+    "supportsAutonomous": true,
+    "supportsHoldPosition": true,
+    "supportsDepthHold": true,
+    "supportsHeadingHold": true,
+    "supportsTrajectoryTracking": true,
+    "capabilityAware": true
+  },
+  "actuationAssumptions": {
+    "hasRudder": false,
+    "hasDifferentialThrust": true,
+    "hasVectoring": false,
+    "hasDirectSway": false,
+    "hasDirectHeave": true,
+    "canReverse": true,
+    "notes": "Main UUV başlangıç kontrol ayarı: diferansiyel surge/yaw + dikey heave kabulüyle güvenli başlatılmıştır."
+  },
+  "limits": {
+    "maxSurgeSpeedMps": 0.45,
+    "maxReverseSpeedMps": 0.22,
+    "maxSwaySpeedMps": 0.0,
+    "maxHeaveSpeedMps": 0.25,
+    "maxYawRateRadps": 0.75,
+    "maxPitchRateRadps": 0.45,
+    "maxRollRateRadps": 0.45,
+    "maxForwardForceN": 28.0,
+    "maxReverseForceN": 18.0,
+    "maxHeaveForceN": 22.0,
+    "maxYawTorqueNm": 4.5,
+    "maxPitchTorqueNm": 2.5,
+    "maxRollTorqueNm": 2.5,
+    "commandSlewRatePerSec": 1.8,
+    "emergencyCommandSlewRatePerSec": 3.5
+  },
+  "navigation": {
+    "enabled": true,
+    "arrivalRadiusM": 0.45,
+    "slowdownRadiusM": 1.4,
+    "settleTimeSec": 0.8,
+    "maxCrossTrackErrorM": 0.75,
+    "lookaheadDistanceM": 0.9,
+    "minForwardSpeedMps": 0.08,
+    "cruiseSpeedMps": 0.32,
+    "approachSpeedMps": 0.14,
+    "avoidanceSpeedMps": 0.16,
+    "holdPositionRadiusM": 0.35,
+    "headingToleranceDeg": 10.0,
+    "depthToleranceM": 0.12,
+    "preferForwardMotionForTurns": true,
+    "allowReverseForRecovery": true
+  },
+  "controllers": {
+    "surge": {
+      "enabled": true,
+      "type": "PID",
+      "kp": 18.0,
+      "ki": 0.8,
+      "kd": 4.0,
+      "integratorLimit": 8.0,
+      "outputLimitN": 28.0,
+      "deadbandMps": 0.025
+    },
+    "sway": {
+      "enabled": false,
+      "type": "Disabled",
+      "kp": 0.0,
+      "ki": 0.0,
+      "kd": 0.0,
+      "integratorLimit": 0.0,
+      "outputLimitN": 0.0,
+      "deadbandMps": 0.0
+    },
+    "heave": {
+      "enabled": true,
+      "type": "PID",
+      "kp": 22.0,
+      "ki": 1.2,
+      "kd": 5.0,
+      "integratorLimit": 7.0,
+      "outputLimitN": 22.0,
+      "deadbandMps": 0.02
+    },
+    "yaw": {
+      "enabled": true,
+      "type": "PID",
+      "kp": 5.2,
+      "ki": 0.12,
+      "kd": 1.4,
+      "integratorLimit": 1.5,
+      "outputLimitNm": 4.5,
+      "deadbandDeg": 2.0
+    },
+    "pitch": {
+      "enabled": true,
+      "type": "PID",
+      "kp": 3.0,
+      "ki": 0.05,
+      "kd": 0.9,
+      "integratorLimit": 0.8,
+      "outputLimitNm": 2.5,
+      "deadbandDeg": 2.5
+    },
+    "roll": {
+      "enabled": true,
+      "type": "PID",
+      "kp": 3.0,
+      "ki": 0.05,
+      "kd": 0.9,
+      "integratorLimit": 0.8,
+      "outputLimitNm": 2.5,
+      "deadbandDeg": 2.5
+    }
+  },
+  "depthHold": {
+    "enabled": true,
+    "surfaceLimitM": 0.15,
+    "maxDepthM": 5.0,
+    "defaultDepthM": 0.6,
+    "depthKp": 18.0,
+    "depthKi": 0.5,
+    "depthKd": 3.2,
+    "verticalSpeedLimitMps": 0.22,
+    "integratorLimit": 5.0
+  },
+  "headingHold": {
+    "enabled": true,
+    "headingKp": 4.8,
+    "headingKi": 0.08,
+    "headingKd": 1.2,
+    "yawRateLimitRadps": 0.65,
+    "integratorLimit": 1.2
+  },
+  "stabilization": {
+    "enabled": true,
+    "autoLevelRoll": true,
+    "autoLevelPitch": true,
+    "maxAllowedRollDeg": 18.0,
+    "maxAllowedPitchDeg": 18.0,
+    "rollRecoveryDeg": 24.0,
+    "pitchRecoveryDeg": 24.0
+  },
+  "allocation": {
+    "enabled": true,
+    "method": "WeightedLeastSquares",
+    "capabilityAware": true,
+    "preferSurgeOverSway": true,
+    "preferYawOverLateral": true,
+    "allowReverseWhenNeeded": true,
+    "saturationStrategy": "ScalePreserveDirection",
+    "weights": {
+      "surge": 1.0,
+      "sway": 0.15,
+      "heave": 0.9,
+      "roll": 0.35,
+      "pitch": 0.45,
+      "yaw": 0.85
+    }
+  },
+  "failsafe": {
+    "enabled": true,
+    "commandTimeoutMs": 700,
+    "sensorFreshnessTimeoutMs": 900,
+    "imuRequired": true,
+    "depthSensorRequired": false,
+    "leakSensorRequired": false,
+    "onCommandTimeout": "HoldThenDisarm",
+    "onSensorTimeout": "SlowStop",
+    "onCriticalFault": "Disarm",
+    "slowStopDurationSec": 1.5
+  },
+  "filters": {
+    "enabled": true,
+    "velocityLowPassHz": 4.0,
+    "angularRateLowPassHz": 5.0,
+    "depthLowPassHz": 3.0,
+    "commandLowPassHz": 6.0
+  },
+  "recovery": {
+    "enabled": true,
+    "stuckDetectionEnabled": true,
+    "stuckSpeedThresholdMps": 0.035,
+    "stuckCommandThreshold": 0.35,
+    "stuckTimeSec": 2.5,
+    "unstickReverseSec": 0.8,
+    "unstickYawDeg": 25.0,
+    "maxRecoveryAttempts": 3
+  },
+  "logging": {
+    "enabled": true,
+    "logControlErrors": true,
+    "logAllocation": true,
+    "logSaturation": true,
+    "logFailsafe": true,
+    "summaryEverySec": 1.0
+  },
+  "tags": {
+    "vehicle": "main_uuv",
+    "sizeClass": "compact_competition_uuv",
+    "tuningLevel": "safe_initial",
+    "dimensionsSource": "user_approx_20x30x30_cm",
+    "massSource": "representative_pending_scale_measurement"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "hydronom.world.package.v1",
+  "worldId": "teknofest_2026_advanced_main_uuv_single_course_world",
+  "displayName": "TEKNOFEST 2026 Advanced Main UUV Single Course World",
+  "environment": {
+    "type": "underwater_pool",
+    "waterDepthM": 3.0,
+    "floor": {
+      "type": "flat_pool_floor",
+      "sizeX": 18.0,
+      "sizeY": 12.0,
+      "z": -1.2,
+      "color": "#0f172a",
+      "grid": true
+    },
+    "water": {
+      "surfaceZ": 0.0,
+      "nominalVehicleDepthM": -0.45,
+      "visibilityM": 8.0
+    },
+    "lighting": {
+      "ambientIntensity": 0.72,
+      "mainLightIntensity": 1.1,
+      "fogEnabled": true,
+      "fogColor": "#042f2e",
+      "fogNear": 30,
+      "fogFar": 130
+    }
+  },
+  "commonObjects": [
+    {
+      "id": "dock_start",
+      "type": "dock",
+      "label": "Başlangıç İskele Alanı",
+      "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "size": { "x": 1.6, "y": 0.6, "z": 0.12 },
+      "shape": "box",
+      "visual": {
+        "fillColor": "#64748b",
+        "strokeColor": "#cbd5e1",
+        "opacity": 0.72,
+        "render3d": true,
+        "render2d": true
+      },
+      "tags": {
+        "missionRole": "start",
+        "allowedVehicle": "main_uuv",
+        "plannerScope": "visual_only"
+      }
+    },
+    {
+      "id": "pool_boundary",
+      "type": "boundary",
+      "label": "Simülasyon Parkur Sınırı",
+      "shape": "polygon",
+      "points": [
+        { "x": -1.5, "y": -2.0, "z": 0.0 },
+        { "x": 16.5, "y": -2.0, "z": 0.0 },
+        { "x": 16.5, "y": 7.0, "z": 0.0 },
+        { "x": -1.5, "y": 7.0, "z": 0.0 }
+      ],
+      "visual": {
+        "fillColor": "#020617",
+        "strokeColor": "#475569",
+        "opacity": 0.08,
+        "render3d": false,
+        "render2d": true
+      },
+      "tags": {
+        "missionRole": "world_boundary",
+        "plannerScope": "boundary"
+      }
+    }
+  ]
+}

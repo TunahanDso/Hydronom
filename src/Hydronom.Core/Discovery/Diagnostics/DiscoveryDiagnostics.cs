@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DiscoveryDiagnostics
  *
  * Amaç:

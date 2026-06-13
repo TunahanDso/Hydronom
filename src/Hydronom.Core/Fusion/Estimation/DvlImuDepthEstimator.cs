@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DvlImuDepthEstimator
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomCommandValidationResult
  *
  * Amaç:

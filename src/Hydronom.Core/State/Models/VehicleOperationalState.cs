@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.State.Authority;
 
 namespace Hydronom.Core.State.Models

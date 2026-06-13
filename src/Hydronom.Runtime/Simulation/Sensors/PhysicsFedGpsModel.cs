@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PhysicsFedGpsModel
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Coordination;
+namespace Hydronom.GroundStation.Coordination;
 
 /// <summary>
 /// Ground Station tarafÄ±ndan bir gÃ¶revin filo iÃ§indeki uygun araca atanmasÄ± iÃ§in kullanÄ±lan gÃ¶rev isteÄŸi modelidir.

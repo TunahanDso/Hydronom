@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fleet;
+namespace Hydronom.Core.Fleet;
 
 using Hydronom.Core.Communication;
 

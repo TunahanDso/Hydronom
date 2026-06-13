@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Domain.AI;
 
 namespace Hydronom.AI.Telemetry;

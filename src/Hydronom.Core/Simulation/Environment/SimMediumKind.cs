@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Environment
+namespace Hydronom.Core.Simulation.Environment
 {
     /// <summary>
     /// AracÄ±n veya dÃ¼nya bÃ¶lgesinin Ã§alÄ±ÅŸtÄ±ÄŸÄ± ana ortam tÃ¼rÃ¼.

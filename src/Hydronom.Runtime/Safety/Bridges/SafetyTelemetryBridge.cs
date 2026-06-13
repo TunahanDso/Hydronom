@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SafetyTelemetryBridge
  *
  * Amaç:

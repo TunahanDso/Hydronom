@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Coordination;
+namespace Hydronom.GroundStation.Coordination;
 
 /// <summary>
 /// MissionAllocator tarafÄ±ndan Ã¼retilen gÃ¶rev atama sonucunu temsil eder.

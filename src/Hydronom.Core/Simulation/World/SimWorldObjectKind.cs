@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World
+namespace Hydronom.Core.Simulation.World
 {
     /// <summary>
     /// SimÃ¼lasyon dÃ¼nyasÄ±nda temsil edilebilecek nesne tÃ¼rleri.

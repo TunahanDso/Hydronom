@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Authority
+namespace Hydronom.Core.State.Authority
 {
     /// <summary>
     /// State authority Ã§alÄ±ÅŸma modu.

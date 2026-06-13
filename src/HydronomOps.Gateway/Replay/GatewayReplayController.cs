@@ -1,4 +1,4 @@
-﻿/*
+/*
  * GatewayReplayController
  *
  * Amaç:

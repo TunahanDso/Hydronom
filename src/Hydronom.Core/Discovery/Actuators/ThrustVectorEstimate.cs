@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ThrustVectorEstimate
  *
  * Amaç:

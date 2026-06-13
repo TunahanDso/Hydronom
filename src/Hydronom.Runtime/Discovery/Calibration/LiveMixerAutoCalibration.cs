@@ -1,4 +1,4 @@
-﻿/*
+/*
  * LiveMixerAutoCalibration
  *
  * Amaç:

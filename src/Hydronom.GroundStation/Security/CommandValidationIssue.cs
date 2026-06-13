@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Security;
+namespace Hydronom.GroundStation.Security;
 
 /// <summary>
 /// Komut doÄŸrulama sÃ¼recinde bulunan tek bir problemi temsil eder.

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Communication;
+namespace Hydronom.Core.Communication;
 
 /// <summary>
 /// Hydronom mesajlarÄ±nÄ±n Ã¶nem / Ã¶ncelik seviyesini temsil eder.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using Hydronom.Core.Domain;   // VehicleState iÃ§in
 using Hydronom.Core.Modules;  // DecisionCommand kullanÄ±rsan lazÄ±m olabilir

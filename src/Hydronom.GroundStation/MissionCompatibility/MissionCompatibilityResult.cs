@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.MissionCompatibility;
+namespace Hydronom.GroundStation.MissionCompatibility;
 
 using Hydronom.Core.Fleet;
 

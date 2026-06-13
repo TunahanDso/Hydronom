@@ -1,4 +1,4 @@
-﻿/*
+/*
  * FusionStatusEndpoint
  *
  * Amaç:

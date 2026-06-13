@@ -1,4 +1,4 @@
-﻿/*
+/*
  * TelemetryProfile
  *
  * Amaç:

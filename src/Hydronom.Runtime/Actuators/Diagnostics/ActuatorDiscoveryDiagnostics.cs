@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorDiscoveryDiagnostics
  *
  * Amaç:

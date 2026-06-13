@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DiscoveryTelemetryBridge
  *
  * Amaç:

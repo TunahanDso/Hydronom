@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Hydronom.Core.Communication.Commands;
 using Hydronom.Core.Communication.RuntimeBridge;
 using Hydronom.Core.Communication.Security;

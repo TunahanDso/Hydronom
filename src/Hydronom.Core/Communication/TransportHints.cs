@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Communication;
+namespace Hydronom.Core.Communication;
 
 /// <summary>
 /// Bir Hydronom mesajÄ±nÄ±n hangi haberleÅŸme kanallarÄ±ndan gÃ¶nderilmesinin tercih edildiÄŸini

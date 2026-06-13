@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World.Geometry
+namespace Hydronom.Core.Simulation.World.Geometry
 {
     /// <summary>
     /// 3D mesh referansÄ±.

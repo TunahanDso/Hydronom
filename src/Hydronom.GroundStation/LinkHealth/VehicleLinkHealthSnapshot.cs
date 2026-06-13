@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.LinkHealth;
+namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
 /// Bir aracÄ±n tÃ¼m baÄŸlantÄ± saÄŸlÄ±ÄŸÄ±nÄ± Ã¶zetleyen snapshot.

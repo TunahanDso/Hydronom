@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MissionRequirement
  *
  * Amaç:

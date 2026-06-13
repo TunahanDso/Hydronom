@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeFaultInjector
  *
  * Amaç:

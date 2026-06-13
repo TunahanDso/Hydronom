@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ReplayImuBackend
  *
  * Amaç:

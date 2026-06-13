@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.WorldModel;
+namespace Hydronom.GroundStation.WorldModel;
 
 /// <summary>
 /// Ground Station tarafÄ±ndaki ortak dÃ¼nya modelini temsil eder.

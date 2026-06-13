@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ThrusterEffectDiscovery
  *
  * Amaç:

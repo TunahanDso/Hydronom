@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Domain
+namespace Hydronom.Core.Domain
 {
     /// <summary>
     /// Basit ama gÃ¼venli 6xN motor etki matrisi (B).

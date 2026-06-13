@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomDiscoveryOrchestrator
  *
  * Amaç:

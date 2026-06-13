@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorChannelScanner
  *
  * Amaç:

@@ -1,0 +1,535 @@
+{
+    "schemaVersion":  "hydronom.layout.v1",
+    "stageId":  "advanced_main_uuv_single_course",
+    "displayName":  "Ana UUV Tek BirleÅŸik Ä°leri Kategori Parkuru",
+    "durationSec":  600,
+    "coordinateUnit":  "meter",
+    "objects":  [
+                    {
+                        "id":  "main_start_zone",
+                        "type":  "start_zone",
+                        "label":  "Ana UUV BaÅŸlangÄ±Ã§ AlanÄ±",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  0.0,
+                                         "y":  0.0,
+                                         "z":  -0.45
+                                     },
+                        "radius":  0.65,
+                        "height":  0.04,
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.18,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "start",
+                                     "plannerScope":  "target"
+                                 }
+                    },
+                    {
+                        "id":  "guidance_board_main",
+                        "type":  "guidance_board",
+                        "label":  "YÃ¶nlendirme TahtasÄ± - Ana UUV",
+                        "shape":  "strip_polyline",
+                        "width":  0.15,
+                        "height":  0.10,
+                        "points":  [
+                                       {
+                                           "x":  0.7,
+                                           "y":  0.0,
+                                           "z":  -0.55
+                                       },
+                                       {
+                                           "x":  2.7,
+                                           "y":  0.0,
+                                           "z":  -0.55
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  0.0,
+                                           "z":  -0.55
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  2.0,
+                                           "z":  -0.55
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  4.0,
+                                           "z":  -0.55
+                                       },
+                                       {
+                                           "x":  8.0,
+                                           "y":  4.0,
+                                           "z":  -0.55
+                                       }
+                                   ],
+                        "visual":  {
+                                       "fillColor":  "#cc0605",
+                                       "strokeColor":  "#7f1d1d",
+                                       "opacity":  0.94,
+                                       "metalness":  0.32,
+                                       "roughness":  0.38,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "material":  "st37",
+                                     "ral":  "RAL3020",
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "follow",
+                                     "resetOnTouch":  "true",
+                                     "judgeTracked":  "true",
+                                     "plannerScope":  "line_follow_reference",
+                                     "geometryBlocking":  "false"
+                                 }
+                    },
+                    {
+                        "id":  "track_stripe_main",
+                        "type":  "track_stripe",
+                        "label":  "Siyah Takip Åeridi - Ana UUV",
+                        "shape":  "strip_polyline",
+                        "width":  0.03,
+                        "height":  0.012,
+                        "zOffset":  0.065,
+                        "points":  [
+                                       {
+                                           "x":  0.7,
+                                           "y":  0.0,
+                                           "z":  -0.48
+                                       },
+                                       {
+                                           "x":  2.7,
+                                           "y":  0.0,
+                                           "z":  -0.48
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  0.0,
+                                           "z":  -0.48
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  2.0,
+                                           "z":  -0.48
+                                       },
+                                       {
+                                           "x":  5.0,
+                                           "y":  4.0,
+                                           "z":  -0.48
+                                       },
+                                       {
+                                           "x":  8.0,
+                                           "y":  4.0,
+                                           "z":  -0.48
+                                       }
+                                   ],
+                        "visual":  {
+                                       "fillColor":  "#0a0a0a",
+                                       "strokeColor":  "#000000",
+                                       "opacity":  1.0,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "ral":  "RAL9005",
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "visual_line_follow",
+                                     "plannerScope":  "line_follow_reference",
+                                     "geometryBlocking":  "false"
+                                 }
+                    },
+                    {
+                        "id":  "main_uuv_handoff_zone",
+                        "type":  "handoff_zone",
+                        "label":  "Ana UUV Mini ROV BÄ±rakma / Ä°pucu Handoff BÃ¶lgesi",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  8.25,
+                                         "y":  4.0,
+                                         "z":  -0.45
+                                     },
+                        "radius":  0.50,
+                        "height":  0.06,
+                        "visual":  {
+                                       "fillColor":  "#a855f7",
+                                       "strokeColor":  "#e9d5ff",
+                                       "opacity":  0.26,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "handoff_or_deploy",
+                                     "plannerScope":  "target",
+                                     "miniRovObjectiveIncluded":  "false"
+                                 }
+                    },
+                    {
+                        "id":  "pipe_entry_visual_only",
+                        "type":  "pipe_entry",
+                        "label":  "Boru GiriÅŸi - GÃ¶rsel / Ana UUV Ä°Ã§in Yasak",
+                        "shape":  "ring_portal",
+                        "position":  {
+                                         "x":  8.85,
+                                         "y":  4.0,
+                                         "z":  -0.45
+                                     },
+                        "outerRadius":  0.30,
+                        "innerRadius":  0.22,
+                        "visual":  {
+                                       "fillColor":  "#111827",
+                                       "strokeColor":  "#64748b",
+                                       "opacity":  0.85,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "mini_rov",
+                                     "forbiddenVehicle":  "main_uuv",
+                                     "interaction":  "forbidden_visual_only",
+                                     "plannerScope":  "visual_only",
+                                     "geometryBlocking":  "false",
+                                     "judgeTracked":  "true"
+                                 }
+                    },
+                    {
+                        "id":  "pipe_segment_visual_only",
+                        "type":  "pipe_segment",
+                        "label":  "KapalÄ± Alan Borusu - GÃ¶rsel / Ana UUV Ä°Ã§in Objective DeÄŸil",
+                        "shape":  "pipe_polyline",
+                        "outerRadius":  0.30,
+                        "innerRadius":  0.22,
+                        "points":  [
+                                       {
+                                           "x":  8.85,
+                                           "y":  4.0,
+                                           "z":  -0.45
+                                       },
+                                       {
+                                           "x":  11.85,
+                                           "y":  4.0,
+                                           "z":  -0.45
+                                       }
+                                   ],
+                        "visual":  {
+                                       "fillColor":  "#111827",
+                                       "strokeColor":  "#64748b",
+                                       "opacity":  0.65,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "mini_rov",
+                                     "forbiddenVehicle":  "main_uuv",
+                                     "interaction":  "visual_only",
+                                     "plannerScope":  "visual_only",
+                                     "geometryBlocking":  "false"
+                                 }
+                    },
+                    {
+                        "id":  "autonomous_turn_buoy",
+                        "type":  "turn_buoy",
+                        "label":  "Otonom DÃ¶nÃ¼ÅŸ ÅamandÄ±rasÄ±",
+                        "shape":  "surface_buoy_with_tether",
+                        "position":  {
+                                         "x":  11.2,
+                                         "y":  4.0,
+                                         "z":  0.0
+                                     },
+                        "radius":  0.18,
+                        "height":  0.35,
+                        "tetherToZ":  -1.2,
+                        "visual":  {
+                                       "fillColor":  "#facc15",
+                                       "strokeColor":  "#a16207",
+                                       "opacity":  0.95,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "orbit_reference",
+                                     "plannerScope":  "orbit_reference",
+                                     "orbitRadiusM":  "0.75",
+                                     "judgeTracked":  "true",
+                                     "geometryBlocking":  "false",
+                                     "obstacleBlocking":  "false",
+                                     "avoidanceObstacle":  "false",
+                                     "activateAsObstacleFromObjective":  "main_080_buoy_approach"
+                                 },
+                        "isBlocking":  false
+                    },
+                    {
+                        "id":  "finish_square",
+                        "type":  "finish_square",
+                        "label":  "BitiÅŸ Karesi / YÃ¼zeye Ã‡Ä±kÄ±ÅŸ AlanÄ±",
+                        "shape":  "polygon",
+                        "points":  [
+                                       {
+                                           "x":  13.0,
+                                           "y":  3.0,
+                                           "z":  0.0
+                                       },
+                                       {
+                                           "x":  15.0,
+                                           "y":  3.0,
+                                           "z":  0.0
+                                       },
+                                       {
+                                           "x":  15.0,
+                                           "y":  5.0,
+                                           "z":  0.0
+                                       },
+                                       {
+                                           "x":  13.0,
+                                           "y":  5.0,
+                                           "z":  0.0
+                                       }
+                                   ],
+                        "center":  {
+                                       "x":  14.0,
+                                       "y":  4.0,
+                                       "z":  0.0
+                                   },
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.18,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "allowedVehicle":  "main_uuv",
+                                     "interaction":  "finish",
+                                     "plannerScope":  "target",
+                                     "surfaceAllowed":  "true",
+                                     "judgeTracked":  "true"
+                                 }
+                    },
+                    {
+                        "id":  "finish_buoy_sw",
+                        "type":  "finish_buoy",
+                        "label":  "BitiÅŸ ÅamandÄ±rasÄ± SW",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  13.0,
+                                         "y":  3.0,
+                                         "z":  0.0
+                                     },
+                        "radius":  0.12,
+                        "height":  0.30,
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.95,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "interaction":  "finish_corner_marker",
+                                     "plannerScope":  "visual_only"
+                                 }
+                    },
+                    {
+                        "id":  "finish_buoy_se",
+                        "type":  "finish_buoy",
+                        "label":  "BitiÅŸ ÅamandÄ±rasÄ± SE",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  15.0,
+                                         "y":  3.0,
+                                         "z":  0.0
+                                     },
+                        "radius":  0.12,
+                        "height":  0.30,
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.95,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "interaction":  "finish_corner_marker",
+                                     "plannerScope":  "visual_only"
+                                 }
+                    },
+                    {
+                        "id":  "finish_buoy_ne",
+                        "type":  "finish_buoy",
+                        "label":  "BitiÅŸ ÅamandÄ±rasÄ± NE",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  15.0,
+                                         "y":  5.0,
+                                         "z":  0.0
+                                     },
+                        "radius":  0.12,
+                        "height":  0.30,
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.95,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "interaction":  "finish_corner_marker",
+                                     "plannerScope":  "visual_only"
+                                 }
+                    },
+                    {
+                        "id":  "finish_buoy_nw",
+                        "type":  "finish_buoy",
+                        "label":  "BitiÅŸ ÅamandÄ±rasÄ± NW",
+                        "shape":  "cylinder",
+                        "position":  {
+                                         "x":  13.0,
+                                         "y":  5.0,
+                                         "z":  0.0
+                                     },
+                        "radius":  0.12,
+                        "height":  0.30,
+                        "visual":  {
+                                       "fillColor":  "#22c55e",
+                                       "strokeColor":  "#bbf7d0",
+                                       "opacity":  0.95,
+                                       "render3d":  true,
+                                       "render2d":  true
+                                   },
+                        "tags":  {
+                                     "missionStage":  "advanced_main_uuv_single_course",
+                                     "interaction":  "finish_corner_marker",
+                                     "plannerScope":  "visual_only"
+                                 }
+                    }
+                ],
+    "routes":  [
+                   {
+                       "id":  "main_uuv_single_course_route",
+                       "vehicle":  "main_uuv",
+                       "label":  "Ana UUV Tek Parkur RotasÄ±",
+                       "points":  [
+                                      {
+                                          "x":  0.0,
+                                          "y":  0.0,
+                                          "z":  -0.45,
+                                          "label":  "Start"
+                                      },
+                                      {
+                                          "x":  0.7,
+                                          "y":  0.0,
+                                          "z":  -0.45,
+                                          "label":  "Board Entry"
+                                      },
+                                      {
+                                          "x":  2.7,
+                                          "y":  0.0,
+                                          "z":  -0.45,
+                                          "label":  "Straight 1"
+                                      },
+                                      {
+                                          "x":  5.0,
+                                          "y":  0.0,
+                                          "z":  -0.45,
+                                          "label":  "Board Corner"
+                                      },
+                                      {
+                                          "x":  5.0,
+                                          "y":  2.0,
+                                          "z":  -0.45,
+                                          "label":  "Vertical Mid"
+                                      },
+                                      {
+                                          "x":  5.0,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Board Turn End"
+                                      },
+                                      {
+                                          "x":  8.25,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Handoff Zone"
+                                      },
+                                      {
+                                          "x":  9.2,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Autonomous Intikal Start"
+                                      },
+                                      {
+                                          "x":  10.45,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Buoy Approach West"
+                                      },
+                                      {
+                                          "x":  11.2,
+                                          "y":  3.25,
+                                          "z":  -0.45,
+                                          "label":  "Orbit South"
+                                      },
+                                      {
+                                          "x":  11.95,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Orbit East"
+                                      },
+                                      {
+                                          "x":  11.2,
+                                          "y":  4.75,
+                                          "z":  -0.45,
+                                          "label":  "Orbit North"
+                                      },
+                                      {
+                                          "x":  10.45,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Orbit West"
+                                      },
+                                      {
+                                          "x":  11.2,
+                                          "y":  3.25,
+                                          "z":  -0.45,
+                                          "label":  "Orbit Complete"
+                                      },
+                                      {
+                                          "x":  13.0,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Finish Approach"
+                                      },
+                                      {
+                                          "x":  14.0,
+                                          "y":  4.0,
+                                          "z":  -0.45,
+                                          "label":  "Finish Square Center"
+                                      },
+                                      {
+                                          "x":  14.0,
+                                          "y":  4.0,
+                                          "z":  -0.05,
+                                          "label":  "Surface Inside Finish"
+                                      }
+                                  ]
+                   }
+               ]
+}

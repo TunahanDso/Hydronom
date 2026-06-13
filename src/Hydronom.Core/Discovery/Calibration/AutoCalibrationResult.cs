@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AutoCalibrationResult
  *
  * Amaç:

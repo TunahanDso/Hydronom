@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World.Geometry
+namespace Hydronom.Core.Simulation.World.Geometry
 {
     /// <summary>
     /// SimÃ¼lasyon dÃ¼nyasÄ±nda kullanÄ±labilecek temel geometri tÃ¼rleri.

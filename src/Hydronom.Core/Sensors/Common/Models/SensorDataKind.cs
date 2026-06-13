@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Common.Models
+namespace Hydronom.Core.Sensors.Common.Models
 {
     /// <summary>
     /// SensorSample iÃ§indeki verinin genel tÃ¼rÃ¼.

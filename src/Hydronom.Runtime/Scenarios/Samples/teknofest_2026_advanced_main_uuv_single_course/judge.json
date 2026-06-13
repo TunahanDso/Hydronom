@@ -1,0 +1,43 @@
+{
+    "judge":  {
+                  "enabled":  true,
+                  "checkCollisions":  true,
+                  "checkNoGoZones":  false,
+                  "checkForbiddenObjects":  true,
+                  "enforceObjectiveOrder":  true,
+                  "failOnRequiredObjectiveFailure":  false,
+                  "failOnCollision":  false,
+                  "failOnNoGoZoneViolation":  false,
+                  "failOnForbiddenObjectEntry":  false,
+                  "collisionPenalty":  10.0,
+                  "forbiddenObjectPenalty":  20.0,
+                  "degradedOperationPenalty":  5.0,
+                  "stageScope":  {
+                                     "enabled":  true,
+                                     "activeStageId":  "advanced_main_uuv_single_course",
+                                     "ignoreForeignStageObjects":  true
+                                 },
+                  "geometry":  {
+                                   "vehicleCollisionRadiusM":  0.24,
+                                   "defaultInflationM":  0.10,
+                                   "safeClearanceM":  0.12,
+                                   "disableLegacyAutoNoGoZones":  true,
+                                   "visualOnlyObjectsDoNotBlock":  true,
+                                   "orbitReferenceObjectsDoNotBlockBeforeOrbit":  true,
+                                   "requireGeometryBlockingTagForObstacle":  true,
+                                   "ignoreObjectsWithGeometryBlockingFalse":  true
+                               },
+                  "parameters":  {
+                                     "scenario.judgeProfile":  "teknofest_advanced_main_uuv_only_sim",
+                                     "scenario.mainOnly":  "true",
+                                     "scenario.category":  "advanced",
+                                     "lineFollowing.maxDurationSec":  "300",
+                                     "autonomous.maxDurationSec":  "300",
+                                     "mainUuv.forbiddenPipeEntry":  "true",
+                                     "miniRov.requiredForPipe":  "false",
+                                     "clue.coordinates.assumedAvailable":  "true",
+                                     "surface.allowedOnlyInsideFinishSquare":  "true",
+                                     "visual.realisticParkur":  "true"
+                                 }
+              }
+}

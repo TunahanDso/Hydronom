@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DegradedOperationPolicy
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Depth.Models
+namespace Hydronom.Core.Sensors.Depth.Models
 {
     /// <summary>
     /// Derinlik / basÄ±nÃ§ / irtifa tarzÄ± tek eksenli Ã§evresel Ã¶lÃ§Ã¼m verisi.

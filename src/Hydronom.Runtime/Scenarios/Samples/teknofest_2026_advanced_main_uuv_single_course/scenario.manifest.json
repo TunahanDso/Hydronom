@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "hydronom.scenario.package.v1",
+  "scenarioId": "teknofest_2026_advanced_main_uuv_single_course",
+  "displayName": "TEKNOFEST 2026 İleri Kategori - Ana UUV Tek Parkur",
+  "category": "advanced",
+  "competition": "TEKNOFEST İnsansız Su Altı Sistemleri Yarışması",
+  "year": 2026,
+  "source": {
+    "rulesDocument": "2026 İnsansız Su Altı Sistemleri Yarışması Teknik Şartnamesi",
+    "drawing": "İleri Kategori Hat Takibi ve Kapalı Alan İncelemesi HT26-A1-001-001-00",
+    "notes": [
+      "Bu paket ana UUV davranışlarını test etmek için tek aşamalı hazırlanmıştır.",
+      "Mini ROV boru içi objective zinciri bu pakete bilerek dahil edilmemiştir.",
+      "Hat takibi yolu ST37 sac / RAL3020 kırmızı / RAL9005 siyah takip şeridi varsayımıyla modellenmiştir.",
+      "Otonom bölümde ipucu bilgisinin hakem veya önceki görevden sağlandığı kabul edilmiştir.",
+      "Eski parkurdaki stage-karışması ve no-go-zone kilidi bu pakette yoktur."
+    ]
+  },
+  "entrypoint": {
+    "metadata": "metadata.json",
+    "scenario": "scenario.json",
+    "commonWorld": "world/world.common.json",
+    "layouts": [
+      "layouts/layout.main_uuv_single_course.json"
+    ],
+    "objectives": [
+      "objectives/objectives.main_uuv_single_course.json"
+    ],
+    "rules": "rules/rules.main_uuv_single_course.json",
+    "rendering": "rendering/rendering.main_uuv_single_course.json",
+    "judge": "judge.json",
+    "legacyObjects": "objects.json"
+  },
+  "vehicles": {
+    "mainVehicleProfileId": "hydronom_uuv_main_2026"
+  },
+  "stages": [
+    {
+      "stageId": "advanced_main_uuv_single_course",
+      "displayName": "Ana UUV Tek Birleşik İleri Kategori Parkuru",
+      "mode": "autonomous_or_semi_autonomous_training",
+      "maxDurationSec": 600,
+      "layoutFile": "layouts/layout.main_uuv_single_course.json",
+      "objectiveFile": "objectives/objectives.main_uuv_single_course.json"
+    }
+  ]
+}

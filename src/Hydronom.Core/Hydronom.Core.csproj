@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- .NET 8 LTS: paketlerle uyumlu, Jetson (linux-arm64) ile sorunsuz -->

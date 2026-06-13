@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Sensors
+namespace Hydronom.Core.Simulation.Sensors
 {
     /// <summary>
     /// Sim sensÃ¶rlerin zamanlama profili.

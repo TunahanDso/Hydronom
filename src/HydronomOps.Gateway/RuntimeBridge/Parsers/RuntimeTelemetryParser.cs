@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeTelemetryParser
  *
  * Amaç:

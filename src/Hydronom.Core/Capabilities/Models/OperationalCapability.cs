@@ -1,4 +1,4 @@
-﻿/*
+/*
  * OperationalCapability
  *
  * Amaç:

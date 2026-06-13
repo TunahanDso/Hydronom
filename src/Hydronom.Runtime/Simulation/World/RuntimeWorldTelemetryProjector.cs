@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Telemetry.World;
 
 namespace Hydronom.Runtime.Simulation.World

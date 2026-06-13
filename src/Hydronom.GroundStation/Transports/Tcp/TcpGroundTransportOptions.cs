@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Transports.Tcp;
+namespace Hydronom.GroundStation.Transports.Tcp;
 
 /// <summary>
 /// TcpGroundTransport iÃ§in baÄŸlantÄ±, framing ve receive/listener ayarlarÄ±nÄ± tutar.

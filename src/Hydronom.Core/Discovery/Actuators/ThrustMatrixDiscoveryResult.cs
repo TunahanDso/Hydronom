@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ThrustMatrixDiscoveryResult
  *
  * Amaç:

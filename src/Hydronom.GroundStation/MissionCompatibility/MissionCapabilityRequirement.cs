@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.MissionCompatibility;
+namespace Hydronom.GroundStation.MissionCompatibility;
 
 /// <summary>
 /// Bir gÃ¶revin araÃ§tan beklediÄŸi capability gereksinimini temsil eder.

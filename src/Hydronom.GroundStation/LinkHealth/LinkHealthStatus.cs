@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.LinkHealth;
+namespace Hydronom.GroundStation.LinkHealth;
 
 /// <summary>
 /// Bir baÄŸlantÄ±nÄ±n operasyonel saÄŸlÄ±k durumunu temsil eder.

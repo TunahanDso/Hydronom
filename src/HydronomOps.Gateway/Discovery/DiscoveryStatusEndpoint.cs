@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DiscoveryStatusEndpoint
  *
  * Amaç:

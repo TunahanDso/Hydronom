@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Runtime.Simulation.Raycasting;
+namespace Hydronom.Runtime.Simulation.Raycasting;
 
 /// <summary>
 /// 2D raycast sonucu.

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * GatewayErrorMiddleware
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Domain
+namespace Hydronom.Core.Domain
 {
     /// <summary>
     /// Fizik entegrasyonu yÃ¶ntemi.

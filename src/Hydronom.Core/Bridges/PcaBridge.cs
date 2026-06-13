@@ -1,4 +1,4 @@
-﻿// File: Hydronom.Core/Bridges/PcaBridge.cs
+// File: Hydronom.Core/Bridges/PcaBridge.cs
 
 using System;
 using System.Device.I2c;

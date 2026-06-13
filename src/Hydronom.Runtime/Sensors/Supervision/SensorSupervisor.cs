@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Sensors.Common.Diagnostics;
+using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Core.Sensors.Common.Models;
 
 namespace Hydronom.Runtime.Sensors.Supervision;

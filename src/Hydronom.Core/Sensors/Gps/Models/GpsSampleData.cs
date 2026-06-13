@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Gps.Models
+namespace Hydronom.Core.Sensors.Gps.Models
 {
     /// <summary>
     /// GPS/GNSS konum verisi.

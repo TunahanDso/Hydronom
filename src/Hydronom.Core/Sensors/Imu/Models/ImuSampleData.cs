@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Imu.Models
+namespace Hydronom.Core.Sensors.Imu.Models
 {
     /// <summary>
     /// IMU/AHRS sensÃ¶r verisi.

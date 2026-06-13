@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomCommandResult
  *
  * Amaç:

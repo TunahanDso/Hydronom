@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehiclePlatformInference
  *
  * Amaç:

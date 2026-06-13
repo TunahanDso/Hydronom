@@ -1,4 +1,4 @@
-﻿using HydronomOps.Gateway.Services.State;
+using HydronomOps.Gateway.Services.State;
 
 namespace HydronomOps.Gateway.Endpoints;
 

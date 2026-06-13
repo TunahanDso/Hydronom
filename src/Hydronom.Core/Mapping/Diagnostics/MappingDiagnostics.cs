@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MappingDiagnostics
  *
  * Amaç:

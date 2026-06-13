@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AutoCalibrationPlan
  *
  * Amaç:

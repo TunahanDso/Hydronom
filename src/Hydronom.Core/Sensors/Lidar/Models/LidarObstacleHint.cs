@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Lidar.Models;
+namespace Hydronom.Core.Sensors.Lidar.Models;
 
 /// <summary>
 /// Sim/debug amaçlı LiDAR obstacle hint.

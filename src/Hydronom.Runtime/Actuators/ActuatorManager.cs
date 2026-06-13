@@ -1,4 +1,4 @@
-﻿
+
 // Hydronom.Runtime\Actuators\ActuatorManager.cs
 using System;
 using System.Collections.Concurrent;

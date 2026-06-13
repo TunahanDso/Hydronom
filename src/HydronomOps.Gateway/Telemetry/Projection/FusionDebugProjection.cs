@@ -1,4 +1,4 @@
-﻿/*
+/*
  * FusionDebugProjection
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿using Hydronom.Runtime.Diagnostics.Snapshots;
+using Hydronom.Runtime.Diagnostics.Snapshots;
 
 namespace Hydronom.Runtime.Telemetry;
 

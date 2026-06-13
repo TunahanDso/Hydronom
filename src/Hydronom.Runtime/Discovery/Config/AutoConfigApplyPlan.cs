@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AutoConfigApplyPlan
  *
  * Amaç:

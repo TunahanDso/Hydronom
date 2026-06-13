@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DiscoveredActuator
  *
  * Amaç:

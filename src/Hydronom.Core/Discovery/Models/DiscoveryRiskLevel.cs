@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DiscoveryRiskLevel
  *
  * Amaç:

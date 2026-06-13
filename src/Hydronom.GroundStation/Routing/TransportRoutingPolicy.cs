@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Routing;
+namespace Hydronom.GroundStation.Routing;
 
 using Hydronom.Core.Communication;
 

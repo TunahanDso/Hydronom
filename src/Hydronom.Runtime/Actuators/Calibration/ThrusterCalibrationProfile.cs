@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ThrusterCalibrationProfile
  *
  * Amaç:

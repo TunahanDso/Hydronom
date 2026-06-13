@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SimCameraBackend
  *
  * Amaç:

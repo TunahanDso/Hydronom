@@ -1,4 +1,4 @@
-﻿// File: Hydronom.Core/MathTools/MatrixMath.cs
+// File: Hydronom.Core/MathTools/MatrixMath.cs
 //
 // Not:
 // - Vec3 ve Orientation: Hydronom.Core.Domain altÄ±nda tanÄ±mlÄ±dÄ±r.

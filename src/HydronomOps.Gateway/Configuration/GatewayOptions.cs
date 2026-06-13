@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Configuration;
+namespace HydronomOps.Gateway.Configuration;
 
 /// <summary>
 /// Gateway genel davranÄ±ÅŸ ayarlarÄ±.

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorDiscoveryEngine
  *
  * Amaç:

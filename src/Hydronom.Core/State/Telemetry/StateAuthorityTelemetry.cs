@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.State.Authority;
+using Hydronom.Core.State.Authority;
 using Hydronom.Core.State.Models;
 
 namespace Hydronom.Core.State.Telemetry;

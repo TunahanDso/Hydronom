@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Lidar.Models;
+namespace Hydronom.Core.Sensors.Lidar.Models;
 
 /// <summary>
 /// LiDAR ışınının dünya veya sensör lokal düzlemindeki 2D nokta karşılığı.

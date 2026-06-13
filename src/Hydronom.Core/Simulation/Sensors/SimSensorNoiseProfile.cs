@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Sensors
+namespace Hydronom.Core.Simulation.Sensors
 {
     /// <summary>
     /// Sim sensÃ¶rlerin gerÃ§ekÃ§i Ã¶lÃ§Ã¼m Ã¼retmesi iÃ§in noise profili.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hydronom.Core.Domain;
@@ -11,19 +11,16 @@ namespace Hydronom.Core.Planning.Planners
     /// <summary>
     /// Hydronom Autonomous Navigation Core - CorridorLocalPlanner.
     ///
-    /// Paket-8G:
-    /// Critical physical obstacle varken direct/world-corridor candidate artık havuza alınmaz.
+    /// Paket-8K:
+    /// Local planner artık ham WorldObjects listesine göre panik yapmaz.
+    /// Critical gate yalnızca PlanningContext.BlockingObjects() tarafından filtrelenmiş
+    /// gerçek route-blocker objeleri kullanır.
     ///
-    /// Kök problem:
-    /// Sistem start-target hattına basit bir direct path çiziyor, sonra obstacle riskini
-    /// scoring/fallback ile çözmeye çalışıyordu. Bu da slalomda dubaya kafa atmaya sebep oluyordu.
-    ///
-    /// Yeni davranış:
-    /// - Start-target hattında critical route obstacle varsa:
-    ///   direct candidate ve world-corridor candidate normal candidate havuzuna alınmaz.
-    ///   Planner yalnızca obstacle-centered bypass/fallback detour adaylarını değerlendirir.
-    /// - Critical obstacle yoksa eski direct/corridor davranışı korunur.
-    /// - Hiç bypass candidate üretilemezse direct risk ile RequiresReplan döner.
+    /// Temel kural:
+    /// - Engel listesinde bir obje olması tek başına bypass sebebi değildir.
+    /// - Bypass sadece aktif rota üzerinde gerçekten actionable/critical bir engel varsa açılır.
+    /// - GEOMETRY_EMPTY / obs=0 / risk=0 durumunda obstacle-bypass veya local-detour üretilemez.
+    /// - Kritik engel yoksa direct ve world-corridor adayları korunur.
     /// </summary>
     public sealed partial class CorridorLocalPlanner : ILocalPlanner
     {
@@ -65,21 +62,29 @@ namespace Hydronom.Core.Planning.Planners
             var blocking = safe.BlockingObjects();
 
             /*
-             * Paket-8G critical obstacle gate:
+             * Paket-8K critical gate:
              *
-             * Direct/world-corridor candidate üretmeden önce start-target hattını fiziksel
-             * obstacle açısından kontrol ediyoruz.
+             * Bu kapı artık ham safe.WorldObjects üzerinden çalışmaz.
+             * Ham WorldObjects içinde görsel, görev, referans, boundary ve marker objeleri
+             * bulunabildiği için planner sahte "critical obstacle" üretebiliyordu.
              *
-             * Eğer burada critical obstacle varsa direct/corridor seçeneği aday havuzuna bile
-             * alınmaz. Çünkü "scoring belki eler" yaklaşımı pratikte dubaya kafa atmaya sebep oldu.
+             * Bundan sonra:
+             *  - Direct candidate önce hesaplanır.
+             *  - Critical gate yalnızca filtrelenmiş blocking objeleri görür.
+             *  - Risk/replan üretmeyen, fiziksel clearance sorunu olmayan obje bypass açamaz.
              */
-            var allWorldObjects =
-                safe.WorldObjects is { Count: > 0 }
-                    ? safe.WorldObjects
-                    : blocking;
+            var directCandidate = BuildDirectCandidate(
+                safe,
+                global,
+                start,
+                target,
+                blocking);
+
+            var directRisk = directCandidate.Path.Risk;
+            var criticalGateObjects = ResolveCriticalGateObjects(blocking);
 
             var classified = WorldObjectPlanningClassifier.Classify(
-                allWorldObjects,
+                criticalGateObjects,
                 safe.VehicleRadiusMeters,
                 safe.SafetyMarginMeters,
                 source: "planner-critical-gate");
@@ -96,10 +101,10 @@ namespace Hydronom.Core.Planning.Planners
                     safe.SafetyMarginMeters,
                     safe.MaxPlanSpeedMps,
                     maxResults: 6)
+                .Where(x => IsActionableCriticalRouteObstacle(x, directRisk))
                 .ToArray();
 
-            var hasCriticalRouteObstacle = criticalRouteObstacles
-                .Any(x => x.RequiresBypass);
+            var hasCriticalRouteObstacle = criticalRouteObstacles.Length > 0;
 
             var criticalSummary = BuildCriticalGateSummary(
                 hasCriticalRouteObstacle,
@@ -108,16 +113,9 @@ namespace Hydronom.Core.Planning.Planners
 
             var candidates = new List<LocalPathCandidate>();
 
-            var directCandidate = BuildDirectCandidate(
-                safe,
-                global,
-                start,
-                target,
-                blocking);
-
             /*
-             * Critical route obstacle yoksa eski direct/corridor seçenekleri korunur.
-             * Critical varsa bu ikisi candidate havuzuna GİRMEZ.
+             * Critical route obstacle yoksa eski direct/corridor seÃƒÆ’Ã‚Â§enekleri korunur.
+             * Critical varsa bu ikisi candidate havuzuna GÃƒâ€Ã‚Â°RMEZ.
              */
             if (!hasCriticalRouteObstacle)
             {
@@ -141,15 +139,33 @@ namespace Hydronom.Core.Planning.Planners
                 }
             }
 
-            var detourCandidates = BuildWorldAwareDetourCandidates(
-                safe,
-                start,
-                target,
-                blocking);
+            /*
+             * Paket-8K:
+             * Obstacle-bypass yalnızca validated/actionable critical route obstacle varsa
+             * aday havuzuna girebilir.
+             *
+             * Critical yoksa bypass adayı üretilmez. Buna rağmen başka bir partial/helper
+             * ileride yanlışlıkla obstacle-bypass döndürürse burada direct'e düşürülür.
+             */
+            if (hasCriticalRouteObstacle)
+            {
+                var detourCandidates = BuildWorldAwareDetourCandidates(
+                    safe,
+                    start,
+                    target,
+                    blocking);
 
-            candidates.AddRange(detourCandidates);
+                candidates.AddRange(detourCandidates);
+            }
 
             var best = SelectBestCandidate(candidates);
+
+            if (best is not null &&
+                !hasCriticalRouteObstacle &&
+                string.Equals(best.Kind, "obstacle-bypass", StringComparison.OrdinalIgnoreCase))
+            {
+                best = directCandidate;
+            }
 
             if (best is null)
             {
@@ -180,6 +196,53 @@ namespace Hydronom.Core.Planning.Planners
                     " " +
                     best.Diagnostics
             };
+        }
+
+        private static IReadOnlyList<HydronomWorldObject> ResolveCriticalGateObjects(
+            IReadOnlyList<HydronomWorldObject> blocking)
+        {
+            if (blocking is not { Count: > 0 })
+                return Array.Empty<HydronomWorldObject>();
+
+            /*
+             * Critical gate sadece aktif ve fiziksel olarak anlamlı route-blocker objeleri görür.
+             * Corridor marker / boundary / görsel referans objeleri burada panik sebebi olamaz.
+             */
+            return blocking
+                .Where(x => x.IsActive)
+                .Where(x => !IsCorridorMarker(x))
+                .Where(x => !IsBoundaryLike(x))
+                .Where(x => double.IsFinite(x.X) && double.IsFinite(x.Y))
+                .Where(x => Math.Max(0.0, x.Radius) > 0.01)
+                .ToArray();
+        }
+
+        private static bool IsActionableCriticalRouteObstacle(
+            CriticalRouteObstacle obstacle,
+            PlanningRiskReport directRisk)
+        {
+            if (!obstacle.RequiresBypass)
+                return false;
+
+            /*
+             * Eğer direct risk zaten replan istiyorsa veya risk skoru anlamlıysa
+             * critical gate açılabilir.
+             */
+            if (directRisk.RequiresReplan || directRisk.RiskScore >= BlockedRiskFloor)
+                return true;
+
+            /*
+             * Risk raporu temizken de çok yakın/çakışan fiziksel durumlar bypass açabilsin.
+             * Ama yalnızca "güvenlik tamponu geniş kaldı" diye 1-2 metre uzaktaki objeye
+             * panik yapılmasın. Araç gerekirse santimetre hassasiyetinde yaklaşabilmeli.
+             */
+            if (obstacle.PhysicalClearanceMeters < 0.12)
+                return true;
+
+            if (obstacle.SafetyClearanceMeters < -0.15)
+                return true;
+
+            return false;
         }
 
         private static string BuildCriticalGateSummary(
@@ -500,6 +563,13 @@ namespace Hydronom.Core.Planning.Planners
             }
 
             /*
+             * Kritik obstacle yoksa generic fallback fan çalışmaz.
+             * Aksi halde ortada gerçek engel yokken hayali local-detour üretilebilir.
+             */
+            if (criticalObstacles.Length == 0)
+                return candidates;
+
+            /*
              * 2) Generic fallback fan.
              * This remains as coverage for cases where there is no single dominant
              * blocker, but it is no longer the primary obstacle avoidance strategy.
@@ -565,8 +635,8 @@ namespace Hydronom.Core.Planning.Planners
                 .ToArray();
 
             /*
-             * Eğer lokal X penceresinde boundary bulamazsak tüm boundary objelerine düş.
-             * Bu fallback kapalı kalmasın diye var ama lokal pencere öncelikli.
+             * EÃƒâ€Ã…Â¸er lokal X penceresinde boundary bulamazsak tÃƒÆ’Ã‚Â¼m boundary objelerine dÃƒÆ’Ã‚Â¼Ãƒâ€¦Ã…Â¸.
+             * Bu fallback kapalÃƒâ€Ã‚Â± kalmasÃƒâ€Ã‚Â±n diye var ama lokal pencere ÃƒÆ’Ã‚Â¶ncelikli.
              */
             if (boundaryObjects.Length < 2)
             {
@@ -629,8 +699,8 @@ namespace Hydronom.Core.Planning.Planners
 
             /*
              * Margin:
-             * Fiziksel gövde payı. SafetyMargin tamamını kullanırsak dar koridorlarda
-             * rota gereksiz boğulur. Bu yüzden vehicleRadius + küçük tampon kullanıyoruz.
+             * Fiziksel gÃƒÆ’Ã‚Â¶vde payÃƒâ€Ã‚Â±. SafetyMargin tamamÃƒâ€Ã‚Â±nÃƒâ€Ã‚Â± kullanÃƒâ€Ã‚Â±rsak dar koridorlarda
+             * rota gereksiz boÃƒâ€Ã…Â¸ulur. Bu yÃƒÆ’Ã‚Â¼zden vehicleRadius + kÃƒÆ’Ã‚Â¼ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â¼k tampon kullanÃƒâ€Ã‚Â±yoruz.
              */
             var margin = Math.Clamp(
                 Math.Max(0.0, context.VehicleRadiusMeters) + 0.10,

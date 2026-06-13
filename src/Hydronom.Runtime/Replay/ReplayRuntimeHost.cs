@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ReplayRuntimeHost
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Simulation.Environment;
 using Hydronom.Core.Simulation.MissionObjects;
 using Hydronom.Core.Simulation.World;

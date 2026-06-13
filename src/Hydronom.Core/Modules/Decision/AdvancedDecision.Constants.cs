@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Modules
+namespace Hydronom.Core.Modules
 {
     public partial class AdvancedDecision
     {

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * EkfStateEstimator
  *
  * Amaç:

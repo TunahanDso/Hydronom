@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehiclePlatformType
  *
  * Amaç:

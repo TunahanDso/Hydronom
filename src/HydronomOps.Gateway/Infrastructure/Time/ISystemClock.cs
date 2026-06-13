@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Infrastructure.Time;
+namespace HydronomOps.Gateway.Infrastructure.Time;
 
 /// <summary>
 /// Zaman eriÅŸimini soyutlar.

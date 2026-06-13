@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World
+namespace Hydronom.Core.Simulation.World
 {
     /// <summary>
     /// Ops/Gateway/Ground Station tarafÄ±nda ayrÄ±ÅŸtÄ±rÄ±labilecek dÃ¼nya katmanÄ± tÃ¼rleri.

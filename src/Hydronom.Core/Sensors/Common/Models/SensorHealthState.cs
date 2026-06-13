@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Common.Models
+namespace Hydronom.Core.Sensors.Common.Models
 {
     /// <summary>
     /// SensÃ¶rÃ¼n genel saÄŸlÄ±k durumu.

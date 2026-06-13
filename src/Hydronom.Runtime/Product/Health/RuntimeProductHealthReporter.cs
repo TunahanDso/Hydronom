@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeProductHealthReporter
  *
  * Amaç:

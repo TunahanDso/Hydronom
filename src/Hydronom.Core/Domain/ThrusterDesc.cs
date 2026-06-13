@@ -1,4 +1,4 @@
-﻿// Hydronom.Core/Domain/ThrusterDesc.cs
+// Hydronom.Core/Domain/ThrusterDesc.cs
 namespace Hydronom.Core.Domain
 {
     /// <summary>

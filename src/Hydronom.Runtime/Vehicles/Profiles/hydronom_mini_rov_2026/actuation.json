@@ -6,7 +6,7 @@
   "thrusters": [
     {
       "id": "mini_surge_left",
-      "name": "Mini Left Surge Thruster",
+      "name": "Mini Left Canted Horizontal Thruster",
       "kind": "Thruster",
       "positionM": {
         "x": -0.06,
@@ -14,8 +14,8 @@
         "z": 0.0
       },
       "direction": {
-        "x": 1.0,
-        "y": 0.0,
+        "x": 0.70710678,
+        "y": -0.70710678,
         "z": 0.0
       },
       "maxForwardThrustN": 5.0,
@@ -24,13 +24,19 @@
       "isEnabled": true,
       "channel": "mini_pwm_1",
       "tags": {
-        "axis": "surge",
-        "side": "left"
+        "axis": "horizontal_canted",
+        "legacyAxis": "surge",
+        "side": "left",
+        "cantAngleDeg": "45",
+        "cantDirection": "forward_left",
+        "supportsSurge": "true",
+        "supportsSway": "true",
+        "swayMode": "coupled_canted_thruster"
       }
     },
     {
       "id": "mini_surge_right",
-      "name": "Mini Right Surge Thruster",
+      "name": "Mini Right Canted Horizontal Thruster",
       "kind": "Thruster",
       "positionM": {
         "x": -0.06,
@@ -38,8 +44,8 @@
         "z": 0.0
       },
       "direction": {
-        "x": 1.0,
-        "y": 0.0,
+        "x": 0.70710678,
+        "y": 0.70710678,
         "z": 0.0
       },
       "maxForwardThrustN": 5.0,
@@ -48,8 +54,14 @@
       "isEnabled": true,
       "channel": "mini_pwm_2",
       "tags": {
-        "axis": "surge",
-        "side": "right"
+        "axis": "horizontal_canted",
+        "legacyAxis": "surge",
+        "side": "right",
+        "cantAngleDeg": "45",
+        "cantDirection": "forward_right",
+        "supportsSurge": "true",
+        "supportsSway": "true",
+        "swayMode": "coupled_canted_thruster"
       }
     },
     {
@@ -73,7 +85,9 @@
       "channel": "mini_pwm_3",
       "tags": {
         "axis": "heave",
-        "position": "front"
+        "position": "front",
+        "supportsHeave": "true",
+        "supportsPitch": "true"
       }
     },
     {
@@ -97,16 +111,24 @@
       "channel": "mini_pwm_4",
       "tags": {
         "axis": "heave",
-        "position": "rear"
+        "position": "rear",
+        "supportsHeave": "true",
+        "supportsPitch": "true"
       }
     }
   ],
   "tags": {
-    "layout": "four_thruster_mini_rov",
+    "layout": "four_thruster_mini_rov_canted_horizontal",
+    "horizontalThrusterLayout": "canted_45_outward",
+    "horizontalThrusterCantDeg": "45",
     "supportsSurge": "true",
-    "supportsSway": "false",
+    "supportsSway": "true",
+    "supportsPureSway": "false",
+    "supportsCoupledSway": "true",
     "supportsHeave": "true",
     "supportsYaw": "true",
-    "pipeNavigation": "true"
+    "supportsPitch": "true",
+    "pipeNavigation": "true",
+    "controlNote": "Horizontal thrusters are 45 degree canted. Sway authority exists but is coupled with surge/yaw, not fully independent."
   }
 }

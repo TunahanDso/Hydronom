@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Authority
+namespace Hydronom.Core.State.Authority
 {
     /// <summary>
     /// State update adayÄ±nÄ±n kabul/red kararÄ±.

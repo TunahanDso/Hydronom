@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Simulation.World.Geometry;
 
 namespace Hydronom.Core.Simulation.Environment

@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.State.Authority;
+using Hydronom.Core.State.Authority;
 using Hydronom.Core.State.Models;
 using Hydronom.Runtime.StateRuntime;
 

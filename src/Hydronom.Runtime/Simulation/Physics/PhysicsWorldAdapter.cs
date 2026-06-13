@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Simulation.Environment;
 using Hydronom.Core.Simulation.Truth;

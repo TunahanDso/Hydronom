@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehicleIdentityEngine
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿using Hydronom.GroundStation.AI;
+using Hydronom.GroundStation.AI;
 using System.Net.Http;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;

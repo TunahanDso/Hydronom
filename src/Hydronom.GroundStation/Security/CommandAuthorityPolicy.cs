@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Security;
+namespace Hydronom.GroundStation.Security;
 
 /// <summary>
 /// Ground Station komutlarÄ± iÃ§in ilk seviye yetki politikasÄ±nÄ± temsil eder.

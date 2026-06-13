@@ -1,4 +1,4 @@
-﻿// Hydronom.Runtime/Buses/IExternalPoseProvider.cs
+// Hydronom.Runtime/Buses/IExternalPoseProvider.cs
 using System;
 
 namespace Hydronom.Runtime.Buses

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Common.Models
+namespace Hydronom.Core.Sensors.Common.Models
 {
     /// <summary>
     /// SensÃ¶r verisinin hangi frame convention ile yorumlanacaÄŸÄ±nÄ± belirtir.

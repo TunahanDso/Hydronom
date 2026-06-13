@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fusion.Quality;
+namespace Hydronom.Core.Fusion.Quality;
 
 /// <summary>
 /// Fusion çıktısının güven, tazelik ve kullanılabilirlik kalitesi.

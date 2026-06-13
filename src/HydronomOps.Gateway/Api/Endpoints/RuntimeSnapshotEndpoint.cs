@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeSnapshotEndpoint
  *
  * Amaç:

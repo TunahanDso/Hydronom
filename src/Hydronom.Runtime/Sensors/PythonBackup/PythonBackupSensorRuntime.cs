@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Sensors.Common.Abstractions;
+using Hydronom.Core.Sensors.Common.Abstractions;
 using Hydronom.Core.Sensors.Common.Capabilities;
 using Hydronom.Core.Sensors.Common.Diagnostics;
 using Hydronom.Core.Sensors.Common.Models;

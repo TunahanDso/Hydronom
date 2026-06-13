@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehicleTelemetryFrame
  *
  * Amaç:

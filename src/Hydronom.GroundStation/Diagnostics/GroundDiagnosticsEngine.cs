@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Diagnostics;
+namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.Core.Fleet;
 using Hydronom.GroundStation.Ack;

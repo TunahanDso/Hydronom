@@ -1,4 +1,4 @@
-﻿/*
+/*
  * BlackboxSession
  *
  * Amaç:

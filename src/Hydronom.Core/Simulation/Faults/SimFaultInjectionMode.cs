@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Faults
+namespace Hydronom.Core.Simulation.Faults
 {
     /// <summary>
     /// SimÃ¼lasyonda hata enjeksiyonunun nasÄ±l uygulanacaÄŸÄ±nÄ± belirler.

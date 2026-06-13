@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "composite": true,
     "target": "ES2022",

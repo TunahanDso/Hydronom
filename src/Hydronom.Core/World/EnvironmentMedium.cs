@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.World
+namespace Hydronom.Core.World
 {
     /// <summary>
     /// Simülasyon dünyasında aracın içinde bulunduğu temel ortam türü.

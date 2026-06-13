@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ReplayTimeline
  *
  * Amaç:

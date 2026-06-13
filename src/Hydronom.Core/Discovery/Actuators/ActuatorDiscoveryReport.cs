@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorDiscoveryReport
  *
  * Amaç:

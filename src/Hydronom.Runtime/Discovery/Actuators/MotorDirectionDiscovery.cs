@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MotorDirectionDiscovery
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Sensors.Power.Models
+namespace Hydronom.Core.Sensors.Power.Models
 {
     /// <summary>
     /// GÃ¼Ã§/batarya/akÄ±m/voltaj saÄŸlÄ±k sample verisi.

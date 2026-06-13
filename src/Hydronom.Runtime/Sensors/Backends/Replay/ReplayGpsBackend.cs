@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ReplayGpsBackend
  *
  * Amaç:

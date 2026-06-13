@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Sensors.Common.Models;
+using Hydronom.Core.Sensors.Common.Models;
 using Hydronom.Core.Sensors.Pico.Frames;
 using Hydronom.Core.Sensors.Pico.Protocol;
 using Hydronom.Runtime.Sensors.Backends.PicoUsb;

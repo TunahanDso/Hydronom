@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeLifecycle
  *
  * Amaç:

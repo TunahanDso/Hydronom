@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.TransportExecution;
+namespace Hydronom.GroundStation.TransportExecution;
 
 /// <summary>
 /// Bir transport gÃ¶nderim denemesinin sonucunu temsil eder.

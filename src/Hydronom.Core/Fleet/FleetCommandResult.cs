@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fleet;
+namespace Hydronom.Core.Fleet;
 
 /// <summary>
 /// Bir FleetCommand komutuna araÃ§/node tarafÄ±ndan verilen sonucu temsil eder.

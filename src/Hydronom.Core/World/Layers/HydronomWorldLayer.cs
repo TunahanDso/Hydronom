@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.World.Layers;
+namespace Hydronom.Core.World.Layers;
 
 /// <summary>
 /// Hydronom world model içinde kullanılan mantıksal katman.

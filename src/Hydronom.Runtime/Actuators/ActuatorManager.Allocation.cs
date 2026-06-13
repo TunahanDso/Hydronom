@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Hydronom.Core.Domain;
 using Hydronom.Core.Interfaces;

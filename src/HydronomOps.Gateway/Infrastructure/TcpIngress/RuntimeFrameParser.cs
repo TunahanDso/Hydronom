@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Infrastructure.Serialization;

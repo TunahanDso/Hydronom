@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.World.Models;
+namespace Hydronom.Core.World.Models;
 
 /// <summary>
 /// Runtime içinde kullanılan genel dünya objesi.

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ZeroKnowledgeCalibrationEngine
  *
  * Amaç:

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Core.Sensors.Common.Models;
 
 namespace Hydronom.Core.Sensors.Common.Diagnostics

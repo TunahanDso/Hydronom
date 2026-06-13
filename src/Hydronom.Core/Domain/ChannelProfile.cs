@@ -1,4 +1,4 @@
-﻿// File: Hydronom.Core/Domain/ChannelProfile.cs
+// File: Hydronom.Core/Domain/ChannelProfile.cs
 
 using System;
 using System.Collections.Generic;

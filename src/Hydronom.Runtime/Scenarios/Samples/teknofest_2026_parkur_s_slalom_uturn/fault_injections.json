@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "id":  "imu_yaw_bias_after_45s",
         "type":  "sensor_bias",

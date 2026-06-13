@@ -1,0 +1,287 @@
+{
+  "schemaVersion": "hydronom.objectives.v1",
+  "stageId": "advanced_main_uuv_single_course",
+  "displayName": "Ana UUV Tek Birleşik Parkur Objective Zinciri",
+  "maxDurationSec": 600,
+  "vehicle": "main_uuv",
+  "objectives": [
+    {
+      "id": "main_001_start",
+      "type": "start",
+      "vehicle": "main_uuv",
+      "label": "Ana UUV başlangıç alanında hazır",
+      "targetObjectId": "main_start_zone",
+      "targetPoint": { "x": 0.0, "y": 0.0, "z": -0.45 },
+      "completion": {
+        "mode": "enter_radius",
+        "radiusM": 0.65,
+        "settleSec": 0.5
+      },
+      "score": 0
+    },
+    {
+      "id": "main_010_line_entry",
+      "type": "line_follow",
+      "vehicle": "main_uuv",
+      "label": "Yönlendirme tahtasına giriş",
+      "targetPoint": { "x": 0.7, "y": 0.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.3
+      },
+      "score": 5
+    },
+    {
+      "id": "main_020_line_straight_1",
+      "type": "line_follow",
+      "vehicle": "main_uuv",
+      "label": "Hat takibi düz bölüm 1",
+      "targetPoint": { "x": 2.7, "y": 0.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.3
+      },
+      "score": 8
+    },
+    {
+      "id": "main_030_line_corner",
+      "type": "line_follow",
+      "vehicle": "main_uuv",
+      "label": "Hat takibi kırılım noktası",
+      "targetPoint": { "x": 5.0, "y": 0.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.48,
+        "settleSec": 0.3
+      },
+      "score": 9
+    },
+    {
+      "id": "main_040_line_vertical_mid",
+      "type": "line_follow",
+      "vehicle": "main_uuv",
+      "label": "Hat takibi dikey orta bölüm",
+      "targetPoint": { "x": 5.0, "y": 2.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.48,
+        "settleSec": 0.3
+      },
+      "score": 8
+    },
+    {
+      "id": "main_050_line_turn_end",
+      "type": "line_follow",
+      "vehicle": "main_uuv",
+      "label": "Hat takibi dönüş sonu",
+      "targetPoint": { "x": 5.0, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.48,
+        "settleSec": 0.3
+      },
+      "score": 10
+    },
+    {
+      "id": "main_060_handoff_zone",
+      "type": "arrive",
+      "vehicle": "main_uuv",
+      "label": "Ana UUV handoff / Mini ROV bırakma bölgesine ulaşır",
+      "targetObjectId": "main_uuv_handoff_zone",
+      "targetPoint": { "x": 8.25, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "enter_radius",
+        "radiusM": 0.55,
+        "settleSec": 0.8
+      },
+      "score": 0,
+      "parameters": {
+        "miniRovObjectiveIncluded": "false",
+        "clueInfoAssumedAvailable": "true",
+        "reason": "Ana UUV only test paketi"
+      }
+    },
+    {
+      "id": "main_070_autonomous_intikal_start",
+      "type": "autonomous_navigation",
+      "vehicle": "main_uuv",
+      "label": "Otonom intikal başlangıcı",
+      "targetPoint": { "x": 9.2, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.50,
+        "settleSec": 0.3
+      },
+      "score": 0
+    },
+    {
+      "id": "main_080_buoy_approach",
+      "type": "autonomous_navigation",
+      "vehicle": "main_uuv",
+      "label": "Dönüş şamandırasına yaklaş",
+      "targetPoint": { "x": 10.45, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.50,
+        "settleSec": 0.3
+      },
+      "score": 0
+    },
+    {
+      "id": "main_090_orbit_south",
+      "type": "buoy_orbit",
+      "vehicle": "main_uuv",
+      "label": "Şamandıra etrafı dönüş - güney noktası",
+      "targetPoint": { "x": 11.2, "y": 3.25, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.2
+      },
+      "score": 8,
+      "parameters": {
+        "orbitObjectId": "autonomous_turn_buoy",
+        "orbitCenter.x": "11.2",
+        "orbitCenter.y": "4.0",
+        "orbitRadiusM": "0.75"
+      }
+    },
+    {
+      "id": "main_100_orbit_east",
+      "type": "buoy_orbit",
+      "vehicle": "main_uuv",
+      "label": "Şamandıra etrafı dönüş - doğu noktası",
+      "targetPoint": { "x": 11.95, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.2
+      },
+      "score": 8
+    },
+    {
+      "id": "main_110_orbit_north",
+      "type": "buoy_orbit",
+      "vehicle": "main_uuv",
+      "label": "Şamandıra etrafı dönüş - kuzey noktası",
+      "targetPoint": { "x": 11.2, "y": 4.75, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.2
+      },
+      "score": 8
+    },
+    {
+      "id": "main_120_orbit_west",
+      "type": "buoy_orbit",
+      "vehicle": "main_uuv",
+      "label": "Şamandıra etrafı dönüş - batı noktası",
+      "targetPoint": { "x": 10.45, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.2
+      },
+      "score": 8
+    },
+    {
+      "id": "main_130_orbit_complete",
+      "type": "buoy_orbit_complete",
+      "vehicle": "main_uuv",
+      "label": "Şamandıra etrafından dönüş tamamlandı",
+      "targetPoint": { "x": 11.2, "y": 3.25, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.45,
+        "settleSec": 0.2
+      },
+      "score": 8,
+      "parameters": {
+        "officialEquivalent": "Şamandıranın etrafından dönüş",
+        "officialScore": "40"
+      }
+    },
+    {
+      "id": "main_140_finish_approach",
+      "type": "finish_approach",
+      "vehicle": "main_uuv",
+      "label": "Bitiş karesine yaklaş",
+      "targetPoint": { "x": 13.0, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "pass_waypoint",
+        "radiusM": 0.55,
+        "settleSec": 0.3
+      },
+      "score": 0
+    },
+    {
+      "id": "main_150_enter_finish_square",
+      "type": "finish",
+      "vehicle": "main_uuv",
+      "label": "Bitiş karesine giriş",
+      "targetObjectId": "finish_square",
+      "targetPoint": { "x": 14.0, "y": 4.0, "z": -0.45 },
+      "completion": {
+        "mode": "enter_polygon",
+        "targetObjectId": "finish_square",
+        "settleSec": 0.8
+      },
+      "score": 50,
+      "parameters": {
+        "officialEquivalent": "Bitiş alanına ulaşma",
+        "surfaceNotRequiredYet": "true"
+      }
+    },
+    {
+      "id": "main_160_surface_inside_finish",
+      "type": "surface",
+      "vehicle": "main_uuv",
+      "label": "Bitiş karesi içinde yüzeye çıkış",
+      "targetObjectId": "finish_square",
+      "targetPoint": { "x": 14.0, "y": 4.0, "z": -0.05 },
+      "completion": {
+        "mode": "enter_radius",
+        "radiusM": 0.80,
+        "settleSec": 1.0
+      },
+      "score": 10,
+      "parameters": {
+        "mustBeInsideObjectId": "finish_square",
+        "surfaceAllowedOnlyInsideFinishSquare": "true",
+        "officialEquivalent": "Karesel alan içerisinde çıkış"
+      }
+    }
+  ],
+  "penalties": [
+    {
+      "id": "penalty_main_uuv_pipe_entry",
+      "type": "forbidden_object_entry",
+      "objectType": "pipe_entry",
+      "vehicle": "main_uuv",
+      "points": -20,
+      "label": "Ana UUV boru içine girmemeli"
+    },
+    {
+      "id": "penalty_surface_outside_finish_square",
+      "type": "surface_outside_finish",
+      "vehicle": "main_uuv",
+      "points": -30,
+      "label": "Ana UUV bitiş karesi dışında yüzeye çıkmamalı"
+    }
+  ],
+  "scoring": {
+    "maxTaskScore": 140,
+    "lineFollowingScore": 40,
+    "autonomousTurnScore": 40,
+    "finishSquareScore": 60,
+    "durationScoreFormula": "training: optional",
+    "notes": [
+      "Bu main-only eğitim senaryosudur.",
+      "Mini ROV boru içi ipucu objective zinciri bilerek dahil edilmemiştir.",
+      "Otonom bölümde ipucu koordinatlarının mevcut olduğu kabul edilir."
+    ]
+  }
+}

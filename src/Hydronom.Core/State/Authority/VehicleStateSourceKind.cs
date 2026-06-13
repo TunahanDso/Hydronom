@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Authority
+namespace Hydronom.Core.State.Authority
 {
     /// <summary>
     /// VehicleState Ã¼retmeye Ã§alÄ±ÅŸan kaynaÄŸÄ±n tÃ¼rÃ¼.

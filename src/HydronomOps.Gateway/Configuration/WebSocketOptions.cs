@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Configuration;
+namespace HydronomOps.Gateway.Configuration;
 
 /// <summary>
 /// WebSocket yayÄ±n katmanÄ± ayarlarÄ±.

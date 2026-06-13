@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AutoConfigGenerator
  *
  * Amaç:

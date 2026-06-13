@@ -1,4 +1,4 @@
-﻿/*
+/*
  * TelemetrySubscriptionManager
  *
  * Amaç:

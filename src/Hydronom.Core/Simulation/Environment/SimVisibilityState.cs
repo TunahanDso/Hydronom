@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.Environment
+namespace Hydronom.Core.Simulation.Environment
 {
     /// <summary>
     /// GÃ¶rÃ¼ÅŸ/algÄ±lanabilirlik durum modeli.

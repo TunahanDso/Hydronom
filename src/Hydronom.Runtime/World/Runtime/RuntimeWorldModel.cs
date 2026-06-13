@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.World.Diagnostics;
+using Hydronom.Core.World.Diagnostics;
 using Hydronom.Core.World.Models;
 
 namespace Hydronom.Runtime.World.Runtime;

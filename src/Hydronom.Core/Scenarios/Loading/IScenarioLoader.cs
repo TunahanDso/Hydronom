@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Scenarios.Models;
+using Hydronom.Core.Scenarios.Models;
 
 namespace Hydronom.Core.Scenarios.Loading;
 

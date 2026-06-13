@@ -1,4 +1,4 @@
-﻿/*
+/*
  * RuntimeOrchestrator
  *
  * Amaç:

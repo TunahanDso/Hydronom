@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.World.Diagnostics;
+namespace Hydronom.Core.World.Diagnostics;
 
 /// <summary>
 /// World model için basit diagnostik özet.

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "hydronom.rules.v1",
+  "scenarioId": "teknofest_2026_advanced_main_uuv_single_course",
+  "rules": [
+    {
+      "id": "rule_single_stage_scope",
+      "stageId": "advanced_main_uuv_single_course",
+      "label": "Planner, judge ve geometry yalnızca tek aktif stage objelerini dikkate alır",
+      "vehicle": "main_uuv",
+      "objectTypes": ["*"],
+      "ruleType": "stage_scope_filter",
+      "severity": "critical",
+      "runtimeAction": "ignore_foreign_stage_objects"
+    },
+    {
+      "id": "rule_main_uuv_follow_board",
+      "stageId": "advanced_main_uuv_single_course",
+      "label": "Ana UUV yönlendirme tahtasını ve siyah takip şeridini takip eder",
+      "vehicle": "main_uuv",
+      "objectTypes": ["guidance_board", "track_stripe"],
+      "ruleType": "follow_without_contact",
+      "severity": "warning",
+      "runtimeAction": "mark_reset_required_on_touch"
+    },
+    {
+      "id": "rule_main_uuv_pipe_forbidden",
+      "stageId": "advanced_main_uuv_single_course",
+      "label": "Ana UUV boru içine girmez; boru bu pakette görsel/handoff referansıdır",
+      "vehicle": "main_uuv",
+      "objectTypes": ["pipe_entry", "pipe_segment"],
+      "ruleType": "forbidden_entry",
+      "severity": "critical",
+      "runtimeAction": "penalty_only_no_geometry_lock"
+    },
+    {
+      "id": "rule_autonomous_buoy_orbit",
+      "stageId": "advanced_main_uuv_single_course",
+      "label": "Ana UUV otonom dönüş şamandırası etrafında güvenli yarıçapla döner",
+      "vehicle": "main_uuv",
+      "objectTypes": ["turn_buoy"],
+      "ruleType": "orbit_around_object",
+      "severity": "info",
+      "runtimeAction": "complete_orbit_waypoints"
+    },
+    {
+      "id": "rule_finish_square_surface",
+      "stageId": "advanced_main_uuv_single_course",
+      "label": "Ana UUV yalnızca bitiş karesi içinde yüzeye çıkabilir",
+      "vehicle": "main_uuv",
+      "objectTypes": ["finish_square"],
+      "ruleType": "surface_only_inside_polygon",
+      "severity": "critical",
+      "runtimeAction": "penalty_if_surface_outside"
+    }
+  ],
+  "vehicleAccess": {
+    "main_uuv": {
+      "allowedObjectTypes": [
+        "start_zone",
+        "guidance_board",
+        "track_stripe",
+        "handoff_zone",
+        "turn_buoy",
+        "finish_square",
+        "finish_buoy"
+      ],
+      "forbiddenObjectTypes": [
+        "pipe_entry",
+        "pipe_segment"
+      ]
+    }
+  }
+}

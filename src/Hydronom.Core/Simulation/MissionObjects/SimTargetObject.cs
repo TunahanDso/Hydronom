@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Simulation.World;
+using Hydronom.Core.Simulation.World;
 using Hydronom.Core.Simulation.World.Geometry;
 
 namespace Hydronom.Core.Simulation.MissionObjects

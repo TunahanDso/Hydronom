@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Transports.Receive;
+namespace Hydronom.GroundStation.Transports.Receive;
 
 /// <summary>
 /// GroundTransportReceiver Ã§alÄ±ÅŸma ayarlarÄ±nÄ± tutar.

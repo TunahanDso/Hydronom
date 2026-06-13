@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AerialBarometerGpsEstimator
  *
  * Amaç:

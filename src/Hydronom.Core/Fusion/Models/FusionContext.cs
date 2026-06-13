@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fusion.Models;
+namespace Hydronom.Core.Fusion.Models;
 
 /// <summary>
 /// Fusion sürecinde kullanılan zaman, frame, sensor source ve runtime bağlamı.

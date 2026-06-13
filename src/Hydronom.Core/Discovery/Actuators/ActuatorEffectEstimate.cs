@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorEffectEstimate
  *
  * Amaç:

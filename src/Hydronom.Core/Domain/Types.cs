@@ -1,39 +1,86 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Hydronom.Core.Domain
 {
     public readonly record struct Vec2(double X, double Y)
     {
-        public double Length => Math.Sqrt(X * X + Y * Y);
+        public double Length
+        {
+            get
+            {
+                var x = Safe(X);
+                var y = Safe(Y);
+                var len = Math.Sqrt(x * x + y * y);
+                return double.IsFinite(len) ? len : 0.0;
+            }
+        }
+
+        public static Vec2 Zero => new(0.0, 0.0);
 
         public static double Distance(Vec2 a, Vec2 b)
         {
-            var dx = a.X - b.X;
-            var dy = a.Y - b.Y;
-            return Math.Sqrt(dx * dx + dy * dy);
+            var dx = Safe(a.X - b.X);
+            var dy = Safe(a.Y - b.Y);
+
+            var dist = Math.Sqrt(dx * dx + dy * dy);
+            return double.IsFinite(dist) ? dist : 0.0;
         }
 
         public Vec2 Normalize()
         {
             var l = Length;
-            return l == 0 ? new Vec2(0, 0) : new Vec2(X / l, Y / l);
+            return l <= 1e-12
+                ? Zero
+                : new Vec2(Safe(X) / l, Safe(Y) / l);
         }
 
-        public static Vec2 Zero => new(0, 0);
+        public Vec2 Sanitized()
+        {
+            return new Vec2(Safe(X), Safe(Y));
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
+        }
     }
 
     /// <summary>
     /// Legacy planar obstacle model.
     ///
     /// Not:
-    /// - Bu model eski analysis / runtime frame hatlarını kırmamak için korunur.
+    /// - Bu model eski analysis/runtime frame hatlarını kırmamak için korunur.
     /// - Yeni 3D / 6DOF dünya modeli için SpatialObstacle kullanılmalıdır.
+    /// - Bu model world model ground-truth değildir; sadece frame/observation taşıyıcısıdır.
     /// </summary>
-    public record Obstacle(Vec2 Position, double RadiusM);
+    public record Obstacle(Vec2 Position, double RadiusM)
+    {
+        public double EffectiveRadiusM =>
+            SanitizeRadius(RadiusM);
+
+        public Obstacle Sanitized()
+        {
+            return new Obstacle(
+                Position.Sanitized(),
+                EffectiveRadiusM
+            );
+        }
+
+        private static double SanitizeRadius(double radiusM)
+        {
+            if (!double.IsFinite(radiusM))
+                return 0.0;
+
+            return Math.Max(0.0, radiusM);
+        }
+    }
 
     /// <summary>
     /// 3D / platform-independent obstacle representation.
+    ///
+    /// Bu model hâlâ yalnızca bir obstacle observation / obstacle representation'dır.
+    /// World Model'e doğrudan scenario'dan basılacak ground-truth nesne değildir.
     ///
     /// Hydronom dünya koordinat sözleşmesi:
     /// - X: yatay ileri / local-east benzeri eksen
@@ -52,11 +99,24 @@ namespace Hydronom.Core.Domain
         string? Medium = null,
         string? Source = null)
     {
+        public double EffectiveRadiusM =>
+            SanitizeRadius(RadiusM);
+
+        public bool HasSize =>
+            SizeM is not null;
+
+        public bool IsSensorDerived =>
+            !string.IsNullOrWhiteSpace(Source) &&
+            !Source.Contains("scenario", StringComparison.OrdinalIgnoreCase) &&
+            !Source.Contains("ground-truth", StringComparison.OrdinalIgnoreCase);
+
         public static SpatialObstacle FromLegacy(Obstacle obstacle, string? source = "legacy-2d")
         {
+            var safe = obstacle.Sanitized();
+
             return new SpatialObstacle(
-                Position: new Vec3(obstacle.Position.X, obstacle.Position.Y, 0.0),
-                RadiusM: obstacle.RadiusM,
+                Position: new Vec3(safe.Position.X, safe.Position.Y, 0.0),
+                RadiusM: safe.EffectiveRadiusM,
                 SizeM: null,
                 Orientation: null,
                 Kind: "Obstacle",
@@ -68,9 +128,52 @@ namespace Hydronom.Core.Domain
         public Obstacle ToLegacy2D()
         {
             return new Obstacle(
-                new Vec2(Position.X, Position.Y),
-                RadiusM
+                new Vec2(Position.X, Position.Y).Sanitized(),
+                EffectiveRadiusM
             );
+        }
+
+        public SpatialObstacle Sanitized()
+        {
+            return new SpatialObstacle(
+                Position: SanitizeVec(Position),
+                RadiusM: EffectiveRadiusM,
+                SizeM: SizeM is Vec3 size ? SanitizeVec(size) : null,
+                Orientation: Orientation,
+                Kind: NormalizeText(Kind),
+                Medium: NormalizeText(Medium),
+                Source: NormalizeText(Source)
+            );
+        }
+
+        private static Vec3 SanitizeVec(Vec3 v)
+        {
+            return new Vec3(
+                Safe(v.X),
+                Safe(v.Y),
+                Safe(v.Z)
+            );
+        }
+
+        private static string? NormalizeText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return value.Trim();
+        }
+
+        private static double SanitizeRadius(double radiusM)
+        {
+            if (!double.IsFinite(radiusM))
+                return 0.0;
+
+            return Math.Max(0.0, radiusM);
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
         }
     }
 
@@ -91,8 +194,10 @@ namespace Hydronom.Core.Domain
     /// - SpatialObstacles
     /// - Target3D
     ///
-    /// Böylece eski analysis/decision kodları kırılmadan yeni world-aware / 6DOF
-    /// katmanlar gerçek 3D state okuyabilir.
+    /// Önemli mimari not:
+    /// FusedFrame world model değildir.
+    /// FusedFrame sadece sensör/fusion/perception hattından gelen anlık frame'dir.
+    /// World Model bu frame'lerden observation/track üretir.
     /// </summary>
     public record FusedFrame(
         DateTime TimestampUtc,
@@ -110,7 +215,7 @@ namespace Hydronom.Core.Domain
         /// <summary>
         /// 6DOF orientation. Eski kaynaklarda roll/pitch=0, yaw=HeadingDeg kabul edilir.
         /// </summary>
-        public Orientation Orientation { get; init; } = new(0.0, 0.0, HeadingDeg);
+        public Orientation Orientation { get; init; } = new(0.0, 0.0, SafeAngle(HeadingDeg));
 
         /// <summary>
         /// Dünya frame lineer hız [m/s].
@@ -130,6 +235,7 @@ namespace Hydronom.Core.Domain
 
         /// <summary>
         /// 3D hedef. Eski hedefler için Z=0 kabul edilir.
+        /// Bu alan navigation target değildir; sadece frame target taşıyıcısıdır.
         /// </summary>
         public Vec3? Target3D { get; init; } =
             Target.HasValue ? new Vec3(Target.Value.X, Target.Value.Y, 0.0) : null;
@@ -152,6 +258,30 @@ namespace Hydronom.Core.Domain
         /// </summary>
         public double DepthM => -Position3D.Z;
 
+        public double AgeSeconds(DateTime utcNow)
+        {
+            var age = utcNow - TimestampUtc;
+            if (age.TotalSeconds < 0.0)
+                return 0.0;
+
+            return double.IsFinite(age.TotalSeconds) ? age.TotalSeconds : 0.0;
+        }
+
+        public FusedFrame Sanitized()
+        {
+            return this with
+            {
+                Position = Position.Sanitized(),
+                HeadingDeg = SafeAngle(HeadingDeg),
+                Position3D = SanitizeVec(Position3D),
+                Orientation = Orientation,
+                LinearVelocity = SanitizeVec(LinearVelocity),
+                AngularVelocityDegSec = SanitizeVec(AngularVelocityDegSec),
+                SpatialObstacles = SanitizeSpatialObstacles(SpatialObstacles),
+                Target3D = Target3D is Vec3 t ? SanitizeVec(t) : null
+            };
+        }
+
         public static FusedFrame Empty { get; } = new(
             TimestampUtc: DateTime.UtcNow,
             Position: Vec2.Zero,
@@ -168,7 +298,7 @@ namespace Hydronom.Core.Domain
             Target3D = null
         };
 
-        private static IReadOnlyList<SpatialObstacle> ConvertLegacyObstacles(IReadOnlyList<Obstacle> obstacles)
+        private static IReadOnlyList<SpatialObstacle> ConvertLegacyObstacles(IReadOnlyList<Obstacle>? obstacles)
         {
             if (obstacles is null || obstacles.Count == 0)
                 return Array.Empty<SpatialObstacle>();
@@ -179,157 +309,84 @@ namespace Hydronom.Core.Domain
 
             return list;
         }
+
+        private static IReadOnlyList<SpatialObstacle> SanitizeSpatialObstacles(
+            IReadOnlyList<SpatialObstacle>? obstacles)
+        {
+            if (obstacles is null || obstacles.Count == 0)
+                return Array.Empty<SpatialObstacle>();
+
+            var list = new List<SpatialObstacle>(obstacles.Count);
+            foreach (var obstacle in obstacles)
+                list.Add(obstacle.Sanitized());
+
+            return list;
+        }
+
+        private static Vec3 SanitizeVec(Vec3 v)
+        {
+            return new Vec3(
+                Safe(v.X),
+                Safe(v.Y),
+                Safe(v.Z)
+            );
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
+        }
+
+        private static double SafeAngle(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
+        }
     }
 
     /// <summary>
-    /// Görev tamamlanma yetkisinin kimde olduğunu belirtir.
+    /// Analysis / Perception tarafından üretilebilecek hafif içgörü modeli.
     ///
-    /// TaskManager:
-    /// - Normal GoToPoint / manuel rota görevleri için kullanılır.
-    /// - TaskManager hedefe vardığını düşündüğünde görevi temizleyebilir.
-    ///
-    /// ExternalScenario:
-    /// - Scenario / parkur / yarış görevi için kullanılır.
-    /// - TaskManager görevi erken temizlememelidir.
-    /// - Objective gerçekten tamamlandı mı kararını RuntimeScenarioController / ScenarioObjectiveTracker verir.
+    /// Bu model sürüş kararı değildir.
+    /// Decision/Planner bu bilgiyi doğrudan "aracı kır" emri gibi kullanmamalıdır.
+    /// Kalıcı mimaride obstacle/clearance bilgileri World Model + Geometry üzerinden gelmelidir.
     /// </summary>
-    public enum TaskCompletionAuthority
-    {
-        TaskManager = 0,
-        ExternalScenario = 1
-    }
-
-    /// <summary>
-    /// Görev tanımı:
-    /// - Name: Görev adı
-    /// - Target: Tek hedef noktası
-    /// - Waypoints: Çok noktalı rota
-    /// - HoldOnArrive: Son noktada bekle
-    /// - WaitSecondsPerPoint: Her waypoint'te bekleme süresi
-    /// - Loop: Rota bittiğinde başa sar
-    /// - CompletionAuthority: Görevin kim tarafından tamamlanacağı
-    /// - ExternalOwnerId: Scenario / mission / fleet operation gibi dış sahiplik bilgisi
-    /// - ExternalObjectiveId: Dış görev sistemindeki objective kimliği
-    /// </summary>
-    public record TaskDefinition(string Name, Vec3? Target)
-    {
-        public List<Vec3> Waypoints { get; set; } = new();
-
-        public bool HoldOnArrive { get; set; } = false;
-
-        public double WaitSecondsPerPoint { get; set; } = 0.0;
-
-        public bool Loop { get; set; } = false;
-
-        /// <summary>
-        /// Görevin tamamlanma yetkisi.
-        /// Varsayılan olarak normal görevlerde TaskManager yetkilidir.
-        /// Scenario görevlerinde ExternalScenario yapılmalıdır.
-        /// </summary>
-        public TaskCompletionAuthority CompletionAuthority { get; set; } = TaskCompletionAuthority.TaskManager;
-
-        /// <summary>
-        /// Görevi dışarıdan sahiplenen sistemin kimliği.
-        /// Örnek: scenario id, mission id, fleet operation id.
-        /// </summary>
-        public string? ExternalOwnerId { get; set; }
-
-        /// <summary>
-        /// Dış görev sistemindeki objective/hedef kimliği.
-        /// Örnek: reach_wp_1.
-        /// </summary>
-        public string? ExternalObjectiveId { get; set; }
-
-        /// <summary>
-        /// Bu task dış scenario/controller tarafından mı tamamlanacak?
-        /// </summary>
-        public bool IsExternallyCompleted =>
-            CompletionAuthority == TaskCompletionAuthority.ExternalScenario;
-
-        /// <summary>
-        /// Görev aktif olarak hedef içeriyor mu?
-        /// </summary>
-        public bool HasTarget => Target is not null || Waypoints.Count > 0;
-
-        /// <summary>
-        /// Tek hedefli görev oluşturmak için kısa yardımcı.
-        /// </summary>
-        public static TaskDefinition GoTo(string name, Vec3 target, bool holdOnArrive = false)
-        {
-            return new TaskDefinition(name, target)
-            {
-                HoldOnArrive = holdOnArrive
-            };
-        }
-
-        /// <summary>
-        /// Scenario / parkur objective'i için tek hedefli görev oluşturur.
-        ///
-        /// Bu görevlerde TaskManager görevi erken temizlememelidir;
-        /// tamamlanma kararı dış scenario controller tarafındadır.
-        /// </summary>
-        public static TaskDefinition ScenarioGoTo(
-            string name,
-            Vec3 target,
-            string scenarioId,
-            string objectiveId,
-            bool holdOnArrive = false)
-        {
-            return new TaskDefinition(name, target)
-            {
-                HoldOnArrive = holdOnArrive,
-                CompletionAuthority = TaskCompletionAuthority.ExternalScenario,
-                ExternalOwnerId = scenarioId,
-                ExternalObjectiveId = objectiveId
-            };
-        }
-
-        /// <summary>
-        /// Çok noktalı rota görevi oluşturmak için yardımcı.
-        /// </summary>
-        public static TaskDefinition Route(
-            string name,
-            IEnumerable<Vec3> waypoints,
-            bool loop = false,
-            bool holdOnArrive = false,
-            double waitSecondsPerPoint = 0.0)
-        {
-            var task = new TaskDefinition(name, null)
-            {
-                Loop = loop,
-                HoldOnArrive = holdOnArrive,
-                WaitSecondsPerPoint = waitSecondsPerPoint
-            };
-
-            task.Waypoints.AddRange(waypoints);
-            return task;
-        }
-
-        /// <summary>
-        /// Mevcut görevi dış scenario completion authority ile işaretlemek için yardımcı.
-        /// </summary>
-        public TaskDefinition WithExternalScenarioCompletion(
-            string scenarioId,
-            string objectiveId)
-        {
-            CompletionAuthority = TaskCompletionAuthority.ExternalScenario;
-            ExternalOwnerId = scenarioId;
-            ExternalObjectiveId = objectiveId;
-            return this;
-        }
-    }
-
     public record Insights(bool HasObstacleAhead, double ClearanceLeft, double ClearanceRight)
     {
-        public static Insights Clear { get; } = new(false, double.PositiveInfinity, double.PositiveInfinity);
+        public static Insights Clear { get; } = new(
+            HasObstacleAhead: false,
+            ClearanceLeft: double.PositiveInfinity,
+            ClearanceRight: double.PositiveInfinity
+        );
+
+        public Insights Sanitized()
+        {
+            return new Insights(
+                HasObstacleAhead,
+                SanitizeClearance(ClearanceLeft),
+                SanitizeClearance(ClearanceRight)
+            );
+        }
+
+        private static double SanitizeClearance(double value)
+        {
+            if (double.IsPositiveInfinity(value))
+                return double.PositiveInfinity;
+
+            if (!double.IsFinite(value))
+                return 0.0;
+
+            return Math.Max(0.0, value);
+        }
     }
 
     /// <summary>
     /// Manuel sürüş komutu.
-    /// Karar modülünden bağımsız doğrudan kullanıcı veya üst runtime tarafından üretilebilir.
+    ///
     /// Normalize alan önerisi:
     /// - Surge/Sway/Heave/Roll/Pitch/Yaw -> genelde [-1, +1]
-    /// Ancak bu sınıf değeri zorla clamp etmez.
+    ///
+    /// Bu sınıf ham komutu taşır.
+    /// Fiziksel clamp/safety limitleme Safety/Limiter katmanının işidir.
     /// </summary>
     public readonly record struct ManualDriveCommand(
         double Surge,
@@ -349,9 +406,25 @@ namespace Hydronom.Core.Domain
             Math.Abs(Pitch) < 1e-12 &&
             Math.Abs(Yaw) < 1e-12;
 
+        public ManualDriveCommand Sanitized()
+        {
+            return new ManualDriveCommand(
+                Safe(Surge),
+                Safe(Sway),
+                Safe(Heave),
+                Safe(Roll),
+                Safe(Pitch),
+                Safe(Yaw)
+            );
+        }
+
         /// <summary>
         /// Manuel komutu fiziksel karara dönüştürmek için basit yardımcı.
-        /// Katsayıları üst katman verebilir.
+        ///
+        /// Not:
+        /// Bu yardımcı geriye dönük uyumluluk içindir.
+        /// Kalıcı mimaride manual komut önce Decision Authority tarafından mod seçimine,
+        /// sonra Controller/Limiter hattına girmelidir.
         /// </summary>
         public DecisionCommand ToDecisionCommand(
             double maxFx,
@@ -361,14 +434,21 @@ namespace Hydronom.Core.Domain
             double maxTy,
             double maxTz)
         {
+            var m = Sanitized();
+
             return new DecisionCommand(
-                fx: Surge * maxFx,
-                fy: Sway * maxFy,
-                fz: Heave * maxFz,
-                tx: Roll * maxTx,
-                ty: Pitch * maxTy,
-                tz: Yaw * maxTz
+                fx: m.Surge * Safe(maxFx),
+                fy: m.Sway * Safe(maxFy),
+                fz: m.Heave * Safe(maxFz),
+                tx: m.Roll * Safe(maxTx),
+                ty: m.Pitch * Safe(maxTy),
+                tz: m.Yaw * Safe(maxTz)
             );
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
         }
     }
 
@@ -377,34 +457,30 @@ namespace Hydronom.Core.Domain
     /// - Fx, Fy, Fz : body-frame kuvvet bileşenleri
     /// - Tx, Ty, Tz : body-frame tork bileşenleri
     ///
+    /// Önemli mimari not:
+    /// DecisionCommand nihai wrench/komut taşıyıcısıdır.
+    /// Task Manager, World Model, Geometry veya Planner bunu üretmemelidir.
+    ///
     /// Geriye dönük uyumluluk:
     /// - Throttle01      -> Fx
     /// - RudderNeg1To1   -> Tz
     /// </summary>
     public record DecisionCommand
     {
-        // 6DoF kuvvetler
         public double Fx { get; init; }
         public double Fy { get; init; }
         public double Fz { get; init; }
 
-        // 6DoF torklar
         public double Tx { get; init; }
         public double Ty { get; init; }
         public double Tz { get; init; }
 
-        /// <summary>
-        /// Eski planar API alias'ı.
-        /// </summary>
         public double Throttle01
         {
             get => Fx;
             init => Fx = value;
         }
 
-        /// <summary>
-        /// Eski planar API alias'ı.
-        /// </summary>
         public double RudderNeg1To1
         {
             get => Tz;
@@ -425,20 +501,12 @@ namespace Hydronom.Core.Domain
         {
         }
 
-        /// <summary>
-        /// Geriye dönük planar kurucu:
-        /// throttle -> Fx
-        /// rudder   -> Tz
-        /// </summary>
         public DecisionCommand(double throttle01, double rudderNeg1To1)
         {
             Fx = throttle01;
             Tz = rudderNeg1To1;
         }
 
-        /// <summary>
-        /// Tam 6DoF kurucu.
-        /// </summary>
         public DecisionCommand(
             double fx, double fy, double fz,
             double tx, double ty, double tz)
@@ -469,34 +537,66 @@ namespace Hydronom.Core.Domain
             double maxTz)
             => manual.ToDecisionCommand(maxFx, maxFy, maxFz, maxTx, maxTy, maxTz);
 
-        /// <summary>
-        /// Belirli katsayı ile tüm eksenleri ölçekler.
-        /// </summary>
-        public DecisionCommand Scale(double factor)
+        public DecisionCommand Sanitized()
         {
             return new DecisionCommand(
-                fx: Fx * factor,
-                fy: Fy * factor,
-                fz: Fz * factor,
-                tx: Tx * factor,
-                ty: Ty * factor,
-                tz: Tz * factor
+                fx: Safe(Fx),
+                fy: Safe(Fy),
+                fz: Safe(Fz),
+                tx: Safe(Tx),
+                ty: Safe(Ty),
+                tz: Safe(Tz)
             );
         }
 
-        /// <summary>
-        /// Manual / safety override akışlarında hızlı toplama için.
-        /// </summary>
+        public DecisionCommand Scale(double factor)
+        {
+            double f = Safe(factor);
+            var c = Sanitized();
+
+            return new DecisionCommand(
+                fx: c.Fx * f,
+                fy: c.Fy * f,
+                fz: c.Fz * f,
+                tx: c.Tx * f,
+                ty: c.Ty * f,
+                tz: c.Tz * f
+            );
+        }
+
         public DecisionCommand Add(DecisionCommand other)
         {
+            var a = Sanitized();
+            var b = other?.Sanitized() ?? Zero;
+
             return new DecisionCommand(
-                fx: Fx + other.Fx,
-                fy: Fy + other.Fy,
-                fz: Fz + other.Fz,
-                tx: Tx + other.Tx,
-                ty: Ty + other.Ty,
-                tz: Tz + other.Tz
+                fx: a.Fx + b.Fx,
+                fy: a.Fy + b.Fy,
+                fz: a.Fz + b.Fz,
+                tx: a.Tx + b.Tx,
+                ty: a.Ty + b.Ty,
+                tz: a.Tz + b.Tz
             );
+        }
+
+        public DecisionCommand Deadband(double epsilon = 1e-9)
+        {
+            double e = Math.Max(0.0, Safe(epsilon));
+            var c = Sanitized();
+
+            return new DecisionCommand(
+                fx: Math.Abs(c.Fx) <= e ? 0.0 : c.Fx,
+                fy: Math.Abs(c.Fy) <= e ? 0.0 : c.Fy,
+                fz: Math.Abs(c.Fz) <= e ? 0.0 : c.Fz,
+                tx: Math.Abs(c.Tx) <= e ? 0.0 : c.Tx,
+                ty: Math.Abs(c.Ty) <= e ? 0.0 : c.Ty,
+                tz: Math.Abs(c.Tz) <= e ? 0.0 : c.Tz
+            );
+        }
+
+        private static double Safe(double value)
+        {
+            return double.IsFinite(value) ? value : 0.0;
         }
     }
 }

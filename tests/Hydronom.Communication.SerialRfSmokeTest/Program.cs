@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Hydronom.Core.Communication.Envelope;
 using Hydronom.Core.Communication.Pipeline;
 using Hydronom.Core.Communication.Telemetry;

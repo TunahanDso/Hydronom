@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Models
+namespace Hydronom.Core.State.Models
 {
     /// <summary>
     /// GÃ¶vde yÃ¶nelimi ve aÃ§Ä±sal hÄ±z modeli.

@@ -1,4 +1,4 @@
-﻿using HydronomOps.Gateway.Contracts.Common;
+using HydronomOps.Gateway.Contracts.Common;
 using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Infrastructure.Broadcast;
 using HydronomOps.Gateway.Services.Health;

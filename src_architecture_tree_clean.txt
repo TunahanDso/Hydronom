@@ -1,4 +1,4 @@
-﻿src\Hydronom.AI
+src\Hydronom.AI
 src\Hydronom.ControlApp
 src\Hydronom.Core
 src\Hydronom.GroundStation

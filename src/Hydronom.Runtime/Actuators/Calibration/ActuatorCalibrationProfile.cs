@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ActuatorCalibrationProfile
  *
  * Amaç:

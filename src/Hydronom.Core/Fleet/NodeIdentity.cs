@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fleet;
+namespace Hydronom.Core.Fleet;
 
 /// <summary>
 /// Hydronom Fleet mimarisinde bir dÃ¼ÄŸÃ¼mÃ¼n kimlik bilgisini temsil eder.

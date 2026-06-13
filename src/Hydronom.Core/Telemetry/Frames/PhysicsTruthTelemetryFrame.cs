@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PhysicsTruthTelemetryFrame
  *
  * Amaç:

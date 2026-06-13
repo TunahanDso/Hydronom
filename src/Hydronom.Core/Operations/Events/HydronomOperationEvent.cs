@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomOperationEvent
  *
  * Amaç:

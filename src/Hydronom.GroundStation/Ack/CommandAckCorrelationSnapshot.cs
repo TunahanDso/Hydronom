@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Ack;
+namespace Hydronom.GroundStation.Ack;
 
 using Hydronom.Core.Communication;
 

@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Scenarios.Judging;
+using Hydronom.Core.Scenarios.Judging;
 using Hydronom.Core.Scenarios.Models;
 using Hydronom.Core.Scenarios.Reports;
 using Hydronom.Core.Scenarios.Runtime;

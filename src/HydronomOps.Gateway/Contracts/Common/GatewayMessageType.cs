@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Contracts.Common;
+namespace HydronomOps.Gateway.Contracts.Common;
 
 /// <summary>
 /// Gateway Ã¼zerinden yayÄ±nlanacak mesaj tipleri.

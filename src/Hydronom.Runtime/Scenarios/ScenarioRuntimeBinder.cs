@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Scenarios.Models;
+using Hydronom.Core.Scenarios.Models;
 using Hydronom.Core.World.Models;
 using Hydronom.Runtime.World.Runtime;
 

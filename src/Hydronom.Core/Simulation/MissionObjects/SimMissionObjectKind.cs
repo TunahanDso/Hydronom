@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.MissionObjects
+namespace Hydronom.Core.Simulation.MissionObjects
 {
     /// <summary>
     /// SimÃ¼lasyon dÃ¼nyasÄ±nda gÃ¶rev anlamÄ± taÅŸÄ±yan nesne tÃ¼rleri.

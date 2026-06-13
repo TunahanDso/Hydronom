@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SensorLifecycleManager
  *
  * Amaç:

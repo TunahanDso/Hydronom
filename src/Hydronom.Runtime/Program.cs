@@ -983,7 +983,7 @@ partial class Program
         }
     }
 
-    private static bool ShouldBindPlanLookAheadToDecision(
+        private static bool ShouldBindPlanLookAheadToDecision(
         TaskDefinition? task,
         RuntimePlanningSnapshot planningSnapshot,
         RuntimeScenarioGeometrySnapshot geometrySnapshot,
@@ -1006,26 +1006,23 @@ partial class Program
         }
 
         /*
-         * Scenario reach_wp gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶revlerinde local-detour, gerÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ek gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶rev hedefini ezemez.
-         * Bu, WP2'ye gitmesi gereken aracÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±n saÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ dubanÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±n altÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ndaki detour'a kÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±rÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±lmasÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±nÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â± engeller.
+         * Kritik düzeltme:
+         *
+         * Scenario completion hâlâ gerçek task/wp üzerinden yapılır.
+         * Fakat Decision katmanı, güvenli kontrol hedefi olarak planner lookahead/local-detour
+         * noktasını kullanabilmelidir.
+         *
+         * Eski davranış reach_wp + local-detour durumunda planı reddediyordu.
+         * Bu yüzden planner obstacle-bypass üretse bile araç WP'ye düz bakıyor,
+         * yaw komutu sıfıra yakın kalıyor ve duba dibine akıyordu.
+         *
+         * Burada task hedefini kalıcı olarak değiştirmiyoruz; sadece Decision için
+         * geçici takip hedefini planner lookahead noktasına bağlıyoruz.
          */
-        if (IsExternalReachWaypointTask(task) &&
-            IsLocalDetourLookAhead(planningSnapshot))
-        {
-            return false;
-        }
-
-        if (IsExternalReachWaypointTask(task) &&
-            (softBlocked || geometrySnapshot.SoftBlocked || finalRiskScore >= 0.50) &&
-            IsLocalDetourLookAhead(planningSnapshot))
-        {
-            return false;
-        }
-
         return true;
     }
 
-    private static bool ShouldBindPlanReferenceToIntent(
+        private static bool ShouldBindPlanReferenceToIntent(
         TaskDefinition? task,
         RuntimePlanningSnapshot planningSnapshot,
         RuntimeScenarioGeometrySnapshot geometrySnapshot,
@@ -1048,22 +1045,15 @@ partial class Program
         }
 
         /*
-         * Scenario waypoint gÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶revlerinde local-detour intent hedefini ezemez.
-         * Bu kapÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±/slalomda "WP2'ye git" hedefinin "saÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ duba altÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ndaki detour'a git"e dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸mesini engeller.
+         * Kritik düzeltme:
+         *
+         * ControlIntent, geçerli trajectory reference'ını takip etmelidir.
+         * Mission/scenario ilerleme kararı yine RuntimeScenarioController ve gerçek
+         * objective/wp hedefi tarafından verilir.
+         *
+         * Yani local-detour görev hedefini ezmez; sadece aracı güvenli ara noktadan
+         * geçirerek asıl waypoint'e ulaştırır.
          */
-        if (IsExternalReachWaypointTask(task) &&
-            IsLocalDetourLookAhead(planningSnapshot))
-        {
-            return false;
-        }
-
-        if (IsExternalReachWaypointTask(task) &&
-            (softBlocked || geometrySnapshot.SoftBlocked || finalRiskScore >= 0.50) &&
-            IsLocalDetourLookAhead(planningSnapshot))
-        {
-            return false;
-        }
-
         return true;
     }
 

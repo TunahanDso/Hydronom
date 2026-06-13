@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Models
+namespace Hydronom.Core.State.Models
 {
     /// <summary>
     /// Operasyonel hız modeli.

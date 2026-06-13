@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Security;
+namespace Hydronom.GroundStation.Security;
 
 /// <summary>
 /// Komut doÄŸrulama, yetki ve safety gate sonucunu temsil eder.

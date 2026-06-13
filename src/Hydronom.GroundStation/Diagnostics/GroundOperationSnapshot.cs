@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Diagnostics;
+namespace Hydronom.GroundStation.Diagnostics;
 
 using Hydronom.GroundStation.Ack;
 using Hydronom.GroundStation.LinkHealth;

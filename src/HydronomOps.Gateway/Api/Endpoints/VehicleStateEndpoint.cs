@@ -1,4 +1,4 @@
-﻿/*
+/*
  * VehicleStateEndpoint
  *
  * Amaç:

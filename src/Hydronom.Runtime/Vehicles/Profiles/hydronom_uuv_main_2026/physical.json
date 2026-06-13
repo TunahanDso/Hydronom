@@ -1,8 +1,8 @@
 {
-  "lengthM": 0.75,
-  "widthM": 0.48,
-  "heightM": 0.32,
-  "collisionRadiusM": 0.48,
+  "lengthM": 0.20,
+  "widthM": 0.30,
+  "heightM": 0.30,
+  "collisionRadiusM": 0.24,
   "mass": {
     "massKg": 13.5,
     "centerOfMassM": {
@@ -11,14 +11,14 @@
       "z": -0.03
     },
     "inertiaKgM2": {
-      "x": 0.55,
-      "y": 0.85,
-      "z": 0.95
+      "x": 0.203,
+      "y": 0.146,
+      "z": 0.146
     }
   },
   "buoyancy": {
     "enabled": true,
-    "displacedVolumeM3": 0.0137,
+    "displacedVolumeM3": 0.01355,
     "centerOfBuoyancyM": {
       "x": 0.0,
       "y": 0.0,
@@ -31,33 +31,40 @@
   "hydrodynamics": {
     "enabled": true,
     "linearDrag": {
-      "x": 8.0,
-      "y": 12.0,
-      "z": 14.0
+      "x": 4.8,
+      "y": 3.2,
+      "z": 3.2
     },
     "quadraticDrag": {
-      "x": 18.0,
-      "y": 24.0,
-      "z": 28.0
-    },
-    "angularLinearDrag": {
-      "x": 2.5,
-      "y": 3.0,
-      "z": 3.5
-    },
-    "angularQuadraticDrag": {
-      "x": 5.0,
-      "y": 6.0,
+      "x": 10.5,
+      "y": 7.0,
       "z": 7.0
     },
-    "addedMassSurgeKg": 2.0,
-    "addedMassSwayKg": 3.0,
-    "addedMassHeaveKg": 3.5
+    "angularLinearDrag": {
+      "x": 1.4,
+      "y": 1.1,
+      "z": 1.1
+    },
+    "angularQuadraticDrag": {
+      "x": 2.8,
+      "y": 2.2,
+      "z": 2.2
+    },
+    "addedMassSurgeKg": 1.2,
+    "addedMassSwayKg": 1.6,
+    "addedMassHeaveKg": 1.6
+  },
+  "visual": {
+    "lengthM": 0.20,
+    "widthM": 0.30,
+    "heightM": 0.30,
+    "collisionRadiusM": 0.24,
+    "modelScale": 1.0
   },
   "tags": {
-    "sizeClass": "competition_uuv",
-    "dimensionsSource": "representative",
-    "massSource": "representative",
+    "sizeClass": "compact_competition_uuv",
+    "dimensionsSource": "user_approx_20x30x30_cm",
+    "massSource": "representative_pending_scale_measurement",
     "coordinateFrame": "body_x_forward_y_right_z_up"
   }
 }

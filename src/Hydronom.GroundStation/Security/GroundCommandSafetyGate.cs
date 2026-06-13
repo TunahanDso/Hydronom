@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Security;
+namespace Hydronom.GroundStation.Security;
 
 using Hydronom.Core.Fleet;
 

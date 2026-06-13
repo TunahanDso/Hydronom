@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HydronomOps.Gateway.Contracts.Common;
 
 namespace HydronomOps.Gateway.Contracts.Diagnostics;

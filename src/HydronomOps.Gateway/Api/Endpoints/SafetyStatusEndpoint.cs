@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SafetyStatusEndpoint
  *
  * Amaç:

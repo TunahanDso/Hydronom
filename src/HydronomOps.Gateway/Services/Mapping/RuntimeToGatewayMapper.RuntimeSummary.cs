@@ -1,4 +1,4 @@
-﻿using HydronomOps.Gateway.Contracts.Diagnostics;
+using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Contracts.Sensors;
 using HydronomOps.Gateway.Contracts.Vehicle;
 using System.Text.Json;

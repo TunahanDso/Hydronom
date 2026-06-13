@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HydronomProductIdentity
  *
  * Amaç:

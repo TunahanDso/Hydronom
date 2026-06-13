@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Simulation.World
+namespace Hydronom.Core.Simulation.World
 {
     /// <summary>
     /// DÃ¼nya nesneleri iÃ§in gÃ¶rsel/fiziksel materyal tanÄ±mÄ±.

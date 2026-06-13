@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.AI.Safety;
 using Hydronom.Core.Domain.AI;
 

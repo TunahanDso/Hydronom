@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Transports.Receive;
+namespace Hydronom.GroundStation.Transports.Receive;
 
 using Hydronom.Core.Communication;
 using Hydronom.GroundStation.LinkHealth;

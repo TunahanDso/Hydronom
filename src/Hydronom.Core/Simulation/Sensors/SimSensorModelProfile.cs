@@ -1,4 +1,4 @@
-﻿using Hydronom.Core.Simulation.Faults;
+using Hydronom.Core.Simulation.Faults;
 
 namespace Hydronom.Core.Simulation.Sensors
 {

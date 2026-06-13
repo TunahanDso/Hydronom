@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SensorLossSafetyPolicy
  *
  * Amaç:

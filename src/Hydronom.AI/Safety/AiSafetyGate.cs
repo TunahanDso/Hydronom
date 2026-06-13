@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Hydronom.AI.Planning.Validation;
 using Hydronom.AI.Policies;

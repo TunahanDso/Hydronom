@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.Transports.Tcp;
+namespace Hydronom.GroundStation.Transports.Tcp;
 
 using System.Net;
 using System.Net.Sockets;

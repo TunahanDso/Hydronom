@@ -1,4 +1,4 @@
-﻿namespace HydronomOps.Gateway.Contracts.Common;
+namespace HydronomOps.Gateway.Contracts.Common;
 
 /// <summary>
 /// Veri tazelik bilgisini taÅŸÄ±r.

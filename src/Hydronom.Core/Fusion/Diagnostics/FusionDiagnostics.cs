@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Fusion.Diagnostics;
+namespace Hydronom.Core.Fusion.Diagnostics;
 
 /// <summary>
 /// Fusion input sayısı, kullanılan sensörler, reddedilen sample'lar ve confidence bilgisini taşır.

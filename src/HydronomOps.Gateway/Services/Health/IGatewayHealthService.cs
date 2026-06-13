@@ -1,4 +1,4 @@
-﻿using HydronomOps.Gateway.Contracts.Diagnostics;
+using HydronomOps.Gateway.Contracts.Diagnostics;
 using HydronomOps.Gateway.Domain;
 
 namespace HydronomOps.Gateway.Services.Health;

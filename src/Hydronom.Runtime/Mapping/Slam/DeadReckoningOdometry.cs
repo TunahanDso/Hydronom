@@ -1,4 +1,4 @@
-﻿/*
+/*
  * DeadReckoningOdometry
  *
  * Amaç:

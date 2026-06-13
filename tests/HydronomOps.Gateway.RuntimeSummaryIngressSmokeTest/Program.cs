@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using HydronomOps.Gateway.Infrastructure.TcpIngress;
 using HydronomOps.Gateway.Infrastructure.Time;
 using HydronomOps.Gateway.Services.Mapping;

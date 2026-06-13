@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CSharpPrimarySensorHost
  *
  * Amaç:

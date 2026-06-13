@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.State.Validation
+namespace Hydronom.Core.State.Validation
 {
     /// <summary>
     /// State doÄŸrulama bulgusunun Ã¶nem seviyesi.

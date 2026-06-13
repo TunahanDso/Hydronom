@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hydronom.Runtime.Tuning;
 
 namespace Hydronom.Runtime.Tuning

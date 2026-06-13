@@ -1,4 +1,4 @@
-﻿namespace Hydronom.GroundStation.FleetRegistry;
+namespace Hydronom.GroundStation.FleetRegistry;
 
 using Hydronom.Core.Fleet;
 

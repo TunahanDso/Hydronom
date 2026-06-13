@@ -1,4 +1,4 @@
-﻿namespace Hydronom.Core.Scenarios.Models;
+namespace Hydronom.Core.Scenarios.Models;
 
 /// <summary>
 /// Hydronom senaryo tanımı.

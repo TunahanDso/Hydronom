@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HydronomOps.Gateway.Contracts.Actuators;
 using HydronomOps.Gateway.Contracts.Diagnostics;
